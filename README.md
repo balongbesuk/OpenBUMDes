@@ -26,7 +26,7 @@
   - [3. 5 Laporan Keuangan Kepmendes 136/2022](#3--5-laporan-keuangan-standar-kepmendes-1362022)
   - [4. Tutup Buku & Buka Saldo Otomatis](#4--tutup-buku--buka-buku-tahunan)
   - [5. Master Bagan Akun Standar (COA Dinamis)](#5--bagan-akun-standar-coa-dinamis)
-  - [6. Asisten Pembaca Kwitansi AI](#6--asisten-pintar--audit-kwitansi-google-gemini-ai)
+  - [6. Asisten Jurnal Otomatis (Gemini AI & NLP)](#6--asisten-pintar-pencatatan-transaksi-google-gemini-ai--nlp)
   - [7. Administrasi, Pejabat & Pemeliharaan](#7--keamanan-pengaturan-instansi--pemeliharaan)
 - [Tech Stack & Arsitektur](#-tech-stack--arsitektur)
 - [Panduan Instalasi & Menjalankan](#-panduan-instalasi--menjalankan)
@@ -112,9 +112,9 @@ Seluruh laporan dihasilkan secara otomatis dan *real-time*:
 
 ---
 
-### 6. 🤖 Asisten Pintar & Audit Kwitansi (Google Gemini AI)
-* **AI Kwitansi Reader:** Unggah foto atau scan nota/kuitansi belanja, sistem secara cerdas mengekstrak tanggal, nominal, nama toko/rekanan, dan merekomendasikan pasangan akun debit/kredit yang tepat.
-* **Mode Offline Terintegrasi:** Fitur AI bersifat opsional; aplikasi tetap berfungsi 100% penuh secara offline dengan mesin aturan cerdas berbasis NLP bawaan.
+### 6. 🤖 Asisten Pintar Pencatatan Transaksi (Google Gemini AI & NLP)
+* **Natural Language Transaction Parser:** Operator cukup mengetik catatan transaksi dalam bahasa santai sehari-hari (misal: *"Terima sewa lapak rest area 500rb tunai"* atau *"Beli bensin motor dinas 50rb"*), sistem secara otomatis mengonversinya menjadi pasangan jurnal debit-kredit standar Kepmendes 136/2022, klasifikasi BKM/BKK, dan pos Arus Kas.
+* **Mode Offline Cerdas:** Fitur AI opsional; jika tanpa internet atau API Key, aplikasi tetap berjalan 100% penuh secara offline dengan mesin aturan NLP bawaan (0ms latency, hemat kuota).
 
 ---
 
