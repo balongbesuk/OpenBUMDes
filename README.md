@@ -1,126 +1,108 @@
-# 🏛️ OpenBUMDes
+﻿# OpenBUMDes
 
-> **Sistem Informasi Manajemen, Operasional & Akuntansi Keuangan BUMDes Terstandar Keputusan Menteri Desa, PDTT No. 136 Tahun 2022 & SAK EMKM**
+> **Sistem Informasi Akuntansi & Laporan Keuangan BUMDes Terpadu**  
+> Standar Resmi **Keputusan Menteri Desa, PDTT No. 136 Tahun 2022** & **SAK EMKM**
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.5-black?style=flat-square&logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.0-blue?style=flat-square&logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
-[![Prisma ORM](https://img.shields.io/badge/Prisma-5.21-2D3748?style=flat-square&logo=prisma)](https://www.prisma.io/)
-[![SQLite](https://img.shields.io/badge/SQLite-WAL%20Mode-003B57?style=flat-square&logo=sqlite)](https://www.sqlite.org/)
-[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-AI%20Assisted-8E75B2?style=flat-square&logo=google)](https://ai.google.dev/)
-[![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat-square)](LICENSE)
+[![Lisensi: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Framework: Next.js 15](https://img.shields.io/badge/Framework-Next.js%2015-black)](https://nextjs.org/)
+[![UI: React 19](https://img.shields.io/badge/UI-React%2019-61dafb)](https://react.dev/)
+[![Styling: Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS-38bdf8)](https://tailwindcss.com/)
+[![Database: SQLite WAL](https://img.shields.io/badge/Database-SQLite%20(WAL)-003b57)](https://www.sqlite.org/)
+[![ORM: Prisma](https://img.shields.io/badge/ORM-Prisma%205-2d3748)](https://www.prisma.io/)
+[![AI: Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini-orange)](https://aistudio.google.com/)
 
 ---
 
 ## 📌 Tentang OpenBUMDes
 
-**OpenBUMDes** adalah sistem informasi manajemen dan akuntansi keuangan berbasis web modern, tangguh, dan *open-source* yang dikembangkan secara spesifik untuk menjawab kebutuhan **Badan Usaha Milik Desa (BUMDes / BUMDes Bersama)** di seluruh Indonesia.
+**OpenBUMDes** adalah aplikasi akuntansi dan pelaporan keuangan berbasis web sumber terbuka (*open source*) yang dibangun khusus untuk memudahkan Badan Usaha Milik Desa (BUMDes / BUMDesa Bersama) di seluruh Indonesia dalam mengelola pembukuan kas harian dan menyusun laporan pertanggungjawaban tahunan.
 
-Sistem ini memadukan **operasional multi-unit usaha desa** dengan sistem pembukuan berstandar ganda (*double-entry bookkeeping*) yang sepenuhnya patuh terhadap:
+Aplikasi ini mengadopsi secara ketat dan penuh:
 1. **Keputusan Menteri Desa, Pembangunan Daerah Tertinggal, dan Transmigrasi (Kepmendesa PDTT) No. 136 Tahun 2022** tentang Panduan Penyusunan Laporan Keuangan BUM Desa.
-2. **Standar Akuntansi Keuangan Entitas Mikro, Kecil, dan Menengah (SAK EMKM)** yang diterbitkan oleh Ikatan Akuntan Indonesia (IAI).
+2. **Standar Akuntansi Keuangan Entitas Mikro, Kecil, dan Menengah (SAK EMKM)** dari Ikatan Akuntan Indonesia (IAI).
 
-Dengan OpenBUMDes, pengurus desa dan pengelola BUMDes tidak lagi dipusingkan oleh kerumitan rumus Excel, ketidakseimbangan debit-kredit, atau kesulitan menyiapkan dokumen pemeriksaan (Audit Trail) saat dikunjungi oleh **Inspektorat Daerah**, **BPKP**, maupun **DPMD**.
-
----
-
-## ✨ Fitur-Fitur Utama Aplikasi
-
-### 1. 📊 Dashboard Utama & EIS (Executive Information System)
-* **Analisis Kesehatan Finansial Otomatis:**
-  * **Rasio Likuiditas:** *Current Ratio* dan *Cash Ratio* untuk mengukur kemampuan memenuhi kewajiban jangka pendek.
-  * **Rasio Solvabilitas:** *Debt to Asset Ratio* (DAR) dan *Debt to Equity Ratio* (DER) untuk mengevaluasi struktur modal dan utang.
-  * **Rasio Rentabilitas:** *Return on Assets* (ROA), *Return on Equity* (ROE), dan *Net Profit Margin* (NPM) untuk mengukur efektivitas menghasilkan laba.
-* **Visualisasi Finansial Interaktif:** Grafik tren arus kas penerimaan vs. pengeluaran bulanan, diagram komposisi pendapatan per unit usaha, serta rekapitulasi saldo riil kas dan rekening bank.
-* **Informasi Diagnostik Server:** Monitoring uptime, beban memori, status integritas basis data SQLite mode WAL, dan log audit pengguna.
+Dengan OpenBUMDes, pengurus BUMDes dan pemerintah desa tidak lagi direpotkan oleh rumus Excel yang mudah rusak, ketidakseimbangan debit-kredit, atau kesulitan menyiapkan dokumen audit pemeriksaan (*audit trail*) saat dikunjungi oleh **Inspektorat Daerah**, **BPKP**, maupun **Dinas PMD**.
 
 ---
 
-### 2. 💰 Modul Akuntansi Keuangan Lengkap (10 Tab Standar Kepmendes 136)
+## 🌟 Fitur-Fitur Utama Aplikasi
 
-Modul Keuangan (`/keuangan`) dirancang komprehensif dengan 10 tab fungsional:
-
-| No | Tab Keuangan | Fungsi & Penjabaran |
-|:--:|---|---|
-| 1 | **Buku Kas Umum (BKU) & Jurnal** | Pencatatan mutasi kas/bank harian berpasangan (*double-entry*), filter bulan berjalan dinamis, edit nama pihak terkait langsung (*in-line editing*), cetak Kwitansi, Bukti Kas Masuk (BKM), Bukti Kas Keluar (BKK), serta tombol **Ekspor Excel 1 Tahun (Multi-Sheet)**. |
-| 2 | **Bagan Akun (COA Kepmendes)** | Daftar Chart of Accounts resmi 4-level kode akun (1-Aset, 2-Kewajiban, 3-Ekuitas, 4-Pendapatan, 5-Beban) dengan fitur tambah akun kustom dan filter tipe akun. |
-| 3 | **Laporan Laba Rugi** | Menyajikan Pendapatan Operasional, Beban Pokok Usaha, Beban Administrasi & Umum, Pendapatan/Beban Non-Operasional, hingga Laba/Rugi Bersih periode berjalan. |
-| 4 | **Laporan Posisi Keuangan (Neraca)** | Menyajikan saldo Aset Lancar, Aset Tidak Lancar, Kewajiban Jangka Pendek/Panjang, serta Ekuitas (Penyertaan Modal Desa & Saldo Laba) yang selalu seimbang (*balance*). |
-| 5 | **Arus Kas & Perubahan Ekuitas** | Laporan Arus Kas (LAK) metode langsung yang memisahkan Aktivitas Operasi, Investasi, dan Pendanaan, serta tabel ringkasan pergerakan modal awal ke modal akhir. |
-| 6 | **Rekapitulasi Pajak** | Perekaman dan rekapitulasi kewajiban perpajakan BUMDes (PPN, PPh 21, PPh 23, PPh Final) beserta status setor kas negara. |
-| 7 | **Aset Tetap & Depresiasi** | Daftar inventaris aset tetap BUMDes, nilai perolehan, masa manfaat, kalkulasi tarif depresiasi garis lurus, dan riwayat akumulasi penyusutan tahunan. |
-| 8 | **Perhitungan SHU** | Kalkulasi pembagian Sisa Hasil Usaha otomatis berdasarkan persentase AD/ART: PADes (Kas Desa), Dana Cadangan Umum, Pengurus, Pengawas, serta Dana Pendidikan/Sosial. |
-| 9 | **Tutup Buku Akhir Tahun** | Modul otomatis untuk menutup akun nominal pendapatan & beban ke Laba Ditahan, menghitung depresiasi aset akhir tahun, serta fitur **Buka Kembali Buku (*Reopen Period*)** jika diperlukan perbaikan data oleh administrator. |
-| 10 | **Laporan Pertanggungjawaban (LPJ)** | Kompilasi seluruh laporan keuangan beserta **Catatan atas Laporan Keuangan (CaLK)** terpadu berformat resmi Kepmendes 136/2022, siap cetak ke PDF dengan tanda tangan pejabat lengkap. |
+### 1. 📊 Dashboard Eksekutif & Indeks Kesehatan Keuangan
+* **Kalkulasi Indeks Otomatis:** Menilai 4 pilar kesehatan keuangan BUMDes secara real-time dari data pembukuan:
+  * **Likuiditas Kas:** Ketersediaan dana kas & bank siap pakai untuk operasional harian.
+  * **Margin Keuntungan:** Efisiensi laba bersih usaha terhadap total perputaran pendapatan.
+  * **Solvabilitas Utang:** Rasio kemandirian modal terhadap beban kewajiban pihak ketiga.
+  * **Akumulasi Ekuitas Desa:** Akumulasi penyertaan modal APBDes ditambah sisa hasil usaha ditahan.
+* **Diagnosa Direktur & Kepala Desa:** Memberikan catatan kesimpulan otomatis mengenai kondisi keuangan terkini.
+* **Ringkasan Posisi Keuangan:** Kartu indikator Total Kas & Bank, Pendapatan Usaha, Beban Operasional, dan SHU Tahun Berjalan.
 
 ---
 
-### 3. 🤖 Asisten Pencatatan Transaksi Cerdas (Google Gemini AI & Offline NLP)
-* **AI NLP Natural Language Input:** Cukup ketik narasi transaksi sehari-hari, misalnya:  
-  > *"Beli 2 rim kertas HVS dan tinta printer senilai Rp 140.000,- dibayar dari Kas Tunai"*
-* **Pemetaan Otomatis:** Sistem secara cerdas mendeteksi:
-  * Akun Kas/Bank asal (misal: Kas Tunai BUMDes).
-  * Akun Lawan / Beban Kepmendes 136 (misal: `5-1102` Beban Alat Tulis Kantor & Cetak).
-  * Klasifikasi Kelompok Arus Kas (Operasional Usaha).
-  * Pihak Terkait / Rekanan Penjual.
-* **Offline Fallback:** Tetap berjalan optimal memetakan akun akuntansi secara *rule-based* meskipun koneksi internet terputus atau saat API Key Gemini belum diatur.
+### 2. 📖 Buku Kas Umum (BKU) & Pencatatan Jurnal
+* **Pencatatan Ganda Otomatis (*Double-Entry Ledger*):** Setiap transaksi kas otomatis menjurnal akun lawan yang sesuai.
+* **Klasifikasi Bukti Kas:** Mendukung Bukti Kas Masuk (BKM), Bukti Kas Keluar (BKK), dan Mutasi Antar Kas/Bank.
+* **Penyaringan Fleksibel:** Filter transaksi berdasarkan Bulan, Tahun Buku, dan Jenis Bukti Kas.
+* **Pencarian Cepat:** Pencarian cerdas berdasarkan nomor bukti, deskripsi transaksi, atau pihak rekanan.
+* **Cetak Kwitansi Resmi:** Format cetak Kwitansi/Bukti Kas standar dengan nomor otomatis dan tanda tangan lengkap.
+* **Edit Rekanan Langsung (*Inline Editing*):** Memperbarui nama penerima/penyetor langsung pada tabel BKU.
+* **Ekspor Excel 1 Tahun Penuh (Multi-Sheet):** Sekali klik untuk mengunduh rekapitulasi BKU 1 tahun fiskal lengkap dalam format multi-sheet (Januari s.d. Desember + Rekap Tahunan).
 
 ---
 
-### 4. 🏢 Modul Multi-Unit Usaha Terintegrasi
-* **Unit Sewa Gedung Serbaguna (GSG):**
-  * Kalender ketersediaan jadwal sewa lapangan olahraga, gedung resepsi pernikahan, dan rapat.
-  * Pencatatan uang muka (DP), status pelunasan sewa, dan penerbitan nota/kwitansi pemesan.
-* **Unit Sewa Lahan, Kios & Lapak PKL:**
-  * Manajemen kontrak sewa lapak (tenda/kios/warung permanen) dengan skema bulanan atau tahunan.
-  * Pemantauan masa aktif kontrak, jatuh tempo tagihan, dan rekapitulasi iuran retribusi pedagang.
-* **Unit Simpan Pinjam Desa:**
-  * Manajemen data keanggotaan warga, buku tabungan simpanan Pokok, Wajib, dan Sukarela.
-  * Pengajuan pinjaman modal usaha kelompok tani/masyarakat dan riwayat angsuran pokok + jasa.
-* **Unit PPOB / Agen Pos Desa:**
-  * Rekapitulasi transaksi loket pembayaran tagihan listrik PLN, PDAM, pulsa, dan BPJS.
-  * Pencatatan komisi bersih otomatis sebagai Pendapatan Jasa BUMDes.
+### 3. 📑 5 Laporan Keuangan Standar Kepmendes 136/2022
+Seluruh laporan dihasilkan secara otomatis tanpa perlu rekapitulasi manual:
+1. **Laporan Laba Rugi Komprehensif:** Menyajikan Pendapatan Usaha, Beban Pokok Penjualan/Produksi, Beban Operasional, Pendapatan/Beban Lain-Lain, hingga Laba Bersih (SHU) Tahun Berjalan.
+2. **Laporan Posisi Keuangan (Neraca SAK EMKM):** Menyajikan Aset Lancar, Aset Tetap Bersih, Kewajiban Jangka Pendek, serta Ekuitas BUMDes yang selalu seimbang (*balanced*).
+3. **Laporan Perubahan Ekuitas (LPE):** Rincian mutasi modal awal APBDes, penyertaan modal tambahan, laba ditahan, dan ekuitas akhir periode.
+4. **Laporan Arus Kas (LAK Metode Langsung):** Mengelompokkan arus kas masuk dan keluar ke dalam 3 aktivitas utama: **Operasi**, **Investasi**, dan **Pendanaan**.
+5. **Catatan atas Laporan Keuangan (CaLK):** Gambaran umum BUMDes, kebijakan akuntansi, dan rincian penjelasan pos-pos laporan keuangan.
+* **Cetak LPJ Terpadu:** Cetak laporan pertanggungjawaban komprehensif ke format dokumen resmi siap ditandatangani.
 
 ---
 
-### 5. ✉️ Administrasi Persuratan & Notulensi Rapat
-* **Buku Agenda Surat:** Pencatatan Surat Masuk, Surat Keluar, dan Surat Keputusan (SK) Direktur BUMDes lengkap dengan nomor agenda dan tanggal arsip.
-* **Notulensi Musyawarah:** Notulen digital untuk Rapat Anggota Tahunan (RAT), Musyawarah Desa (Musdes), dan rapat internal pengurus BUMDes.
+### 4. 🔒 Tutup Buku & Buka Buku Tahunan
+* **Otomasi Akhir Tahun:** Menutup akun pendapatan dan beban ke akun Laba Ditahan per 31 Desember.
+* **Buka Saldo Awal Otomatis:** Membawa saldo neraca akhir tahun menjadi saldo awal (*Opening Balance*) tahun berikutnya.
+* **Buka Kembali Buku (*Reopen Period*):** Administrator dapat membuka kembali pembukuan tahun yang telah ditutup jika terdapat perbaikan data transaksi yang sah.
 
 ---
 
-### 6. 🌐 Portal Publik & Promosi Produk UMKM Desa
-* **Beranda Publik Dinamis (`/`):** Tampilan pendar modern (*mesh gradient & glassmorphism*) untuk mempromosikan profil, transparansi, dan layanan unit usaha BUMDes kepada masyarakat umum.
-* **Pojok UMKM Binaan (`/umkm`):** Katalog showcase produk-produk unggulan karya pengrajin dan pelaku UMKM desa binaan BUMDes.
-* **Kanal Warta & Berita (`/berita`):** Media publikasi kegiatan, transparansi pembagian SHU, dan pengumuman resmi bagi warga desa.
+### 5. 🗂️ Bagan Akun Standar (COA Dinamis)
+* **Master COA Kepmendes 136:** Dilengkapi lebih dari 130 akun standar resmi (Aset, Kewajiban, Ekuitas, Pendapatan, Beban).
+* **Tambah Akun Kustom:** Kemudahan menambah sub-akun bank lokal (misal: *Bank Jatim*, *Bank Jombang*) atau unit usaha spesifik desa.
+* **Proteksi Akun:** Akun yang telah memiliki riwayat transaksi tidak dapat terhapus secara tidak sengaja.
 
 ---
 
-### 7. 🔒 Keamanan, Pengaturan Lembaga & Audit Trail
-* **Pengaturan Lembaga Terpusat:** Input Nama BUMDes, Nama Desa, Kecamatan, Kabupaten, Alamat Kantor, dan unggah Logo Resmi.
-* **Pejabat Penandatangan Resmi:** Konfigurasi Nama dan NIP untuk **Direktur**, **Bendahara**, **Penasihat (Kepala Desa)**, dan **Pengawas (Ketua BPD)** agar dokumen cetak memiliki legalitas yang sah.
-* **Kunci Periode Akuntansi (*Period Locking*):** Mengunci transaksi pada rentang tanggal tertentu agar data pembukuan masa lalu tidak dapat disunting atau disalahgunakan.
-* **Jejak Audit (*Audit Trail Log*):** Seluruh aksi masuk sistem (*login*), tambah data, ubah, dan hapus dicatat lengkap beserta *timestamp* dan identitas pengguna.
-* **Pencadangan & Pemulihan Sistem:** Fitur ekspor basis data ke cadangan file JSON dan impor pemulihan kapan saja.
+### 6. 🤖 Asisten Pintar & Audit Kwitansi (Google Gemini AI)
+* **AI Kwitansi Reader:** Unggah foto atau scan nota/kuitansi belanja, sistem secara otomatis mengekstrak tanggal, nominal, nama toko/rekanan, dan merekomendasikan akun debit/kredit yang tepat.
+* **Koneksi Opsional:** Fitur AI opsional; aplikasi tetap berfungsi 100% secara offline tanpa memerlukan API key.
 
 ---
 
-## 🛠️ Tech Stack & Arsitektur
+### 7. 🛡️ Keamanan, Pengaturan Instansi & Pemeliharaan
+* **Identitas Lembaga:** Input Nama BUMDes, Desa, Kecamatan, Kabupaten, dan unggah Logo Resmi.
+* **Legalitas Pejabat Penandatangan:** Konfigurasi Nama dan NIP untuk **Direktur BUMDes**, **Bendahara**, **Penasihat (Kepala Desa)**, dan **Pengawas (Ketua BPD)**.
+* **Manajemen Pengguna Multi-Role:** Pembagian hak akses antara Administrator (pengaturan & audit) dan Operator (kasir & pencatatan transaksi).
+* **Pencadangan & Pemulihan Sistem:** Fitur Backup basis data lokal, Restore cadangan instan, dan Reset sistem dengan konfirmasi keamanan berlapis.
+
+---
+
+## 💻 Tech Stack & Arsitektur
 
 * **Framework Utama:** [Next.js 15 (App Router)](https://nextjs.org/)
 * **UI Library:** [React 19](https://react.dev/)
 * **Bahasa Pemrograman:** [TypeScript 5.6](https://www.typescriptlang.org/)
-* **Styling & Desain:** [Tailwind CSS 3.4](https://tailwindcss.com/) dengan palet HSL modern, glassmorphism, dan transisi mikro responsif
-* **Basis Data:** [SQLite 3](https://www.sqlite.org/) terintegrasi mode *Write-Ahead Logging* (WAL) untuk performa baca-tulis tinggi tanpa instalasi server basis data eksternal yang rumit
+* **Styling & Desain:** [Tailwind CSS 3.4](https://tailwindcss.com/) dengan palet HSL modern dan antarmuka responsif
+* **Basis Data:** [SQLite 3](https://www.sqlite.org/) mode *Write-Ahead Logging* (WAL) – tanpa instalasi database server eksternal yang rumit
 * **ORM:** [Prisma ORM 5.21](https://www.prisma.io/)
-* **Excel Engine:** [SheetJS (xlsx)](https://docs.sheetjs.com/) untuk ekspor multi-sheet instan
-* **Mesin AI:** [@google/genai](https://www.npmjs.com/package/@google/genai) (Google Gemini 2.5 Flash)
-* **Ikon & Grafik:** Lucide React & Recharts
+* **Ekspor Excel:** [SheetJS (xlsx)](https://docs.sheetjs.com/)
+* **Mesin AI:** [@google/genai](https://www.npmjs.com/package/@google/genai) (Google Gemini Flash)
+* **Ikon:** [Lucide React](https://lucide.dev/)
 
 ---
 
-## 📦 Panduan Instalasi & Menjalankan
+## 🚀 Panduan Instalasi & Menjalankan
 
 Ikuti panduan langkah demi langkah berikut untuk memasang OpenBUMDes di komputer lokal atau server Anda.
 
@@ -128,112 +110,101 @@ Ikuti panduan langkah demi langkah berikut untuk memasang OpenBUMDes di komputer
 Pastikan perangkat Anda telah terpasang:
 * **Node.js** versi **18.18.0** atau **20.x** ke atas ([Unduh Node.js](https://nodejs.org/))
 * **Git** ([Unduh Git](https://git-scm.com/))
-* Manajer Paket: `npm` (bawaan Node.js)
+* Manajer Paket: 
+pm (bawaan Node.js)
 
 ---
 
 ### Langkah 1: Kloning Repositori
-Buka terminal (Command Prompt / PowerShell / Git Bash / Terminal Linux), lalu kloning repositori ini:
-```bash
+Buka terminal (Command Prompt / PowerShell / Git Bash / Terminal Linux):
+`ash
 git clone https://github.com/balongbesuk/OpenBUMDes.git
 cd OpenBUMDes
-```
+`
 
 ---
 
-### Langkah 2: Pasang Dependensi Node.js
-Pasang seluruh paket pustaka yang dibutuhkan aplikasi:
-```bash
+### Langkah 2: Pasang Dependensi
+Pasang seluruh pustaka yang dibutuhkan:
+`ash
 npm install
-```
+`
 
 ---
 
-### Langkah 3: Konfigurasi File Lingkungan (`.env.local`)
-Salin file template `.env.example` menjadi `.env.local`:
+### Langkah 3: Konfigurasi File Lingkungan (Opsional)
+Aplikasi sudah memiliki kunci rahasia default untuk mode pengembangan lokal. Jika Anda ingin mengatur kunci khusus, salin .env.example menjadi .env.local:
 
-* **Di Linux / macOS:**
-  ```bash
-  cp .env.example .env.local
-  ```
 * **Di Windows (PowerShell):**
-  ```powershell
+  `powershell
   copy .env.example .env.local
-  ```
-
-Buka file `.env.local` dengan text editor (VS Code, Notepad, dll.), lalu isi kunci rahasia token JWT Anda:
-```env
-# Kunci acak untuk enkripsi sesi pengguna (wajib diisi dengan teks acak yang panjang)
-JWT_SECRET=kunci_rahasia_keamanan_sesi_openbumdes_123456789
-```
+  `
+* **Di Linux / macOS:**
+  `ash
+  cp .env.example .env.local
+  `
 
 ---
 
-### Langkah 4: Inisialisasi Database SQLite & Bagan Akun
-Jalankan sinkronisasi skema basis data SQLite lokal:
-```bash
+### Langkah 4: Inisialisasi Basis Data & Bagan Akun
+Jalankan sinkronisasi skema basis data SQLite:
+`ash
 npx prisma db push
-```
+`
 
-Selanjutnya, jalankan proses *seeding* untuk membuat Bagan Akun Standar (COA) Kepmendes 136/2022 serta akun-akun pengguna default:
-```bash
+Jalankan proses *seeding* untuk memuat Bagan Akun Standar (COA) Kepmendes 136/2022 serta akun login default:
+`ash
 npx prisma db seed
-```
+`
 
-*(Opsional) Muat template transaksi harian cepat:*
-```bash
+*(Direkomendasikan)* Muat template transaksi kas harian BUMDes:
+`ash
 npm run db:seed-templates
-```
-
-*(Opsional untuk Uji Coba / Demo) Jika Anda ingin mencoba aplikasi dengan simulasi data lengkap (data anggota, pinjaman, sewa gedung, sewa kios, dan transaksi buku kas):*
-```bash
-npm run db:seed-demo
-```
+`
 
 ---
 
-### Langkah 5: Jalankan Server Pengembangan
-Jalankan server aplikasi:
-```bash
+### Langkah 5: Jalankan Server Aplikasi
+Jalankan server pengembangan:
+`ash
 npm run dev
-```
+`
 
-Buka peramban (browser) Anda dan kunjungi tautan:
-👉 **`http://localhost:3000`**
+Buka peramban (browser) dan akses:
+👉 **http://localhost:3000**
 
 ---
 
 ## 🔑 Akun Pengguna Bawaan (Default Credentials)
 
-Setelah menjalankan `npx prisma db seed`, sistem menyediakan 2 akun login bawaan yang siap digunakan langsung (juga tersedia tombol **Akses Cepat** pada jendela login):
+Sistem menyediakan 2 akun login bawaan (juga tersedia tombol **Akses Cepat** pada jendela login):
 
-| No | Peran (Role) | Username | Password | Otoritas & Tanggung Jawab |
-|:--:|---|---|---|---|
-| 1 | **Administrator** | `admin` | `admin123` | **Akses Penuh (Direktur / Kepala BUMDes):** Mengatur profil instansi, data pejabat penandatangan Kepmendes 136, kelola akun login operator kasir, kunci periode akuntansi, integrasi Gemini AI, audit trail, serta fitur backup, restore, dan reset database. |
-| 2 | **Operator** | `operator` | `operator123` | **Kasir & Pembukuan Kas (Bendahara / Petugas BKU):** Mencatat transaksi harian Buku Kas Umum (BKU), entri jurnal, input saldo awal kas/bank, cetak Kwitansi/BKM/BKK resmi, serta meninjau seluruh laporan keuangan. |
-
-> 💡 **Manajemen Pengguna:** Administrator dapat menambah akun baru, mengubah nama petugas, atau mengganti kata sandi kapan saja melalui menu **Pemeliharaan Sistem / Kelola Pengguna**.
+| Peran (Role) | Username | Password | Otoritas & Tanggung Jawab |
+|:---|:---:|:---:|:---|
+| **Administrator** | dmin | dmin123 | **Akses Penuh:** Pengaturan identitas instansi, pejabat penandatangan, manajemen akun user, kunci periode, integrasi Gemini AI, serta backup, restore, dan reset database. |
+| **Operator** | operator | operator123 | **Kasir & BKU:** Mencatat transaksi kas masuk/keluar, saldo awal kas/bank, cetak kwitansi BKM/BKK, dan meninjau laporan keuangan. |
 
 ---
 
-## 🧭 Langkah Awal Penggunaan (Setup Instansi)
+## 📋 Langkah Awal Penggunaan (Setup Instansi)
 
-1. Masuk (*login*) sebagai **Administrator** (`admin`).
-2. Masuk ke menu **Pengaturan** di bilah samping (*sidebar*):
-   * **Identitas Lembaga:** Masukkan Nama BUMDes, Nama Desa, Kecamatan, Kabupaten, Alamat Lengkap, dan unggah Logo BUMDes resmi Anda.
-   * **Data Pejabat Penandatangan:** Masukkan Nama Lengkap dan NIP (jika ada) untuk **Direktur**, **Bendahara**, **Kepala Desa (Penasihat)**, dan **Ketua BPD (Pengawas)**.
-   * **Integrasi AI (Opsional):** Masukkan API Key gratis dari [Google AI Studio](https://aistudio.google.com/) pada kolom Gemini API Key agar fitur asisten jurnal AI aktif.
-3. Masuk ke menu **Keuangan** > **Buku Kas Umum (BKU)**:
-   * Masukkan **Saldo Awal Kas / Bank** pada awal periode tahun buku.
-   * Mulai catat transaksi penerimaan atau pengeluaran secara teratur!
+1. Masuk (*login*) sebagai **Administrator** (dmin).
+2. Masuk ke tab **Pengaturan & AI** pada bilah menu samping:
+   * **Identitas Lembaga:** Masukkan Nama BUMDes, Nama Desa, Kecamatan, Kabupaten, Alamat Kantor, dan unggah Logo Resmi.
+   * **Pejabat Penandatangan:** Masukkan Nama dan NIP untuk **Direktur**, **Bendahara**, **Penasihat (Kepala Desa)**, dan **Pengawas (Ketua BPD)**.
+   * **Integrasi AI (Opsional):** Masukkan API Key gratis dari [Google AI Studio](https://aistudio.google.com/) agar asisten pembaca kwitansi aktif.
+3. Masuk ke tab **Tutup & Buka Buku**:
+   * Masukkan **Saldo Awal Kas / Bank** pada awal tahun buku jika BUMDes telah memiliki saldo berjalan sebelumnya.
+4. Masuk ke tab **Buku Kas & Jurnal**:
+   * Mulai catat transaksi penerimaan (BKM) atau pengeluaran (BKK) secara tertib!
 
 ---
 
-## 🚀 Panduan Build & Deploy ke Server Produksi
+## 📦 Panduan Build & Deploy ke Server Produksi
 
-Aplikasi OpenBUMDes sangat ringan dan dapat di-deploy pada VPS (Ubuntu/Debian) berbiaya rendah dengan spesifikasi RAM 1 GB sekalipun.
+OpenBUMDes sangat ringan dan dapat dijalankan di VPS (Ubuntu/Debian) berbiaya rendah dengan spesifikasi RAM 1 GB:
 
-```bash
+`ash
 # 1. Pastikan dependensi terpasang
 npm install
 
@@ -242,59 +213,59 @@ npm run build
 
 # 3. Jalankan aplikasi dalam mode produksi
 npm run start
-```
+`
 
-### Rekomendasi Menjalankan dengan PM2 (Background Daemon):
-```bash
+### Menjalankan di Background dengan PM2:
+`ash
 # Pasang PM2 secara global
 npm install -g pm2
 
-# Jalankan server OpenBUMDes di background
-pm2 start npm --name "openbumdes" -- run start
+# Jalankan server OpenBUMDes
+pm2 start npm --name  openbumdes -- run start
 
-# Simpan konfigurasi autostart saat server reboot
+# Simpan autostart saat server restart
 pm2 save
 pm2 startup
-```
+`
 
 ---
 
-## 📂 Struktur Direktori Proyek
+## 📁 Struktur Direktori Proyek
 
-```text
+`	ext
 OpenBUMDes/
 ├── prisma/
-│   ├── coa_kemendes_136.json   # Definisi standar bagan akun Kepmendes 136/2022
-│   ├── schema.prisma           # Skema tabel database relasional
-│   ├── seed.ts                 # Skrip seeder akun default & bagan akun
-│   └── seed_templates.ts       # Template transaksi harian BUMDes
-├── public/
-│   ├── favicon.ico             # Ikon aplikasi web
-│   └── uploads/                # Direktori penyimpanan bukti transaksi & logo
+│   ├── coa_kemendes_136.json   # 130+ daftar akun standar Kepmendes 136/2022
+│   ├── schema.prisma           # Skema tabel database SQLite
+│   ├── seed.ts                 # Skrip seeder akun bawaan & COA
+│   └── seed_templates.ts       # Template transaksi kas harian BUMDes
+├── public/                     # Aset publik statis
 ├── src/
 │   ├── app/
-│   │   ├── (dashboard)/        # Halaman dashboard terproteksi (Keuangan, Sewa, SP, dsb.)
-│   │   ├── (public)/           # Halaman publik (Beranda, UMKM, Berita Desa, Profil Layanan)
-│   │   ├── api/                # REST API backend Route Handlers
-│   │   ├── login/              # Halaman login otentikasi
-│   │   └── globals.css         # Styling global Tailwind CSS
-│   ├── components/             # Komponen UI modal (Kwitansi, ManualTransaction, PartyEditor, dsb.)
-│   ├── context/                # Context provider konfigurasi lembaga
-│   └── lib/                    # Logika bisnis akuntansi (Double-Entry Ledger, Gemini AI, Auth)
-├── package.json                # Daftar dependensi dan script npm
-└── README.md                   # Dokumentasi resmi proyek
-```
+│   │   ├── api/                # REST API backend (cash-book, coa, closing, auth, ai, settings, system)
+│   │   ├── globals.css         # Styling global Tailwind CSS
+│   │   ├── layout.tsx          # Root layout & font metadata
+│   │   ├── page.tsx            # Antarmuka tunggal terpadu OpenBUMDes
+│   │   └── robots.ts           # Konfigurasi crawler robots.txt
+│   ├── components/             # Komponen UI modal & tab (BKU, Kwitansi, COA, Closing, Maintenance, dll.)
+│   └── lib/                    # Logika bisnis akuntansi (Double-Entry Ledger, Gemini AI, Auth, DB)
+├── CHANGELOG.md                # Catatan riwayat versi rilis
+├── LICENSE                     # Lisensi GNU General Public License v3.0
+├── package.json                # Dependensi dan script npm
+├── README.md                   # Dokumentasi resmi proyek
+└── SECURITY.md                 # Kebijakan pelaporan keamanan
+`
 
 ---
 
 ## 🤝 Berkontribusi
 
-Kami mengundang seluruh pegiat desa, *software engineer*, akuntan, dan akademisi untuk bersama-sama menyempurnakan OpenBUMDes:
+Kami mengundang para pegiat desa, *software engineer*, akuntan, dan akademisi untuk bersama-sama menyempurnakan OpenBUMDes:
 
-1. Lakukan **Fork** pada repositori ini.
-2. Buat cabang fitur baru: `git checkout -b fitur/nama-fitur-anda`.
-3. Simpan perubahan Anda: `git commit -m 'feat: menambahkan fitur pelaporan baru'`.
-4. Unggah ke cabang Anda: `git push origin fitur/nama-fitur-anda`.
+1. **Fork** repositori ini.
+2. Buat cabang fitur baru: git checkout -b fitur/nama-fitur-anda.
+3. Simpan perubahan Anda: git commit -m 'feat: menambahkan fitur pelaporan baru'.
+4. Unggah ke cabang Anda: git push origin fitur/nama-fitur-anda.
 5. Buat **Pull Request** melalui antarmuka GitHub.
 
 ---
@@ -302,4 +273,4 @@ Kami mengundang seluruh pegiat desa, *software engineer*, akuntan, dan akademisi
 ## 📄 Lisensi
 
 Proyek ini dilisensikan di bawah **[GNU General Public License v3.0 (GPL-3.0)](LICENSE)**.  
-Anda bebas menggunakan, memodifikasi, dan mendistribusikan aplikasi ini untuk kemandirian, transparansi, dan kemajuan ekonomi desa di seluruh Indonesia. 🇮🇩
+Anda bebas menggunakan, memodifikasi, dan mendistribusikan aplikasi ini untuk kemandirian, transparansi, dan kemajuan ekonomi desa di seluruh Indonesia.
