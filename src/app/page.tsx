@@ -4226,9 +4226,15 @@ export default function StislaApp() {
         </div>
       </div>
 
-      {/* ===================== LOGIN MODAL (JIKA BELUM LOGIN) ===================== */}
+      {/* ===================== LOGIN PAGE (DUA LAYAR / SPLIT-SCREEN) ===================== */}
       {!authLoading && !currentUser && (
-        <LoginModal onSuccess={(user) => setCurrentUser(user)} />
+        <LoginModal
+          settings={settings}
+          onSuccess={(user) => {
+            setCurrentUser(user)
+            loadData()
+          }}
+        />
       )}
 
       {/* ===================== MODAL CETAK KWITANSI ===================== */}

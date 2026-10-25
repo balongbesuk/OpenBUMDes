@@ -30,6 +30,10 @@ All notable changes to OpenBUMDes are documented in this file.
     * `Disesuaikan`: Akun standar yang telah disesuaikan namanya oleh pengguna, dilengkapi informasi nama bawaan aslinya di bawah nama akun.
     * `Kustom`: Akun dinamis tambahan baru buatan pengguna (dapat dihapus dengan aman jika belum memiliki riwayat jurnal).
   * **Fitur Pulihkan COA Bawaan Sistem**: Menambahkan tombol `Pulihkan COA Bawaan Sistem` (`/api/keuangan/coa/reset-default`) untuk mengembalikan seluruh nama akun standar ke nama resmi Kepmendes 136/2022 kapan saja tanpa menghapus akun-akun kustom pengguna.
+* **Rombak Total Halaman Masuk (Split-Screen 2-Panel Modern Login Page)**:
+  * Mengganti modal popup login lama dengan tata letak layar ganda (*Split Screen / Dua Layar*) beresolusi penuh (*full viewport*).
+  * **Layar Kiri (Identitas & Prestise BUMDes)**: Latar gradien gelap elegan dengan ambient glow, menampilkan logo resmi dan identitas Pemdes BUMDes, lencana kepatuhan Kepmendesa 136/2022, 3 kartu pilar keunggulan (5 Laporan Keuangan EMKM, LPJ Musdes 8 Halaman A4, Asisten AI & EIS), serta penegasan tata kelola keuangan desa yang transparan dan akuntabel.
+  * **Layar Kanan (Portal Autentikasi Pengguna)**: Antarmuka formulir yang bersih dan berfokus tinggi, dilengkapi kolom username & password dengan fitur lihat/sembunyikan sandi (*Eye/EyeOff toggle*), kotak centang "Ingat sesi masuk", tombol submit bergradasi dinamis, serta kartu akses cepat 1-klik untuk akun Administrator dan Operator Kasir.
 * **Penanganan Status Database Kosong pada Modul EIS (Kesehatan Keuangan)**:
   * Memperbaiki kalkulasi API `/api/eis` agar memverifikasi keberadaan data transaksi dan saldo awal pembukuan sebelum menghitung rasio.
   * Ketika database dalam kondisi kosong (setelah dikosongkan/reset), sistem secara otomatis menetapkan predikat **BELUM ADA DATA (NIHIL)** dengan skor 0 poin dan menampilkan kartu panduan input saldo awal / transaksi, mencegah munculnya kalkulasi skor semu saat data masih nihil.
