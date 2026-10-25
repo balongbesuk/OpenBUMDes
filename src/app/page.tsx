@@ -48,7 +48,7 @@ import {
   FileSpreadsheet,
   Download
 } from "lucide-react"
-import { formatRupiah } from "@/lib/utils"
+import { formatRupiah, safePrintElement } from "@/lib/utils"
 import KwitansiModal from "@/components/KwitansiModal"
 import AddCoaModal from "@/components/AddCoaModal"
 import EditCoaModal from "@/components/EditCoaModal"
@@ -516,50 +516,14 @@ export default function StislaApp() {
     .filter((y) => parseInt(y, 10) <= 2026)
     .sort((a, b) => parseInt(b, 10) - parseInt(a, 10))
 
-  // --- HELPER CETAK BERSIH LAPORAN RESMI (A4 PRINT VIEW) ---
+  // --- HELPER CETAK BERSIH LAPORAN RESMI (A4 PRINT VIEW - AMAN DARI DOM XSS) ---
   const handlePrintDocument = (elementId: string, docTitle: string) => {
     const printContent = document.getElementById(elementId)
     if (!printContent) return
-
-    const printWindow = window.open("", "_blank")
-    if (!printWindow) {
-      window.print()
-      return
-    }
-
-    const styleTags = Array.from(document.querySelectorAll("link[rel='stylesheet'], style"))
-      .map((el) => el.outerHTML)
-      .join("\n")
-
-    printWindow.document.write(`<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>${docTitle} - ${settings.bumdes_name || "PPAK BUMDesa"} TA ${selectedYear}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-  ${styleTags}
-  <style>
-    @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #fff !important; }
-      @page { size: A4 portrait; margin: 12mm; }
-      .no-print { display: none !important; }
-    }
-    body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #fff; color: #1e293b; padding: 20px; }
-  </style>
-</head>
-<body>
-  ${printContent.innerHTML}
-  <script>
-    window.onload = function() {
-      setTimeout(function() {
-        window.print();
-      }, 500);
-    };
-  </script>
-</body>
-</html>`)
-    printWindow.document.close()
+    safePrintElement(
+      printContent,
+      `${docTitle} - ${settings.bumdes_name || "PPAK BUMDesa"} TA ${selectedYear}`
+    )
   }
 
   // --- KOP RESMI LAPORAN KEUANGAN KEMENDES 136 ---

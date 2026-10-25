@@ -36,7 +36,10 @@ All notable changes to OpenBUMDes are documented in this file.
   * **Layar Kanan (Portal Autentikasi Pengguna Bersih & Aman)**: Antarmuka formulir yang bersih dan berfokus tinggi tanpa elemen demo (*akses cepat dihapus*), dilengkapi kolom username & password dengan fitur lihat/sembunyikan sandi (*Eye/EyeOff toggle*), kotak centang "Ingat sesi masuk", tombol submit bergradasi dinamis, dan jaminan keamanan koneksi SSL terenkripsi.
 * **Penanganan Status Database Kosong pada Modul EIS (Kesehatan Keuangan)**:
   * Memperbaiki kalkulasi API `/api/eis` agar memverifikasi keberadaan data transaksi dan saldo awal pembukuan sebelum menghitung rasio.
-  * Ketika database dalam kondisi kosong (setelah dikosongkan/reset), sistem secara otomatis menetapkan predikat **BELUM ADA DATA (NIHIL)** dengan skor 0 poin dan menampilkan kartu panduan input saldo awal / transaksi, mencegah munculnya kalkulasi skor semu saat data masih nihil.
+* **Keamanan Aplikasi (Penyelesaian GitHub CodeQL Alert - DOM XSS Prevention)**:
+  * Mengeliminasi seluruh kerentanan *DOM text reinterpreted as HTML* (`js/xss-through-dom`, CWE-79, CWE-116) pada seluruh fitur cetak dokumen laporan keuangan dan LPJ.
+  * Menghapus pemanggilan rawan `document.write(...)` dan menggantikannya dengan fungsi utilitas aman `safePrintElement` di `src/lib/utils.ts` yang mengkloning elemen DOM langsung via `element.cloneNode(true)`, mengisolasi stylesheet via `<style>`, dan menetapkan judul via properti `document.title` tanpa parsing string HTML mentah.
+  * Menerapkan perbaikan keamanan cetak pada seluruh modul: Dokumen Laporan (Halaman Utama), Neraca Saldo, Buku Besar Pembantu, Buku Besar Umum, Analisis Kesehatan EIS, dan Modal Cetak LPJ Musdes.
 
 ## [1.0.0] - 2026-10-25
 

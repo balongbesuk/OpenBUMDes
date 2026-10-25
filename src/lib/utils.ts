@@ -82,3 +82,92 @@ export function terbilang(amount: number): string {
   return `${hasil} Rupiah`
 }
 
+/**
+ * Safely prints a DOM element in a separate window using native DOM cloneNode
+ * without using document.write or raw innerHTML interpolation (eliminates CodeQL js/xss-through-dom).
+ */
+export function safePrintElement(
+  element: HTMLElement | null,
+  documentTitle: string,
+  options?: {
+    customPageMargin?: string
+    includeTailwindScript?: boolean
+    baseHref?: string
+  }
+) {
+  if (!element) return
+
+  const printWindow = window.open("", "_blank")
+  if (!printWindow) {
+    window.print()
+    return
+  }
+
+  const printDoc = printWindow.document
+  printDoc.title = documentTitle
+
+  // Safely clone document head stylesheets
+  const head = printDoc.head
+  const metaCharset = printDoc.createElement("meta")
+  metaCharset.setAttribute("charset", "utf-8")
+  head.appendChild(metaCharset)
+
+  if (options?.baseHref) {
+    const baseTag = printDoc.createElement("base")
+    baseTag.setAttribute("href", options.baseHref)
+    head.appendChild(baseTag)
+  }
+
+  const metaViewport = printDoc.createElement("meta")
+  metaViewport.setAttribute("name", "viewport")
+  metaViewport.setAttribute("content", "width=device-width, initial-scale=1.0")
+  head.appendChild(metaViewport)
+
+  if (options?.includeTailwindScript) {
+    const tailwindScript = printDoc.createElement("script")
+    tailwindScript.src = "https://cdn.tailwindcss.com"
+    head.appendChild(tailwindScript)
+  } else {
+    const tailwindLink = printDoc.createElement("link")
+    tailwindLink.rel = "stylesheet"
+    tailwindLink.href = "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+    head.appendChild(tailwindLink)
+  }
+
+  document.querySelectorAll("link[rel='stylesheet'], style").forEach((node) => {
+    head.appendChild(node.cloneNode(true))
+  })
+
+  const pageMargin = options?.customPageMargin || "12mm"
+  const customStyle = printDoc.createElement("style")
+  customStyle.textContent = `
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #fff !important; }
+      @page { size: A4 portrait; margin: ${pageMargin}; }
+      .no-print { display: none !important; }
+    }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #fff; color: #1e293b; padding: 20px; }
+  `
+  head.appendChild(customStyle)
+
+  // Safely clone element node without parsing strings into innerHTML or document.write
+  const body = printDoc.body
+  body.innerHTML = ""
+  body.appendChild(element.cloneNode(true))
+
+  // Trigger print cleanly
+  printWindow.onload = () => {
+    setTimeout(() => {
+      try {
+        printWindow.print()
+      } catch {}
+    }, 500)
+  }
+
+  setTimeout(() => {
+    try {
+      printWindow.print()
+    } catch {}
+  }, 1000)
+}
+

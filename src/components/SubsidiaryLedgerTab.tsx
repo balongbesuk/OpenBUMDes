@@ -13,7 +13,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight
 } from "lucide-react"
-import { formatRupiah } from "@/lib/utils"
+import { formatRupiah, safePrintElement } from "@/lib/utils"
 
 interface SubsidiaryLedgerTabProps {
   settings?: Record<string, string>
@@ -82,50 +82,11 @@ export default function SubsidiaryLedgerTab({ settings = {} }: SubsidiaryLedgerT
     p.name.toLowerCase().includes(searchPartyQuery.toLowerCase())
   )
 
-  // Cetak Dokumen Bersih
+  // Cetak Dokumen Bersih (Aman dari DOM XSS)
   const handlePrint = () => {
     const printContent = document.getElementById("sub-ledger-print-area")
     if (!printContent) return
-
-    const printWindow = window.open("", "_blank")
-    if (!printWindow) {
-      window.print()
-      return
-    }
-
-    const styleTags = Array.from(document.querySelectorAll("link[rel='stylesheet'], style"))
-      .map((el) => el.outerHTML)
-      .join("\n")
-
-    printWindow.document.write(`<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>${meta?.typeLabel || "Buku Pembantu"} - ${activePartyData?.name || ""}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-  ${styleTags}
-  <style>
-    @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #fff !important; }
-      @page { size: A4 portrait; margin: 12mm; }
-      .no-print { display: none !important; }
-    }
-    body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #fff; color: #1e293b; padding: 20px; }
-  </style>
-</head>
-<body>
-  ${printContent.innerHTML}
-  <script>
-    window.onload = function() {
-      setTimeout(function() {
-        window.print();
-      }, 500);
-    };
-  </script>
-</body>
-</html>`)
-    printWindow.document.close()
+    safePrintElement(printContent, `${meta?.typeLabel || "Buku Pembantu"} - ${activePartyData?.name || ""}`)
   }
 
   return (

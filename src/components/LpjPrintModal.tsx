@@ -258,20 +258,33 @@ export default function LpjPrintModal({
       return
     }
 
-    const styleTags = Array.from(document.querySelectorAll("link[rel='stylesheet'], style"))
-      .map((el) => el.outerHTML)
-      .join("\n")
+    const printDoc = printWindow.document
+    printDoc.title = `Cetak LPJ BUMDesa ${bumdesName.replace(/["\\]/g, "")} - TA ${year}`
 
-    printWindow.document.write(`<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <base href="${window.location.origin}/">
-  <title>Cetak LPJ BUMDesa ${bumdesName.replace(/["\\]/g, "")} - TA ${year}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdn.tailwindcss.com"></script>
-  ${styleTags}
-  <style>
+    const head = printDoc.head
+    const metaCharset = printDoc.createElement("meta")
+    metaCharset.setAttribute("charset", "utf-8")
+    head.appendChild(metaCharset)
+
+    const baseTag = printDoc.createElement("base")
+    baseTag.setAttribute("href", `${window.location.origin}/`)
+    head.appendChild(baseTag)
+
+    const metaViewport = printDoc.createElement("meta")
+    metaViewport.setAttribute("name", "viewport")
+    metaViewport.setAttribute("content", "width=device-width, initial-scale=1.0")
+    head.appendChild(metaViewport)
+
+    const tailwindScript = printDoc.createElement("script")
+    tailwindScript.src = "https://cdn.tailwindcss.com"
+    head.appendChild(tailwindScript)
+
+    document.querySelectorAll("link[rel='stylesheet'], style").forEach((node) => {
+      head.appendChild(node.cloneNode(true))
+    })
+
+    const customStyle = printDoc.createElement("style")
+    customStyle.textContent = `
     @page { 
       size: A4 portrait; 
       margin: 10mm 12mm; 
@@ -443,33 +456,54 @@ export default function LpjPrintModal({
         white-space: nowrap !important;
       }
     }
-  </style>
-</head>
-<body>
-  <div class="no-print" style="padding: 12px 24px; background: #1e1b4b; color: white; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-    <div>
-      <span style="font-weight: bold; font-size: 13px;">Pratinjau Cetak LPJ Resmi BUMDesa TA ${year}</span>
-      <span style="font-size: 11px; opacity: 0.8; margin-left: 8px;">(Format Kertas A4 &bull; Standar Kepmendes 136/2022)</span>
-    </div>
-    <div style="display: flex; gap: 8px;">
-      <button onclick="window.print()" style="background: #4f46e5; color: white; border: none; padding: 7px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px;">
-        🖨️ Cetak / Simpan PDF (A4)
-      </button>
-    </div>
-  </div>
-  <div class="print-container">
-    ${element.innerHTML}
-  </div>
-  <script>
-    window.onload = function() {
-      setTimeout(function() {
-        window.print();
-      }, 600);
-    };
-  </script>
-</body>
-</html>`)
-    printWindow.document.close()
+    `
+    head.appendChild(customStyle)
+
+    // Sticky toolbar
+    const toolbar = printDoc.createElement("div")
+    toolbar.className = "no-print"
+    toolbar.style.cssText = "padding: 12px 24px; background: #1e1b4b; color: white; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"
+
+    const toolbarInfo = printDoc.createElement("div")
+    const titleSpan = printDoc.createElement("span")
+    titleSpan.style.cssText = "font-weight: bold; font-size: 13px;"
+    titleSpan.textContent = `Pratinjau Cetak LPJ Resmi BUMDesa TA ${year}`
+    const subSpan = printDoc.createElement("span")
+    subSpan.style.cssText = "font-size: 11px; opacity: 0.8; margin-left: 8px;"
+    subSpan.textContent = "(Format Kertas A4 • Standar Kepmendes 136/2022)"
+    toolbarInfo.appendChild(titleSpan)
+    toolbarInfo.appendChild(subSpan)
+
+    const toolbarBtnBox = printDoc.createElement("div")
+    const printBtn = printDoc.createElement("button")
+    printBtn.style.cssText = "background: #4f46e5; color: white; border: none; padding: 7px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px;"
+    printBtn.textContent = "🖨️ Cetak / Simpan PDF (A4)"
+    printBtn.onclick = () => {
+      try { printWindow.print() } catch {}
+    }
+    toolbarBtnBox.appendChild(printBtn)
+
+    toolbar.appendChild(toolbarInfo)
+    toolbar.appendChild(toolbarBtnBox)
+
+    const printContainer = printDoc.createElement("div")
+    printContainer.className = "print-container"
+    printContainer.appendChild(element.cloneNode(true))
+
+    const body = printDoc.body
+    body.innerHTML = ""
+    body.appendChild(toolbar)
+    body.appendChild(printContainer)
+
+    printWindow.onload = () => {
+      setTimeout(() => {
+        try { printWindow.print() } catch {}
+      }, 600)
+    }
+
+    setTimeout(() => {
+      try { printWindow.print() } catch {}
+    }, 1200)
   }
 
   const handlePrint = () => {
