@@ -205,17 +205,14 @@ Buka peramban (browser) Anda dan kunjungi tautan:
 
 ## 🔑 Akun Pengguna Bawaan (Default Credentials)
 
-Setelah menjalankan `npx prisma db seed`, Anda dapat login menggunakan akun berikut:
+Setelah menjalankan `npx prisma db seed`, sistem menyediakan 2 akun login bawaan yang siap digunakan langsung (juga tersedia tombol **Akses Cepat** pada jendela login):
 
-| No | Peran (Role) | Username | Password | Otoritas / Hak Akses |
+| No | Peran (Role) | Username | Password | Otoritas & Tanggung Jawab |
 |:--:|---|---|---|---|
-| 1 | **Administrator** | `admin` | `admin123` | Akses penuh seluruh modul, manajemen pengguna, konfigurasi instansi, pejabat penandatangan, audit log, dan backup/restore database. |
-| 2 | **Bendahara** | `bendahara` | `bendahara123` | Akses penuh modul Keuangan: Buku Kas Umum (BKU), Jurnal, Rekap Pajak, Aset Tetap, Neraca, Laba Rugi, LAK, SHU, dan Tutup Buku. |
-| 3 | **Sekretaris** | `sekretaris` | `sekretaris123` | Akses modul Persuratan (Surat Masuk, Surat Keluar, SK) dan Notulensi Rapat. |
-| 4 | **Operator Simpan Pinjam** | `operator_sp` | `sp123` | Manajemen anggota simpan pinjam, tabungan pokok/wajib/sukarela, pencairan pinjaman, dan angsuran. |
-| 5 | **Operator Sewa** | `operator_sewa` | `sewa123` | Manajemen jadwal sewa gedung serbaguna, kontrak sewa lahan & lapak pedagang. |
+| 1 | **Administrator** | `admin` | `admin123` | **Akses Penuh (Direktur / Kepala BUMDes):** Mengatur profil instansi, data pejabat penandatangan Kepmendes 136, kelola akun login operator kasir, kunci periode akuntansi, integrasi Gemini AI, audit trail, serta fitur backup, restore, dan reset database. |
+| 2 | **Operator** | `operator` | `operator123` | **Kasir & Pembukuan Kas (Bendahara / Petugas BKU):** Mencatat transaksi harian Buku Kas Umum (BKU), entri jurnal, input saldo awal kas/bank, cetak Kwitansi/BKM/BKK resmi, serta meninjau seluruh laporan keuangan. |
 
-> 🔒 **Tips Keamanan:** Setelah login untuk pertama kali, sangat disarankan segera mengganti kata sandi bawaan melalui menu **Profil Saya** di bilah navigasi kanan atas.
+> 💡 **Manajemen Pengguna:** Administrator dapat menambah akun baru, mengubah nama petugas, atau mengganti kata sandi kapan saja melalui menu **Pemeliharaan Sistem / Kelola Pengguna**.
 
 ---
 

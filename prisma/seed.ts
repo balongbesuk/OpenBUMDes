@@ -1,118 +1,68 @@
 import { PrismaClient } from "@prisma/client"
-import bcrypt from "bcryptjs"
+import crypto from "crypto"
+import fs from "fs"
+import path from "path"
 
 const prisma = new PrismaClient()
 
 function hashPassword(password: string): string {
-  return bcrypt.hashSync(password, 12)
+  const salt = crypto.randomBytes(16).toString("hex")
+  const hash = crypto.scryptSync(password, salt, 64).toString("hex")
+  return `${salt}:${hash}`
 }
 
 async function main() {
-  console.log("=== STARTING DATABASE SEEDING (GENERIC / MULTI-DESA) ===")
+  console.log("=== STARTING OPENBUMDES DATABASE SEEDING ===")
 
-  console.log("Cleaning up existing database...")
-  await prisma.savingTransaction.deleteMany()
-  await prisma.loanRepayment.deleteMany()
-  await prisma.loan.deleteMany()
-  await prisma.gedungBooking.deleteMany()
-  await prisma.lahanPayment.deleteMany()
-  await prisma.lahanContract.deleteMany()
-  await prisma.ppobRekap.deleteMany()
-  await prisma.journalLine.deleteMany()
-  await prisma.journalEntry.deleteMany()
-  await prisma.post.deleteMany()
-  await prisma.document.deleteMany()
-  await prisma.member.deleteMany()
-
-  // 1. Seed Default Users
+  // 1. Seed Default Users (Admin & Operator)
   console.log("Seeding default users...")
-  const users = [
+  const defaultUsers = [
     {
       username: "admin",
       passwordHash: hashPassword("admin123"),
-      name: "Administrator",
+      name: "Kepala / Direktur BUMDes",
       role: "ADMIN"
     },
     {
-      username: "bendahara",
-      passwordHash: hashPassword("bendahara123"),
-      name: "Bendahara Keuangan",
-      role: "BENDAHARA"
-    },
-    {
-      username: "sekretaris",
-      passwordHash: hashPassword("sekretaris123"),
-      name: "Sekretaris",
-      role: "SEKRETARIS"
-    },
-    {
-      username: "operator_sp",
-      passwordHash: hashPassword("sp123"),
-      name: "Operator Simpan Pinjam",
-      role: "OPERATOR_SP"
-    },
-    {
-      username: "operator_sewa",
-      passwordHash: hashPassword("sewa123"),
-      name: "Operator Sewa Gedung & Lahan",
-      role: "OPERATOR_SEWA"
+      username: "operator",
+      passwordHash: hashPassword("operator123"),
+      name: "Bendahara / Operator Kasir",
+      role: "OPERATOR"
     }
   ]
 
-  for (const user of users) {
+  for (const user of defaultUsers) {
     await prisma.user.upsert({
       where: { username: user.username },
-      update: {},
+      update: {
+        name: user.name,
+        role: user.role
+      },
       create: user
     })
   }
 
-  // 2. Seed Chart of Accounts (Bagan Akun) — Universal for all BUMDES
-  console.log("Seeding Chart of Accounts...")
-  const accounts = [
-    // 1-xxxx: ASSETS
-    { code: "1-1100", name: "Kas/Bank BUMDES", type: "ASSET" },
-    { code: "1-1200", name: "Kas/Bank Unit Gedung (GSG)", type: "ASSET" },
-    { code: "1-1300", name: "Kas/Bank Unit Lapak & Warung", type: "ASSET" },
-    { code: "1-1400", name: "Piutang Pinjaman Masyarakat", type: "ASSET" },
-    { code: "1-1500", name: "Piutang Pinjaman Gapoktan", type: "ASSET" },
-    { code: "1-2100", name: "Peralatan & Inventaris", type: "ASSET" },
-    { code: "1-2200", name: "Akumulasi Penyusutan Peralatan", type: "ASSET" },
-
-    // 2-xxxx: LIABILITIES
-    { code: "2-1100", name: "Tabungan Simpanan Pokok Anggota", type: "LIABILITY" },
-    { code: "2-1200", name: "Tabungan Simpanan Wajib Anggota", type: "LIABILITY" },
-    { code: "2-1300", name: "Hutang SHU Belum Dibagi", type: "LIABILITY" },
-    { code: "2-1400", name: "Hutang Pajak", type: "LIABILITY" },
-
-    // 3-xxxx: EQUITY
-    { code: "3-1100", name: "Modal Awal Desa", type: "EQUITY" },
-    { code: "3-1200", name: "Laba Ditahan / Penambahan Modal", type: "EQUITY" },
-
-    // 4-xxxx: REVENUE
-    { code: "4-1100", name: "Pendapatan Jasa Simpan Pinjam", type: "REVENUE" },
-    { code: "4-1200", name: "Pendapatan Sewa Gedung", type: "REVENUE" },
-    { code: "4-1300", name: "Pendapatan Sewa Lapak & Warung", type: "REVENUE" },
-    { code: "4-1400", name: "Pendapatan Komisi Agen Pos/PPOB", type: "REVENUE" },
-    { code: "4-1500", name: "Pendapatan Bunga Bank", type: "REVENUE" },
-
-    // 5-xxxx: EXPENSES
-    { code: "5-1100", name: "Biaya Operasional Pengurus BUMDES", type: "EXPENSE" },
-    { code: "5-1200", name: "Biaya Operasional Unit Lapak & Warung", type: "EXPENSE" },
-    { code: "5-1300", name: "Biaya Operasional Unit Gedung", type: "EXPENSE" },
-    { code: "5-1400", name: "Biaya Penyusutan Aktiva Tetap", type: "EXPENSE" },
-    { code: "5-1500", name: "Biaya Administrasi Bank & Pajak", type: "EXPENSE" }
-  ]
-
-  for (const acc of accounts) {
-    await prisma.ledgerAccount.upsert({
-      where: { code: acc.code },
-      update: { name: acc.name, type: acc.type },
-      create: acc
-    })
+  // 2. Seed Bagan Akun Standar (COA) Kepmendes 136/2022
+  const coaPath = path.join(__dirname, "coa_kemendes_136.json")
+  if (fs.existsSync(coaPath)) {
+    const raw = fs.readFileSync(coaPath, "utf-8")
+    const coaList: { code: string; name: string; type: string; normal: string }[] = JSON.parse(raw)
+    console.log(`Seeding ${coaList.length} Bagan Akun Standar Kepmendes 136/2022...`)
+    for (const item of coaList) {
+      await prisma.ledgerAccount.upsert({
+        where: { code: item.code },
+        update: { name: item.name, type: item.type, normal: item.normal },
+        create: {
+          code: item.code,
+          name: item.name,
+          type: item.type,
+          normal: item.normal
+        }
+      })
+    }
   }
 
-  // 3. Seed Default Settings (empty profile — triggers Setup Wizard)
+  // 3. Seed Default Settings
   console.log("Seeding default settings...")
   const settings = [
     { key: "shu_pengurus_pct", value: "30" },
@@ -121,9 +71,17 @@ async function main() {
     { key: "shu_modal_pct", value: "25" },
     { key: "shu_desa_pct", value: "25" },
     { key: "bumdes_name", value: "" },
+    { key: "bumdes_address", value: "" },
     { key: "village_name", value: "" },
-    { key: "district_name", value: "" },
-    { key: "regency_name", value: "" }
+    { key: "subdistrict_name", value: "" },
+    { key: "regency_name", value: "" },
+    { key: "director_name", value: "" },
+    { key: "treasurer_name", value: "" },
+    { key: "operator_name", value: "Budi Santoso" },
+    { key: "village_head", value: "" },
+    { key: "supervisor_name", value: "" },
+    { key: "gemini_api_key", value: "" },
+    { key: "gemini_model", value: "gemini-2.5-flash" }
   ]
 
   for (const s of settings) {
@@ -136,12 +94,9 @@ async function main() {
 
   console.log("")
   console.log("=== SEEDING COMPLETED SUCCESSFULLY ===")
-  console.log("")
-  console.log("Database siap digunakan. Saat pertama kali login,")
-  console.log("sistem akan mengarahkan ke Setup Wizard untuk mengisi")
-  console.log("profil BUMDES dan konfigurasi awal.")
-  console.log("")
-  console.log("Default login: admin / admin123")
+  console.log("Akun Pengguna Bawaan (Default Login):")
+  console.log("1. Administrator : admin / admin123 (Akses Penuh / Direktur)")
+  console.log("2. Operator      : operator / operator123 (Kasir / Bendahara / BKU)")
   console.log("")
 }
 
