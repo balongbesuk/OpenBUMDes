@@ -1,7 +1,8 @@
 {
-  "name": "bumdes-management",
-  "version": "0.1.0",
+  "name": "openbumdes",
+  "version": "1.0.0",
   "private": true,
+  "description": "Sistem Informasi Akuntansi dan Laporan Keuangan BUMDes Standar Kepmendes 136/2022",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,9 +10,7 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:seed": "prisma db seed",
-    "db:seed-templates": "ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" prisma/seed_templates.ts",
-    "db:seed-demo": "ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" scripts/seed-demo.ts",
-    "maintenance": "ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" scripts/maintenance.ts"
+    "db:seed-templates": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed_templates.ts"
   },
   "dependencies": {
     "@google/genai": "^2.31.0",
