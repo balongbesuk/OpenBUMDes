@@ -187,15 +187,19 @@ export default function EisHealthTab({ settings = {} }: EisHealthTabProps) {
             <div className="md:col-span-4 flex items-center gap-5 border-b md:border-b-0 md:border-r border-slate-800 pb-6 md:pb-0 md:pr-6">
               <div
                 className={`w-24 h-24 rounded-2xl flex flex-col items-center justify-center font-black text-3xl shadow-lg shrink-0 ${
-                  meta.category === "SEHAT"
+                  !meta.hasData || meta.category === "BELUM ADA DATA"
+                    ? "bg-slate-800 text-slate-400 border border-slate-700 shadow-slate-900/40"
+                    : meta.category === "SEHAT"
                     ? "bg-emerald-500 text-white shadow-emerald-500/20"
                     : meta.category === "KURANG SEHAT"
                     ? "bg-amber-500 text-white shadow-amber-500/20"
                     : "bg-rose-500 text-white shadow-rose-500/20"
                 }`}
               >
-                <span>{meta.totalScore}</span>
-                <span className="text-[10px] font-bold tracking-widest uppercase opacity-80 mt-0.5">/ 100</span>
+                <span>{meta.hasData ? meta.totalScore : "-"}</span>
+                <span className="text-[10px] font-bold tracking-widest uppercase opacity-80 mt-0.5">
+                  {meta.hasData ? "/ 100" : "NIHIL"}
+                </span>
               </div>
 
               <div>
@@ -204,7 +208,9 @@ export default function EisHealthTab({ settings = {} }: EisHealthTabProps) {
                 </span>
                 <h3
                   className={`text-2xl font-black tracking-tight mt-0.5 ${
-                    meta.category === "SEHAT"
+                    !meta.hasData || meta.category === "BELUM ADA DATA"
+                      ? "text-slate-300"
+                      : meta.category === "SEHAT"
                       ? "text-emerald-400"
                       : meta.category === "KURANG SEHAT"
                       ? "text-amber-400"
@@ -213,7 +219,7 @@ export default function EisHealthTab({ settings = {} }: EisHealthTabProps) {
                 >
                   {meta.category}
                 </h3>
-                <p className="text-xs text-slate-300 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   Tahun Anggaran {selectedYear}
                 </p>
               </div>
@@ -226,7 +232,9 @@ export default function EisHealthTab({ settings = {} }: EisHealthTabProps) {
                 <span>Analisis Eksekutif untuk Penasihat (Kades) & Direktur</span>
               </h4>
               <p className="text-xs text-slate-300 leading-relaxed">
-                {meta.category === "SEHAT"
+                {!meta.hasData || meta.category === "BELUM ADA DATA"
+                  ? "Database saat ini masih kosong (belum ada transaksi kas, jurnal operasional, atau saldo awal pembukuan yang tercatat). Silakan lakukan pencatatan Saldo Awal melalui menu Tutup & Buka Buku atau catat transaksi pertama melalui tombol '+ Catat Transaksi'."
+                  : meta.category === "SEHAT"
                   ? "Kondisi keuangan BUMDes berada dalam status SEHAT. Keseimbangan perputaran kas, margin keuntungan, dan kemandirian modal mampu menopang operasional serta memberikan kontribusi PADes yang optimal."
                   : meta.category === "KURANG SEHAT"
                   ? "Kondisi keuangan BUMDes berada dalam kategori KURANG SEHAT. Perputaran omzet atau pengembalian laba atas modal masih perlu diakselerasi, dan penagihan piutang perlu diperketat agar arus kas tidak terhambat."
@@ -236,16 +244,32 @@ export default function EisHealthTab({ settings = {} }: EisHealthTabProps) {
               {/* Status Chips */}
               <div className="flex flex-wrap gap-2 pt-1 text-[11px]">
                 <span className="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
-                  Total Aset: <strong className="text-white">{formatRupiah(meta.financialOverview.totalAset)}</strong>
+                  Total Aset: <strong className="text-white">{meta.hasData ? formatRupiah(meta.financialOverview.totalAset) : "Rp 0 (Nihil)"}</strong>
                 </span>
                 <span className="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
-                  Laba Bersih: <strong className="text-white">{formatRupiah(meta.financialOverview.labaBersih)}</strong>
+                  Laba Bersih: <strong className="text-white">{meta.hasData ? formatRupiah(meta.financialOverview.labaBersih) : "Rp 0 (Nihil)"}</strong>
                 </span>
                 <span className="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
-                  Modal Sendiri: <strong className="text-white">{formatRupiah(meta.financialOverview.modalPemilik)}</strong>
+                  Modal Sendiri: <strong className="text-white">{meta.hasData ? formatRupiah(meta.financialOverview.modalPemilik) : "Rp 0 (Nihil)"}</strong>
                 </span>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* BANNER NOTIFIKASI JIKA DATABASE KOSONG */}
+      {meta && !meta.hasData && (
+        <div className="bg-amber-50/90 border border-amber-200 rounded-2xl p-5 flex items-start gap-3.5 text-amber-900 shadow-xs">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-xs space-y-1">
+            <p className="font-bold text-sm text-amber-950">Database BUMDes Masih Kosong</p>
+            <p className="text-amber-800 leading-relaxed">
+              Belum ada mutasi transaksi atau saldo awal pembukuan yang tercatat untuk Tahun Anggaran {selectedYear}. Seluruh indikator rasio keuangan di bawah berstatus <strong>Nihil (0 poin)</strong>.
+            </p>
+            <p className="text-amber-700 text-[11px] pt-1 font-medium">
+              💡 Untuk memulai analisis kesehatan keuangan, silakan catat Saldo Awal di menu <strong>Tutup & Buka Buku</strong> atau catat transaksi pertama melalui tombol <strong>+ Catat Transaksi</strong> di pojok kanan atas.
+            </p>
           </div>
         </div>
       )}
@@ -360,12 +384,14 @@ export default function EisHealthTab({ settings = {} }: EisHealthTabProps) {
                     100
                   </td>
                   <td className="py-3 px-3 border-r border-slate-300 text-center font-mono font-black text-base text-indigo-900 bg-indigo-100/60">
-                    {meta?.totalScore}
+                    {meta?.hasData ? meta?.totalScore : 0}
                   </td>
                   <td className="py-3 px-3 font-bold uppercase tracking-wide">
                     <span
                       className={`px-2 py-0.5 rounded ${
-                        meta?.category === "SEHAT"
+                        !meta?.hasData || meta?.category === "BELUM ADA DATA"
+                          ? "bg-slate-200 text-slate-700 border border-slate-300"
+                          : meta?.category === "SEHAT"
                           ? "bg-emerald-100 text-emerald-800"
                           : meta?.category === "KURANG SEHAT"
                           ? "bg-amber-100 text-amber-800"

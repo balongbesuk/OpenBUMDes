@@ -96,6 +96,130 @@ export async function GET(request: Request) {
 
     const asetTetapNet = Math.max(0, asetTetap - akumulasiPenyusutan)
     const asetLancar = kasDanBank + piutangUsaha + persediaan + asetLancarLain
+
+    // Cek apakah ada data di database (transaksi kas, saldo awal, atau mutasi)
+    const totalTransactions = await db.journalEntry.count()
+    const totalOpeningBalances = await db.openingBalance.count()
+    const hasAnyRecord = (totalTransactions > 0 || totalOpeningBalances > 0 || revExpLines.length > 0 || neracaLines.length > 0) &&
+      (totalPendapatanUsaha !== 0 || totalBeban !== 0 || kasDanBank !== 0 || piutangUsaha !== 0 || persediaan !== 0 || asetTetap !== 0 || utangLancar !== 0 || utangJkPanjang !== 0 || modalAwal !== 0 || cadanganModal !== 0)
+
+    if (!hasAnyRecord) {
+      const emptyIndicators = [
+        {
+          no: 1,
+          name: "Imbalan kepada Pemilik (ROE)",
+          formula: "Laba Bersih : Modal Pemilik x 100%",
+          maxScore: 29,
+          rawValue: 0,
+          valueDisplay: "Nihil",
+          score: 0,
+          components: "Laba: Rp 0 | Modal: Rp 0",
+          notes: "Database kosong / Belum ada transaksi"
+        },
+        {
+          no: 2,
+          name: "Imbalan Investasi (ROI)",
+          formula: "(EBIT + Penyusutan) : Total Aset x 100%",
+          maxScore: 22,
+          rawValue: 0,
+          valueDisplay: "Nihil",
+          score: 0,
+          components: "Hasil: Rp 0 | Aset: Rp 0",
+          notes: "Database kosong / Belum ada transaksi"
+        },
+        {
+          no: 3,
+          name: "Rasio Kas (Cash Ratio)",
+          formula: "Kas & Bank : Utang Lancar x 100%",
+          maxScore: 7,
+          rawValue: 0,
+          valueDisplay: "Nihil",
+          score: 0,
+          components: "Kas: Rp 0 | Utang: Rp 0",
+          notes: "Database kosong / Belum ada transaksi"
+        },
+        {
+          no: 4,
+          name: "Rasio Lancar (Current Ratio)",
+          formula: "Aset Lancar : Utang Lancar x 100%",
+          maxScore: 7,
+          rawValue: 0,
+          valueDisplay: "Nihil",
+          score: 0,
+          components: "Aset: Rp 0 | Utang: Rp 0",
+          notes: "Database kosong / Belum ada transaksi"
+        },
+        {
+          no: 5,
+          name: "Collection Period (Hari Penagihan Piutang)",
+          formula: "Piutang Usaha : Total Pendapatan x 365 hari",
+          maxScore: 7,
+          rawValue: 0,
+          valueDisplay: "Nihil",
+          score: 0,
+          components: "Piutang: Rp 0 | Omzet: Rp 0",
+          notes: "Database kosong / Belum ada transaksi"
+        },
+        {
+          no: 6,
+          name: "Perputaran Persediaan (Hari)",
+          formula: "Persediaan : Total Pendapatan x 365 hari",
+          maxScore: 7,
+          rawValue: 0,
+          valueDisplay: "Nihil",
+          score: 0,
+          components: "Persediaan: Rp 0 | Omzet: Rp 0",
+          notes: "Database kosong / Belum ada transaksi"
+        },
+        {
+          no: 7,
+          name: "Perputaran Total Aset (TATO)",
+          formula: "Pendapatan Usaha : Total Aset x 100%",
+          maxScore: 7,
+          rawValue: 0,
+          valueDisplay: "Nihil",
+          score: 0,
+          components: "Omzet: Rp 0 | Aset: Rp 0",
+          notes: "Database kosong / Belum ada transaksi"
+        },
+        {
+          no: 8,
+          name: "Rasio Modal Pemilik thd Total Aset",
+          formula: "Modal Sendiri : Total Aset x 100%",
+          maxScore: 14,
+          rawValue: 0,
+          valueDisplay: "Nihil",
+          score: 0,
+          components: "Modal: Rp 0 | Aset: Rp 0",
+          notes: "Database kosong / Belum ada transaksi"
+        }
+      ]
+
+      return NextResponse.json({
+        success: true,
+        meta: {
+          year,
+          hasData: false,
+          totalScore: 0,
+          maxPossibleScore: 100,
+          category: "BELUM ADA DATA",
+          categoryBadge: "bg-slate-100 text-slate-600 border-slate-300",
+          financialOverview: {
+            totalPendapatanUsaha: 0,
+            totalBeban: 0,
+            labaBersih: 0,
+            kasDanBank: 0,
+            piutangUsaha: 0,
+            persediaan: 0,
+            totalAset: 0,
+            utangLancar: 0,
+            modalPemilik: 0
+          }
+        },
+        indicators: emptyIndicators
+      })
+    }
+
     const totalAset = Math.max(1, asetLancar + asetTetapNet)
 
     // Modal Pemilik = Modal Disetor + Cadangan & Laba Ditahan + Laba Bersih Berjalan
@@ -344,6 +468,7 @@ export async function GET(request: Request) {
       success: true,
       meta: {
         year,
+        hasData: true,
         totalScore,
         maxPossibleScore: 100,
         category,

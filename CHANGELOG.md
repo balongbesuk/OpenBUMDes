@@ -22,6 +22,9 @@ All notable changes to OpenBUMDes are documented in this file.
   * Menghilangkan batas pemotongan teks (`max-w-[130px]`) yang sebelumnya memotong nama menjadi "Kepala / Direktur BU...". Nama pengguna kini tampil utuh dan proporsional.
   * Memperbarui visual avatar dengan gradien modern (`indigo-purple`) dan indikator status aktif (*green online dot*).
   * Menambahkan kartu menu dropdown interaktif: menampilkan kartu identitas profil lengkap, username (@admin), hak akses sesi, pintasan navigasi cepat (Pengaturan Instansi & AI, Kelola Akun & Database, Buku Kas), serta tombol Keluar (Logout) yang aman dan elegan dengan deteksi klik luar (*click outside*).
+* **Penanganan Status Database Kosong pada Modul EIS (Kesehatan Keuangan)**:
+  * Memperbaiki kalkulasi API `/api/eis` agar memverifikasi keberadaan data transaksi dan saldo awal pembukuan sebelum menghitung rasio.
+  * Ketika database dalam kondisi kosong (setelah dikosongkan/reset), sistem secara otomatis menetapkan predikat **BELUM ADA DATA (NIHIL)** dengan skor 0 poin dan menampilkan kartu panduan input saldo awal / transaksi, mencegah munculnya kalkulasi skor semu saat data masih nihil.
 
 ## [1.0.0] - 2026-10-25
 
