@@ -68,6 +68,8 @@ export default function StislaApp() {
   // Auth User State
   const [currentUser, setCurrentUser] = useState<{ id: string; username: string; name: string; role: string } | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
+  const userDropdownRef = useRef<HTMLDivElement>(null)
 
   // Data State
   const [entries, setEntries] = useState<any[]>([])
@@ -294,8 +296,17 @@ export default function StislaApp() {
       .catch(() => setCurrentUser(null))
       .finally(() => setAuthLoading(false))
 
-    loadData()
   }, [selectedMonth, selectedYear, proofTypeFilter])
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" })
@@ -1024,36 +1035,143 @@ export default function StislaApp() {
 
               <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
 
-              {/* User Profile & Logout */}
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 text-right">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center text-[#6777ef] font-bold text-xs uppercase shrink-0">
-                    {currentUser?.name?.charAt(0) || "U"}
-                  </div>
-                  <div className="hidden sm:block text-left leading-tight">
-                    <p className="text-xs font-bold text-slate-800 truncate max-w-[130px]">
-                      {currentUser?.name || "Pengguna"}
-                    </p>
-                    <span
-                      className={`inline-block text-[9px] font-extrabold px-1.5 py-0.2 rounded uppercase ${
-                        currentUser?.role === "ADMIN"
-                          ? "bg-purple-100 text-purple-700"
-                          : "bg-blue-100 text-blue-700"
-                      }`}
-                    >
-                      {currentUser?.role === "ADMIN" ? "ADMIN" : "OPERATOR"}
-                    </span>
-                  </div>
-                </div>
-
+              {/* USER PROFILE CARD & INTERACTIVE MENU */}
+              <div className="relative" ref={userDropdownRef}>
                 <button
                   type="button"
-                  onClick={handleLogout}
-                  title="Keluar dari akun"
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
+                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  className={`flex items-center gap-2.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl border transition-all duration-200 group text-left ${
+                    showUserDropdown
+                      ? "bg-indigo-50/90 border-indigo-200 shadow-xs ring-2 ring-indigo-100"
+                      : "bg-white hover:bg-slate-50 border-slate-200/90 hover:border-slate-300 shadow-xs"
+                  }`}
+                  aria-expanded={showUserDropdown}
+                  title="Klik untuk membuka menu profil & akun"
                 >
-                  <LogOut className="w-4 h-4" />
+                  {/* Avatar with Gradient & Status Indicator */}
+                  <div className="relative shrink-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-xs">
+                      {currentUser?.name?.charAt(0) || "U"}
+                    </div>
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+                  </div>
+
+                  {/* Name & Role */}
+                  <div className="hidden sm:block leading-tight pr-1">
+                    <p className="text-xs font-bold text-slate-800 group-hover:text-indigo-600 transition-colors whitespace-nowrap">
+                      {currentUser?.name || "Pengguna BUMDes"}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span
+                        className={`inline-block text-[9px] font-extrabold px-1.5 py-0.2 rounded uppercase tracking-wider ${
+                          currentUser?.role === "ADMIN"
+                            ? "bg-purple-100 text-purple-700 border border-purple-200/60"
+                            : "bg-blue-100 text-blue-700 border border-blue-200/60"
+                        }`}
+                      >
+                        {currentUser?.role === "ADMIN" ? "ADMINISTRATOR" : "OPERATOR KAS"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 hidden sm:block ${
+                      showUserDropdown ? "rotate-180 text-indigo-600" : ""
+                    }`}
+                  />
                 </button>
+
+                {/* DROPDOWN POPOVER MENU */}
+                {showUserDropdown && (
+                  <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-slate-200/90 p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    {/* Header Profil Lengkap */}
+                    <div className="p-3 bg-gradient-to-br from-slate-50 to-indigo-50/50 rounded-xl border border-slate-100 mb-1.5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white font-black text-base flex items-center justify-center shadow-md shrink-0 ring-2 ring-white">
+                          {currentUser?.name?.charAt(0) || "U"}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-slate-900 leading-snug">
+                            {currentUser?.name || "Pengguna"}
+                          </p>
+                          <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                            @{currentUser?.username || "admin"}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span className="text-[9.5px] font-bold text-emerald-700 uppercase tracking-wider">
+                              Sesi Aktif &bull; {currentUser?.role === "ADMIN" ? "Akses Penuh" : "Akses Kasir"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-2.5 pt-2 border-t border-slate-200/70 flex items-center justify-between text-[10px] text-slate-500">
+                        <span className="truncate">{settings.bumdes_name || "BUM Desa"}</span>
+                        <span className="font-semibold text-slate-600 shrink-0">TA {selectedYear}</span>
+                      </div>
+                    </div>
+
+                    {/* Navigasi Cepat Pengguna */}
+                    <div className="space-y-0.5 text-xs py-1">
+                      {currentUser?.role === "ADMIN" && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab("settings")
+                              setShowUserDropdown(false)
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/60 font-semibold transition-colors text-left"
+                          >
+                            <Sliders className="w-4 h-4 text-slate-400" />
+                            <span>Pengaturan Instansi & AI</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab("maintenance")
+                              setShowUserDropdown(false)
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/60 font-semibold transition-colors text-left"
+                          >
+                            <Users className="w-4 h-4 text-slate-400" />
+                            <span>Kelola Akun & Database</span>
+                          </button>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab("cash-book")
+                          setShowUserDropdown(false)
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/60 font-semibold transition-colors text-left"
+                      >
+                        <BookOpen className="w-4 h-4 text-slate-400" />
+                        <span>Buku Kas & Jurnal</span>
+                      </button>
+                    </div>
+
+                    <div className="border-t border-slate-100 my-1"></div>
+
+                    {/* Tombol Logout Resmi */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserDropdown(false)
+                        handleLogout()
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 font-bold text-xs transition-colors group text-left"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <LogOut className="w-4 h-4 text-rose-500 group-hover:translate-x-0.5 transition-transform" />
+                        <span>Keluar dari Akun</span>
+                      </div>
+                      <span className="text-[10px] text-rose-400 font-normal">Logout</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </header>

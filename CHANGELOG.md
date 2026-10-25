@@ -18,6 +18,10 @@ All notable changes to OpenBUMDes are documented in this file.
   * Menambahkan fitur paginasi interaktif pada Master Bagan Akun dengan pilihan 15, 25, 50, dan 100 baris per halaman untuk navigasi cepat dan tampilan yang lebih rapi.
 * **Tampilan Tabel Audit Full Grid pada Buku Kas & Jurnal**:
   * Pembaruan tampilan tabel transaksi Buku Kas Umum dan Jurnal Transaksi dengan gaya bergaris formal (*Full Grid*) dan baris total mutasi seimbang untuk memudahkan verifikasi dan pemeriksaan audit.
+* **Rombak Total Widget Profil Pengguna di Header (Top Navigation)**:
+  * Menghilangkan batas pemotongan teks (`max-w-[130px]`) yang sebelumnya memotong nama menjadi "Kepala / Direktur BU...". Nama pengguna kini tampil utuh dan proporsional.
+  * Memperbarui visual avatar dengan gradien modern (`indigo-purple`) dan indikator status aktif (*green online dot*).
+  * Menambahkan kartu menu dropdown interaktif: menampilkan kartu identitas profil lengkap, username (@admin), hak akses sesi, pintasan navigasi cepat (Pengaturan Instansi & AI, Kelola Akun & Database, Buku Kas), serta tombol Keluar (Logout) yang aman dan elegan dengan deteksi klik luar (*click outside*).
 
 ## [1.0.0] - 2026-10-25
 
