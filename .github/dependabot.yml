@@ -1,11 +1,17 @@
 version: 2
 updates:
-  # Pembaruan dependensi npm otomatis
+  # Konfigurasi Pembaruan Dependensi Otomatis
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
+    # Mengabaikan perubahan versi mayor (breaking changes) agar sistem tetap stabil
     ignore:
-      - dependency-name: "tailwindcss"
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+    # Satukan pembaruan minor dan patch ke dalam satu grup Pull Request
+    groups:
+      dependencies:
+        patterns:
+          - "*"
