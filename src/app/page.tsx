@@ -719,6 +719,19 @@ export default function StislaApp() {
     </div>
   )
 
+  // JIKA BELUM LOGIN: Tampilkan Halaman Masuk Layar Ganda Eksklusif
+  if (!authLoading && !currentUser) {
+    return (
+      <LoginModal
+        settings={settings}
+        onSuccess={(user) => {
+          setCurrentUser(user)
+          loadData()
+        }}
+      />
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#f4f6f9] text-slate-800 flex flex-col antialiased">
       {/* MOBILE BACKDROP OVERLAY */}
@@ -4226,16 +4239,6 @@ export default function StislaApp() {
         </div>
       </div>
 
-      {/* ===================== LOGIN PAGE (DUA LAYAR / SPLIT-SCREEN) ===================== */}
-      {!authLoading && !currentUser && (
-        <LoginModal
-          settings={settings}
-          onSuccess={(user) => {
-            setCurrentUser(user)
-            loadData()
-          }}
-        />
-      )}
 
       {/* ===================== MODAL CETAK KWITANSI ===================== */}
       {selectedKwitansi && (
