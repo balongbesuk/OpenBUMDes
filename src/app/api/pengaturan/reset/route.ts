@@ -1,27 +1,24 @@
-import { getUserSession } from "@/lib/auth"
+import { getUserSession, AUTH_COOKIE_NAME } from "@/lib/auth"
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { logActivity } from "@/lib/audit"
-import { AUTH_COOKIE_NAME } from "@/lib/jwt"
 
 export async function POST() {
   try {
-    // 1. Wipe all transactional data
-    await db.savingTransaction.deleteMany()
-    await db.loanRepayment.deleteMany()
-    await db.loan.deleteMany()
-    await db.gedungBooking.deleteMany()
-    await db.lahanPayment.deleteMany()
-    await db.lahanContract.deleteMany()
-    await db.ppobRekap.deleteMany()
-    await db.journalLine.deleteMany()
-    await db.journalEntry.deleteMany()
-    await db.post.deleteMany()
-    await db.document.deleteMany()
-    await db.member.deleteMany()
-    await db.fixedAsset.deleteMany()
-    await db.periodLock.deleteMany()
-    await db.auditLog.deleteMany()
+    const session = await getUserSession()
+    if (!session || session.role !== "ADMIN") {
+      return NextResponse.json(
+        { success: false, error: "Hanya Admin yang berhak mereset database." },
+        { status: 403 }
+      )
+    }
+
+    // 1. Wipe all transactional data safely
+    await db.$transaction(async (tx) => {
+      await tx.journalLine.deleteMany()
+      await tx.journalEntry.deleteMany()
+      await tx.annualClosing.deleteMany()
+      await tx.openingBalance.deleteMany()
+    })
 
     // 2. Reset settings to default values (empty profile triggers setup page)
     const defaultSettings = [
@@ -42,12 +39,6 @@ export async function POST() {
         update: { value: s.value },
         create: s
       })
-    }
-
-    // 3. Log activity
-    const session = await getUserSession()
-    if (session) {
-      await logActivity("RESET_DATABASE", "Melakukan reset database ke pengaturan awal pabrik", session)
     }
 
     const response = NextResponse.json({ success: true, message: "Database berhasil di-reset ke pengaturan awal!" })

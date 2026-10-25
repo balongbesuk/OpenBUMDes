@@ -1,0 +1,1322 @@
+[
+  {
+    "code": "1.1.01.01",
+    "name": "Kas Tunai",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.01.02",
+    "name": "Kas di Bank BNI",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.01.03",
+    "name": "Kas di Bank Mandiri",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.01.04",
+    "name": "Kas di Bank BRI",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.01.05",
+    "name": "Kas di Bank BCA",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.01.06",
+    "name": "Kas di Bank Jatim",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.01.98",
+    "name": "Kas Kecil (Petty Cash)",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.02.01",
+    "name": "Deposito <= 3 bulan",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.02.99",
+    "name": "Setara Kas Lainnya",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.03.01",
+    "name": "Piutang Usaha",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.03.02",
+    "name": "Piutang kepada Pegawai",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.03.99",
+    "name": "Piutang Lainnya",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.04.01",
+    "name": "Penyisihan Piutang Usaha Tak Tertagih",
+    "type": "ASSET",
+    "normal": "Kredit"
+  },
+  {
+    "code": "1.1.04.02",
+    "name": "Penyisihan Piutang kepada Pegawai Tak Tertagih",
+    "type": "ASSET",
+    "normal": "Kredit"
+  },
+  {
+    "code": "1.1.04.99",
+    "name": "Penyisihan Piutang Lainnya Tak Tertagih",
+    "type": "ASSET",
+    "normal": "Kredit"
+  },
+  {
+    "code": "1.1.05.01",
+    "name": "Persediaan Barang Dagangan",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.05.02",
+    "name": "Persediaan Bahan Baku",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.05.03",
+    "name": "Persediaan Barang Dalam Proses",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.05.04",
+    "name": "Persediaan Barang Jadi",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.05.05",
+    "name": "Persediaan Produk Agrikultur - Ayam Potong",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.05.06",
+    "name": "Persediaan Produk Agrikultur - Buah Naga",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.05.07",
+    "name": "Persediaan Produk Agrikultur - Ikan Mas",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.05.08",
+    "name": "Persediaan Produk Agrikultur - Susu",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.06.01",
+    "name": "Alat Tulis Kantor (ATK)",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.07.01",
+    "name": "Sewa Dibayar Dimuka",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.07.02",
+    "name": "Asuransi Dibayar Dimuka",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.07.03",
+    "name": "PPh 25",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.07.04",
+    "name": "PPN Masukan",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.08.01",
+    "name": "Aset Biologis - Ayam",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.08.02",
+    "name": "Aset Biologis - Ikan Mas",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.98.99",
+    "name": "Aset Lancar Lainnya",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.99.01",
+    "name": "RK Unit Wisata",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.99.02",
+    "name": "RK Unit Restoran",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.99.03",
+    "name": "RK Unit Minimart Desa",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.99.04",
+    "name": "RK Unit Gedung Serbaguna",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.99.05",
+    "name": "RK Unit Simpan Pinjam",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.99.06",
+    "name": "RK Unit Pengelolaan Air Bersih",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.99.07",
+    "name": "RK Unit Pengelolaan Sampah",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.1.99.08",
+    "name": "RK Unit Ketahanan Pangan",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.2.01.01",
+    "name": "Deposito > 3 bulan",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.2.01.99",
+    "name": "Investasi Lainnya",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.3.01.01",
+    "name": "Tanah",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.3.02.01",
+    "name": "Kendaraan",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.3.03.01",
+    "name": "Peralatan dan Mesin",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.3.04.01",
+    "name": "Meubelair",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.3.05.01",
+    "name": "Gedung dan Bangunan",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.3.06.01",
+    "name": "Konstruksi Dalam Pengerjaan",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.3.07.01",
+    "name": "Akumulasi Penyusutan Kendaraan",
+    "type": "ASSET",
+    "normal": "Kredit"
+  },
+  {
+    "code": "1.3.07.02",
+    "name": "Akumulasi Penyusutan Peralatan dan Mesin",
+    "type": "ASSET",
+    "normal": "Kredit"
+  },
+  {
+    "code": "1.3.07.03",
+    "name": "Akumulasi Penyusutan Meubelair",
+    "type": "ASSET",
+    "normal": "Kredit"
+  },
+  {
+    "code": "1.3.07.04",
+    "name": "Akumulasi Penyusutan Gedung dan Bangunan",
+    "type": "ASSET",
+    "normal": "Kredit"
+  },
+  {
+    "code": "1.3.07.05",
+    "name": "Akumulasi Penyusutan - Sapi Perah",
+    "type": "ASSET",
+    "normal": "Kredit"
+  },
+  {
+    "code": "1.3.07.06",
+    "name": "Akumulasi Penyusutan - Tanaman Buah Naga",
+    "type": "ASSET",
+    "normal": "Kredit"
+  },
+  {
+    "code": "1.3.07.07",
+    "name": "Akumulasi Penyusutan - Tanaman Kelapa Sawit",
+    "type": "ASSET",
+    "normal": "Kredit"
+  },
+  {
+    "code": "1.3.08.01",
+    "name": "Aset Tetap - Sapi Perah",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.3.08.02",
+    "name": "Aset Tetap - Tanaman Buah Naga",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.3.08.03",
+    "name": "Aset Tetap - Tanaman Kelapa Sawit",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.3.99.99",
+    "name": "Aset Tetap Lainnya",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.4.01.01",
+    "name": "Software",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.4.01.02",
+    "name": "Patent",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.4.01.03",
+    "name": "Trademark",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.4.02.01",
+    "name": "Amortisasi Aset takberwujud",
+    "type": "ASSET",
+    "normal": "Kredit"
+  },
+  {
+    "code": "1.9.01.01",
+    "name": "Aset Lain-lain",
+    "type": "ASSET",
+    "normal": "Debit"
+  },
+  {
+    "code": "1.9.01.02",
+    "name": "Akumulasi Penyusutan Aset Lain-lain",
+    "type": "ASSET",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.1.01.01",
+    "name": "Utang Usaha",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.1.02.01",
+    "name": "PPN Keluaran",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.1.02.02",
+    "name": "PPh 21",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.1.02.03",
+    "name": "PPh 23",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.1.02.04",
+    "name": "PPh 29",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.1.03.01",
+    "name": "Utang Gaji dan Tunjangan",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.1.03.02",
+    "name": "Utang Gaji/Upah Karyawan",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.1.04.01",
+    "name": "Utang Listrik",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.1.04.02",
+    "name": "Utang Telepon/Internet",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.1.04.93",
+    "name": "Utang Utilitas Lainnya",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.1.05.01",
+    "name": "Utang kepada Pihak Ketiga Jk. Pendek",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.1.05.99",
+    "name": "Utang kepada Pihak Ketiga Jk. Pendek Lainnya",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.1.09.99",
+    "name": "Utang Jangka Pendek Lainnya",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.2.01.01",
+    "name": "Utang Ke Bank",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.2.02.01",
+    "name": "Utang kepada Pihak Ketiga Jk. Panjang",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "2.2.99.99",
+    "name": "Utang Jangka Panjang Lainnya",
+    "type": "LIABILITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.1.01.01",
+    "name": "Penyertaan Modal Desa",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.1.01.02",
+    "name": "Penyertaan Modal Desa A",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.1.01.03",
+    "name": "Penyertaan Modal Desa B",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.1.01.04",
+    "name": "Penyertaan Modal Desa C",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.1.02.01",
+    "name": "Penyertaan Modal Masyarakat",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.1.02.02",
+    "name": "Penyertaan Modal Masyarakat Desa A",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.1.02.03",
+    "name": "Penyertaan Modal Masyarakat Desa B",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.1.02.04",
+    "name": "Penyertaan Modal Masyarakat Desa C",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.2.01.01",
+    "name": "Bagi Hasil Penyertaan Modal Desa",
+    "type": "EQUITY",
+    "normal": "Debit"
+  },
+  {
+    "code": "3.2.01.02",
+    "name": "Bagi Hasil Penyertaan Modal Desa A",
+    "type": "EQUITY",
+    "normal": "Debit"
+  },
+  {
+    "code": "3.2.01.03",
+    "name": "Bagi Hasil Penyertaan Modal Desa B",
+    "type": "EQUITY",
+    "normal": "Debit"
+  },
+  {
+    "code": "3.2.01.04",
+    "name": "Bagi Hasil Penyertaan Modal Desa C",
+    "type": "EQUITY",
+    "normal": "Debit"
+  },
+  {
+    "code": "3.2.02.01",
+    "name": "Bagi Hasil Penyertaan Modal Masyarakat",
+    "type": "EQUITY",
+    "normal": "Debit"
+  },
+  {
+    "code": "3.2.02.02",
+    "name": "Bagi Hasil Penyertaan Modal Masyarakat Desa A",
+    "type": "EQUITY",
+    "normal": "Debit"
+  },
+  {
+    "code": "3.2.02.03",
+    "name": "Bagi Hasil Penyertaan Modal Masyarakat Desa B",
+    "type": "EQUITY",
+    "normal": "Debit"
+  },
+  {
+    "code": "3.2.02.04",
+    "name": "Bagi Hasil Penyertaan Modal Masyarakat Desa C",
+    "type": "EQUITY",
+    "normal": "Debit"
+  },
+  {
+    "code": "3.3.01.01",
+    "name": "Saldo Laba Tidak Dicadangkan",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.3.02.01",
+    "name": "Saldo Laba Dicadangkan untuk Pembelian Aset Tetap",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.3.02.02",
+    "name": "Saldo Laba Dicadangkan untuk Pembayaran Utang Jangka Panjang",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.4.01.01",
+    "name": "Modal Donasi/Sumbangan",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.8.01.01",
+    "name": "RK Pusat",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "3.9.01.01",
+    "name": "Ikhtisar Laba Rugi",
+    "type": "EQUITY",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.01.01",
+    "name": "Pendapatan Tiket",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.01.02",
+    "name": "Pendapatan Wahana",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.01.03",
+    "name": "Pendapatan Paket Wisata",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.02.01",
+    "name": "Pendapatan Pengelolaan Air Bersih",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.03.01",
+    "name": "Pendapatan Pengelolaan Sampah",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.04.01",
+    "name": "Pendapatan Sewa Tempat Outbound",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.04.02",
+    "name": "Pendapatan Sewa Tempat untuk Toko/Kios",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.04.03",
+    "name": "Pendapatan Sewa Gedung",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.04.04",
+    "name": "Pendapatan Sewa Mobil",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.04.05",
+    "name": "Pendapatan Sewa Peralatan Gedung",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.04.99",
+    "name": "Pendapatan Sewa Lainnya",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.05.01",
+    "name": "Pendapatan Jasa Pembayaran Listrik",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.05.99",
+    "name": "Pendapatan Jasa Pelayanan lainnya",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.06.01",
+    "name": "Pendapatan Transportasi",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.07.01",
+    "name": "Pendapatan Parkir Mobil",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.07.02",
+    "name": "Pendapatan Parkir Motor",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.08.01",
+    "name": "Pendapatan Simpan Pinjam",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.09.01",
+    "name": "Pendapatan Pelatihan",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.10.01",
+    "name": "Pendapatan Homestay",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.1.11.01",
+    "name": "Pendapata Komisi",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.2.01.01",
+    "name": "Pendapatan Penjualan Makanan/Minuman",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.2.01.02",
+    "name": "Pendapatan Penjualan Pakaian/Kaos/Jaket",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.2.01.03",
+    "name": "Pendapatan Penjualan Hasil Kerajinan/Suvenir",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.2.01.04",
+    "name": "Pendapatan Penjualan Buku",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.2.01.05",
+    "name": "Pendapatan Penjualan Biji Kopi",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.2.01.06",
+    "name": "Pendapatan Penjualan Bensin",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.2.01.07",
+    "name": "Pendapatan Penjualan Susu",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.2.01.08",
+    "name": "Pendapatan Penjualan Buah Kelapa Sawit",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.2.01.09",
+    "name": "Pendapatan Penjualan Ayam",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.2.01.10",
+    "name": "Pendapatan Penjualan Ikan Mas",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.2.01.91",
+    "name": "Pendapatan Penjualan Barang Dagangan",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.2.01.99",
+    "name": "Diskon Penjualan Barang Dagangan",
+    "type": "REVENUE",
+    "normal": "Debit"
+  },
+  {
+    "code": "4.3.01.01",
+    "name": "Pendapatan Katering",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.3.01.02",
+    "name": "Pendapatan Restoran",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.3.01.03",
+    "name": "Pendapatan Kopi",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "4.3.01.04",
+    "name": "Diskon Penjualan Barang Jadi",
+    "type": "REVENUE",
+    "normal": "Debit"
+  },
+  {
+    "code": "4.3.01.91",
+    "name": "Pendapatan Penjualan Barang Jadi",
+    "type": "REVENUE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "5.1.01.01",
+    "name": "Harga Pokok Penjualan Barang Dagangan",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "5.2.01.01",
+    "name": "Harga Pokok Penjualan Barang Jadi",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "5.3.01.01",
+    "name": "Harga Pokok Produksi",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.01.01",
+    "name": "Beban Gaji dan Tunjangan Bag. Adum",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.01.02",
+    "name": "Beban Honor Lembur Bag. Adum",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.01.03",
+    "name": "Beban Honor Narasumber",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.01.04",
+    "name": "Beban Insentif (Bonus) Bag. Adum",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.01.05",
+    "name": "Beban Komisi Bag. Adum",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.01.06",
+    "name": "Beban Seragam Pegawai Bag. Adum",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.01.07",
+    "name": "Beban Penguatan SDM",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.01.99",
+    "name": "Beban Pegawai Bag. Adum Lainnya",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.02.01",
+    "name": "Beban Alat Tulis Kantor (ATK)",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.02.02",
+    "name": "Beban Foto Copy",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.02.03",
+    "name": "Beban Konsumsi Rapat",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.02.04",
+    "name": "Beban Cetak dan Dekorasi",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.02.99",
+    "name": "Beban Perlengkapan Lainnya",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.03.01",
+    "name": "Beban Pemeliharaan dan Perbaikan",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.04.01",
+    "name": "Beban Listrik",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.04.02",
+    "name": "Beban Telepon/Internet",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.04.99",
+    "name": "Beban Utilitas Lainnya",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.05.01",
+    "name": "Beban Sewa",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.05.02",
+    "name": "Beban Asuransi",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.06.01",
+    "name": "Beban Kebersihan",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.06.02",
+    "name": "Beban Keamanan",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.07.01",
+    "name": "Beban Penyisihan Piutang Tak Tertagih",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.07.02",
+    "name": "Beban Penyusutan Kendaraan",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.07.03",
+    "name": "Beban Penyusutan Peralatan dan Mesin",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.07.04",
+    "name": "Beban Penyusutan Meubelair",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.07.05",
+    "name": "Beban Penyusutan Gedung dan Bangunan",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.07.06",
+    "name": "Beban Amortisasi Aset takberwujud",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.07.07",
+    "name": "Beban Penyusutan - Sapi Perah",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.07.08",
+    "name": "Beban Penyusutan - Tanaman Buah Naga",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.07.09",
+    "name": "Beban Penyusutan - Tanaman Kelapa Sawit",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.99.01",
+    "name": "Beban Parkir",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.99.02",
+    "name": "Beban Audit",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.99.03",
+    "name": "Beban Perjalanan Dinas",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.99.04",
+    "name": "Beban Transportasi",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.99.05",
+    "name": "Beban Jamuan Tamu",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.1.99.99",
+    "name": "Beban Administrasi dan Umum Lainnya",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.2.01.01",
+    "name": "Beban Gaji/Upah Bag. Operasional",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.2.01.02",
+    "name": "Beban Uang Makan Bag. Operasional",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.2.02.01",
+    "name": "Beban Pemeliharaan Wahana",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.2.02.02",
+    "name": "Beban Perbaikan dan Renovasi",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.2.03.01",
+    "name": "Beban Tim SAR",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.2.03.02",
+    "name": "Beban P3K",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.2.99.01",
+    "name": "Beban Komunikasi",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.2.99.02",
+    "name": "Beban Sewa Lokasi",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.2.99.03",
+    "name": "Beban Pakan Ikan",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.2.99.99",
+    "name": "Beban Operasional Lainnya",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.3.01.01",
+    "name": "Beban Gaji/Upah Bag. Pemasaran",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.3.01.02",
+    "name": "Beban Insentif (Bonus) Bag. Pemasaran",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.3.01.03",
+    "name": "Beban Seragam Pegawai Bag. Pemasaran",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.3.02.01",
+    "name": "Beban Iklan",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.3.02.02",
+    "name": "Beban Promosi wartawan",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.3.02.03",
+    "name": "Beban Dana Sosial",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "6.3.99.99",
+    "name": "Beban Pemasaran Lainnya",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.1.01.01",
+    "name": "Pendapatan Bunga Bank",
+    "type": "EXPENSE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "7.1.01.02",
+    "name": "Pendapatan Fee Agen BNI 46",
+    "type": "EXPENSE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "7.1.02.01",
+    "name": "Pendapatan Dividen",
+    "type": "EXPENSE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "7.1.03.01",
+    "name": "Pendapatan Denda",
+    "type": "EXPENSE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "7.1.04.01",
+    "name": "Pendapatan Iklan",
+    "type": "EXPENSE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "7.1.05.01",
+    "name": "Keuntungan Penjualan Aset Tetap",
+    "type": "EXPENSE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "7.1.06.01",
+    "name": "Keuntungan dar iPerubahan Nilai Wajar Aset Biologis",
+    "type": "EXPENSE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "7.1.99.99",
+    "name": "Pendapatan Lain-lain lainnya",
+    "type": "EXPENSE",
+    "normal": "Kredit"
+  },
+  {
+    "code": "7.2.01.01",
+    "name": "Beban Administrasi Bank",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.2.02.01",
+    "name": "Beban Bunga",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.2.03.01",
+    "name": "Beban Denda",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.2.04.01",
+    "name": "Kerugian Penjualan Aset Tetap",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.2.05.01",
+    "name": "Kerugian dar iPerubahan Nilai Wajar Aset Biologis",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.2.99.99",
+    "name": "Beban Lain-lain lainnya",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.3.01.01",
+    "name": "Beban Pajak Air Permukaan",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.3.01.02",
+    "name": "Beban Pajak Bunga Bank",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.3.01.03",
+    "name": "Beban Pajak Daerah",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.3.01.04",
+    "name": "Beban Pajak Hiburan",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.3.01.05",
+    "name": "Beban Pajak Reklame",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.3.01.06",
+    "name": "Beban PPh 21",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.3.01.07",
+    "name": "Beban PPh 23",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.3.01.08",
+    "name": "Beban PPh 25",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.3.01.09",
+    "name": "Beban PPh 29",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.3.01.10",
+    "name": "Beban PPh Final",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  },
+  {
+    "code": "7.3.01.99",
+    "name": "Beban Pajak Lainnya",
+    "type": "EXPENSE",
+    "normal": "Debit"
+  }
+]

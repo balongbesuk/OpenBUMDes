@@ -47,4 +47,23 @@ Thumbs.db
 # backups
 /backups/
 
+# Private documents & PDF
+*.pdf
+/LPJ_Bumdes_2025.pdf
 
+# One-off data insertion / migration scripts
+scripts/insert_*.ts
+scripts/update_*.ts
+scripts/inspect_*.ts
+scripts/list_*.ts
+
+# Sensitive local seeds and scripts
+prisma/seed_members.json
+prisma/seed_sp_data.json
+scripts/seed-spj-2025.ts
+scripts/parse_sp.py
+
+# IDE / Antigravity / Agent local artifacts
+.gemini/
+.agents/
+scratch/

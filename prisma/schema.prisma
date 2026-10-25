@@ -12,139 +12,43 @@ model User {
   username     String   @unique
   passwordHash String
   name         String
-  role         String   // ADMIN (Kepala BUMDES), BENDAHARA, SEKRETARIS, OPERATOR_SEWA, OPERATOR_SP
+  role         String   @default("OPERATOR")
   createdAt    DateTime @default(now())
-}
-
-model Member {
-  id                 String              @id @default(uuid())
-  code               String              @unique // P-001, P-002, dll.
-  name               String
-  isActive           Boolean             @default(true)
-  simpananPokok      Float               @default(0)
-  simpananWajib      Float               @default(0)
-  savingTransactions SavingTransaction[]
-  loans              Loan[]
-  createdAt          DateTime            @default(now())
-}
-
-model SavingTransaction {
-  id          String   @id @default(uuid())
-  memberId    String
-  member      Member   @relation(fields: [memberId], references: [id])
-  type        String   // POKOK, WAJIB, SUKARELA
-  amount      Float
-  flow        String   // MASUK (Setoran), KELUAR (Penarikan)
-  date        DateTime @default(now())
-  description String?
-
-  @@index([memberId])
-  @@index([type, flow])
-  @@index([date])
-}
-
-model Loan {
-  id                 String          @id @default(uuid())
-  memberId           String
-  member             Member          @relation(fields: [memberId], references: [id])
-  type               String          // MASYARAKAT, POKTAN
-  principal          Float
-  interestRate       Float           // Persentase bunga flat bulanan
-  monthlyInstallment Float
-  termMonths         Int
-  status             String          // ACTIVE, PAID, LATE
-  createdAt          DateTime        @default(now())
-  repayments         LoanRepayment[]
-
-  @@index([memberId])
-  @@index([status])
-  @@index([type, status])
-}
-
-model LoanRepayment {
-  id            String   @id @default(uuid())
-  loanId        String
-  loan          Loan     @relation(fields: [loanId], references: [id])
-  principalPaid Float
-  interestPaid  Float
-  date          DateTime @default(now())
-  description   String?
-
-  @@index([loanId])
-  @@index([date])
-}
-
-model GedungBooking {
-  id           String   @id @default(uuid())
-  customerName String
-  type         String   // BADMINTON, RAPAT, PESTA
-  dateStart    DateTime
-  dateEnd      DateTime
-  totalFee     Float
-  dpAmount     Float
-  status       String   // BOOKED, PAID, CANCELLED
-  createdAt    DateTime @default(now())
-
-  @@index([status])
-  @@index([dateStart, dateEnd])
-  @@index([type])
-}
-
-model LahanContract {
-  id          String         @id @default(uuid())
-  type        String         // WARUNG, LAPAK
-  number      String         // Nomor kavling
-  tenantName  String
-  phone       String?
-  shift       String         // NONE, PAGI, MALAM
-  fee         Float          // Biaya sewa (Bulanan untuk lapak, Tahunan untuk warung)
-  periodStart DateTime
-  periodEnd   DateTime
-  status      String         // ACTIVE, EXPIRED, TERMINATED
-  payments    LahanPayment[]
-  createdAt   DateTime       @default(now())
-
-  @@index([type, status])
-  @@index([status, periodEnd])
-}
-
-model LahanPayment {
-  id            String        @id @default(uuid())
-  contractId    String
-  contract      LahanContract @relation(fields: [contractId], references: [id])
-  amount        Float
-  date          DateTime      @default(now())
-  periodCovered String        // Keterangan bulan/tahun yang dibayar
-
-  @@index([contractId])
-  @@index([date])
-}
-
-model PpobRekap {
-  id              String   @id @default(uuid())
-  date            DateTime @default(now())
-  totalRevenue    Float    // Total omset
-  totalCommission Float    // Total laba bersih/komisi BUMDES
-  description     String?
-
-  @@index([date])
 }
 
 model LedgerAccount {
-  code String @id // Kode Akun: 1-1100, 2-1100, dll.
-  name String
-  type String // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
+  code      String   @id
+  name      String
+  type      String
+  normal    String
+  createdAt DateTime @default(now())
+}
+
+model TransactionTemplate {
+  id            String   @id @default(uuid())
+  category      String
+  name          String
+  targetAccount String
+  cashAccount   String
+  cashFlowGroup String?
+  description   String?
+  createdAt     DateTime @default(now())
 }
 
 model JournalEntry {
-  id            String        @id @default(uuid())
-  date          DateTime      @default(now())
-  description   String
-  unitUsaha     String        // SP, GEDUNG, LAHAN, PPOB, UMUM
-  attachmentUrl String?
-  lines         JournalLine[]
-
-  @@index([unitUsaha])
+  id                 String        @id @default(uuid())
+  proofNumber        String        @unique
+  proofType          String
+  date               DateTime      @default(now())
+  description        String
+  payeeOrPayer       String
+  unitName           String?
+  note               String?
+  attachmentUrl      String?
+  verificationStatus String        @default("DRAFT")
+  createdAt          DateTime      @default(now())
+  lines              JournalLine[]
+  @@index([proofType])
   @@index([date])
 }
 
@@ -153,39 +57,11 @@ model JournalLine {
   journalEntryId String
   journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
   accountCode    String
-  type           String       // DEBIT, CREDIT
+  type           String
   amount         Float
-
+  cashFlowGroup  String?
   @@index([journalEntryId])
-  @@index([accountCode, type])
   @@index([accountCode])
-}
-
-model Post {
-  id        String   @id @default(uuid())
-  title     String
-  slug      String   @unique
-  content   String
-  imageUrl  String?
-  published Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@index([published, createdAt])
-}
-
-model Document {
-  id          String   @id @default(uuid())
-  docNumber   String   @unique // Nomor Surat
-  type        String   // SURAT_MASUK, SURAT_KELUAR, SK, KEPUTUSAN
-  subject     String   // Perihal
-  sender      String?  // Pengirim (untuk surat masuk)
-  recipient   String?  // Penerima (untuk surat keluar)
-  date        DateTime @default(now())
-  fileUrl     String?  // Path file softcopy
-  createdAt   DateTime @default(now())
-
-  @@index([type])
-  @@index([date])
 }
 
 model Setting {
@@ -193,76 +69,38 @@ model Setting {
   value String
 }
 
-model AuditLog {
-  id        String   @id @default(uuid())
-  userId    String
-  username  String
-  name      String
-  role      String
-  action    String
-  detail    String
-  timestamp DateTime @default(now())
-
-  @@index([userId])
-  @@index([timestamp])
-  @@index([action])
+model AnnualClosing {
+  id                String   @id @default(uuid())
+  year              Int      @unique
+  closedAt          DateTime @default(now())
+  closedBy          String   @default("Pengurus BUMDes")
+  totalRevenue      Float    @default(0)
+  totalExpense      Float    @default(0)
+  netProfit         Float    @default(0)
+  padesPercent      Float    @default(40)
+  padesAmount       Float    @default(0)
+  cadanganPercent   Float    @default(20)
+  cadanganAmount    Float    @default(0)
+  pengurusPercent   Float    @default(20)
+  pengurusAmount    Float    @default(0)
+  sosialPercent     Float    @default(10)
+  sosialAmount      Float    @default(0)
+  pendidikanPercent Float    @default(10)
+  pendidikanAmount  Float    @default(0)
+  journalEntryId    String?
+  snapshotData      String
+  isLocked          Boolean  @default(true)
+  notes             String?
+  createdAt         DateTime @default(now())
 }
 
-model PeriodLock {
-  id        String   @id @default(uuid())
-  year      Int
-  month     Int      // 1 to 12
-  locked    Boolean  @default(true)
-  lockedBy  String
-  createdAt DateTime @default(now())
-
-  @@unique([year, month])
-}
-
-model FixedAsset {
-  id               String   @id @default(uuid())
-  code             String   @unique // AST-001, AST-002, dll.
-  name             String
-  purchaseDate     DateTime
-  purchaseCost     Float
-  economicLife     Int      // Umur ekonomis dalam tahun (misal: 5 tahun)
-  depreciationRate Float    // Persentase penyusutan tahunan (desimal, e.g. 20% = 20)
-  accumDep         Float    @default(0) // Akumulasi penyusutan saat ini
-  createdAt        DateTime @default(now())
-}
-
-model TaxTransaction {
+model OpeningBalance {
   id          String   @id @default(uuid())
-  date        DateTime @default(now())
-  description String
-  taxType     String   // PPh 21, PPh 23, PPh 25, PPN
+  year        Int
+  accountCode String
   amount      Float
-  flow        String   // POTONG (diterima/dipotong), SETOR (dibayarkan)
+  type        String
   createdAt   DateTime @default(now())
-}
 
-model MeetingMinutes {
-  id        String   @id @default(uuid())
-  date      DateTime @default(now())
-  title     String
-  category  String   // MUSDES, INTERN, PENGAWAS, LAINNYA
-  attendees Int
-  minutes   String   // Ringkasan jalannya rapat
-  notes     String?
-  createdAt DateTime @default(now())
+  @@unique([year, accountCode])
 }
-
-model LpjNarrative {
-  year      Int      @id
-  bab1      String   // Ikhtisar Pencapaian
-  bab2      String   // Laporan Manajemen (Direktur & Pengawas)
-  bab3      String   // Profil BUM Desa
-  bab4      String   // Kinerja BUM Desa
-  bab5      String   // Permasalahan dan Strategi
-  bab6      String   // Potensi dan Peluang
-  bab7      String   // Rencana Kerja
-  bab8      String   // Penutup
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-

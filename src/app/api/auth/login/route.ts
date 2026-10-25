@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { comparePassword } from "@/lib/auth"
-import { signToken, AUTH_COOKIE_NAME, getAuthCookieOptions } from "@/lib/jwt"
+import { comparePassword, createToken, AUTH_COOKIE_NAME } from "@/lib/auth"
 
 export async function POST(request: Request) {
   try {
@@ -10,43 +9,41 @@ export async function POST(request: Request) {
 
     if (!username || !password) {
       return NextResponse.json(
-        { success: false, error: "Username and password are required" },
+        { success: false, error: "Username dan password wajib diisi." },
         { status: 400 }
       )
     }
 
     const user = await db.user.findUnique({
-      where: { username }
+      where: { username: username.trim().toLowerCase() }
     })
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: "Username tidak terdaftar" },
+        { success: false, error: "Username atau password salah." },
         { status: 401 }
       )
     }
 
-    // Verify password (supports both bcrypt and legacy SHA-256)
-    const isValid = await comparePassword(password, user.passwordHash)
+    const isValid = comparePassword(password, user.passwordHash)
     if (!isValid) {
       return NextResponse.json(
-        { success: false, error: "Password salah" },
+        { success: false, error: "Username atau password salah." },
         { status: 401 }
       )
     }
 
-    // Generate JWT token
-    const token = await signToken({
+    const token = createToken({
       id: user.id,
       username: user.username,
       name: user.name,
-      role: user.role,
+      role: user.role
     })
 
-    // Build response with user data (for client-side display)
     const response = NextResponse.json({
       success: true,
-      data: {
+      message: `Selamat datang, ${user.name}!`,
+      user: {
         id: user.id,
         username: user.username,
         name: user.name,
@@ -54,31 +51,16 @@ export async function POST(request: Request) {
       }
     })
 
-    // Set secure HttpOnly JWT cookie
-    const cookieOptions = getAuthCookieOptions()
-    response.cookies.set(AUTH_COOKIE_NAME, token, cookieOptions)
-
-    // Also set legacy cookie for backward compatibility during transition
-    // This ensures client-side code that reads bumdes_user still works
-    response.cookies.set("bumdes_user", JSON.stringify({
-      id: user.id,
-      username: user.username,
-      name: user.name,
-      role: user.role
-    }), {
-      path: "/",
-      httpOnly: false,
+    response.cookies.set(AUTH_COOKIE_NAME, token, {
+      httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax" as const,
-      maxAge: 60 * 60 * 24 * 7
+      sameSite: "lax",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 // 7 hari
     })
 
     return response
   } catch (error: any) {
-    console.error("Auth error:", error)
-    return NextResponse.json(
-      { success: false, error: error.message || "Authentication failed" },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }

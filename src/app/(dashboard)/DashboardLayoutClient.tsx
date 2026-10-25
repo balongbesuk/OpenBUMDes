@@ -43,28 +43,10 @@ const allNavItems = [
     roles: ["ADMIN", "BENDAHARA", "SEKRETARIS", "OPERATOR_SP", "OPERATOR_SEWA"]
   },
   {
-    name: "Simpan Pinjam",
-    href: "/simpan-pinjam",
-    icon: Coins,
-    roles: ["ADMIN", "BENDAHARA", "OPERATOR_SP"]
-  },
-  {
-    name: "Sewa Gedung",
-    href: "/sewa-gedung",
-    icon: Building2,
-    roles: ["ADMIN", "BENDAHARA", "OPERATOR_SEWA"]
-  },
-  {
-    name: "Sewa Lahan",
-    href: "/sewa-lahan",
-    icon: Map,
-    roles: ["ADMIN", "BENDAHARA", "OPERATOR_SEWA"]
-  },
-  {
-    name: "PPOB Rekap",
-    href: "/ppob",
-    icon: CreditCard,
-    roles: ["ADMIN", "BENDAHARA"]
+    name: "Pembukuan & Laporan (PPAK)",
+    href: "/keuangan",
+    icon: BookOpen,
+    roles: ["ADMIN", "BENDAHARA", "OPERATOR_SP", "OPERATOR_SEWA"]
   },
   {
     name: "Persuratan",
@@ -79,16 +61,10 @@ const allNavItems = [
     roles: ["ADMIN", "SEKRETARIS"]
   },
   {
-    name: "Pembukuan Keuangan",
-    href: "/keuangan",
-    icon: BookOpen,
-    roles: ["ADMIN", "BENDAHARA"]
-  },
-  {
-    name: "Pengaturan",
+    name: "Pengaturan Sistem",
     href: "/pengaturan",
     icon: Settings,
-    roles: ["ADMIN"]
+    roles: ["ADMIN", "BENDAHARA"]
   }
 ]
 
@@ -126,10 +102,6 @@ export default function DashboardLayoutClient({
   const navItems = allNavItems
     .filter((item) => item.roles.includes(user.role))
     .filter((item) => {
-      if (item.name === "Simpan Pinjam") return initialSettings?.module_sp !== "false"
-      if (item.name === "Sewa Gedung") return initialSettings?.module_gedung !== "false"
-      if (item.name === "Sewa Lahan") return initialSettings?.module_lahan !== "false"
-      if (item.name === "PPOB Rekap") return initialSettings?.module_ppob !== "false"
       if (item.name === "Persuratan") return initialSettings?.module_persuratan !== "false"
       return true
     })

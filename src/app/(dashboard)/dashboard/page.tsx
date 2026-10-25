@@ -1,26 +1,21 @@
 import { cookies } from "next/headers"
-import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/jwt"
+import { getUserSession } from "@/lib/auth"
 import { getDashboardStats } from "@/lib/dashboard-stats"
 import DashboardClient from "./DashboardClient"
 
-export const dynamic = "force-dynamic"
-
 export default async function DashboardPage() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get(AUTH_COOKIE_NAME)?.value
-
   let userName = "Admin"
-  if (token) {
-    const user = await verifyToken(token)
-    if (user && user.name) {
-      userName = user.name
-    }
+  const user = await getUserSession()
+
+  if (user && user.name) {
+    userName = user.name
   } else {
+    const cookieStore = await cookies()
     const legacyCookie = cookieStore.get("bumdes_user")?.value
     if (legacyCookie) {
       try {
-        const user = JSON.parse(decodeURIComponent(legacyCookie))
-        userName = user.name || "Admin"
+        const parsed = JSON.parse(decodeURIComponent(legacyCookie))
+        userName = parsed.name || "Admin"
       } catch {}
     }
   }

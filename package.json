@@ -9,14 +9,17 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:seed": "prisma db seed",
+    "db:seed-templates": "ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" prisma/seed_templates.ts",
     "db:seed-demo": "ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" scripts/seed-demo.ts",
     "maintenance": "ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" scripts/maintenance.ts"
   },
   "dependencies": {
+    "@google/genai": "^2.31.0",
     "@prisma/client": "^5.21.1",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "html2pdf.js": "^0.14.0",
     "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.453.0",
@@ -25,6 +28,7 @@
     "react-dom": "^19.0.0",
     "recharts": "^2.13.0",
     "tailwind-merge": "^2.5.4",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {

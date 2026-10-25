@@ -17,7 +17,7 @@ Pembaruan keamanan dan perbaikan bug hanya dirilis untuk versi mayor terbaru pad
 Jika Anda menemukan celah keamanan (*vulnerability*), mohon tidak melaporkannya melalui GitHub Issues publik demi mencegah penyalahgunaan sebelum perbaikan dirilis.
 
 Silakan laporkan celah keamanan secara privat melalui salah satu metode berikut:
-1. **GitHub Security Advisories**: Laporkan langsung melalui tab **Security** di repositori GitHub kami ([balongbesuk/LPJBumdes/security](https://github.com/balongbesuk/LPJBumdes/security)) dengan memilih opsi *Report a vulnerability*.
+1. **GitHub Security Advisories**: Laporkan langsung melalui tab **Security** di repositori GitHub kami ([balongbesuk/OpenBUMDes/security](https://github.com/balongbesuk/OpenBUMDes/security)) dengan memilih opsi *Report a vulnerability*.
 2. **Kontak Pengelola**: Hubungi kontributor/pemelihara repositori ini secara privat melalui profil pengelola organisasi GitHub **balongbesuk**.
 
 Laporan Anda akan dianalisis secara tertutup, dan perbaikan akan segera dirilis pada rilis versi berikutnya.

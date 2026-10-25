@@ -17,11 +17,13 @@ import LabaRugiTab from "./components/LabaRugiTab"
 import NeracaTab from "./components/NeracaTab"
 import ArusKasModalTab from "./components/ArusKasModalTab"
 import BkuTab from "./components/BkuTab"
+import CoaTab from "./components/CoaTab"
 import PajakTab from "./components/PajakTab"
 import AsetTab from "./components/AsetTab"
 import ShuTab from "./components/ShuTab"
 import TutupBukuTab from "./components/TutupBukuTab"
 import LpjTab from "./components/LpjTab"
+import { BookPlus } from "lucide-react"
 
 interface ReportData {
   labaRugi: {
@@ -57,7 +59,7 @@ interface ReportData {
 
 export default function KeuanganPage() {
   const settings = useSettings()
-  const [activeTab, setActiveTab] = useState<"labarugi" | "neraca" | "aruskasmodal" | "bku" | "pajak" | "aset" | "shu" | "tutupbuku" | "lpjtahunan">("labarugi")
+  const [activeTab, setActiveTab] = useState<"bku" | "coa" | "labarugi" | "neraca" | "aruskasmodal" | "pajak" | "aset" | "shu" | "tutupbuku" | "lpjtahunan">("bku")
   const [report, setReport] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -161,6 +163,24 @@ export default function KeuanganPage() {
       {/* Tabs navigation (No print) */}
       <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-100 rounded-3xl w-full md:w-fit no-print">
         <button
+          onClick={() => setActiveTab("bku")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center ${
+            activeTab === "bku" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-900"
+          }`}
+        >
+          <BookOpen className="w-3.5 h-3.5 mr-1.5 text-teal-600" />
+          Buku Kas Umum (Jurnal)
+        </button>
+        <button
+          onClick={() => setActiveTab("coa")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center ${
+            activeTab === "coa" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-900"
+          }`}
+        >
+          <BookPlus className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
+          Bagan Akun (COA)
+        </button>
+        <button
           onClick={() => setActiveTab("labarugi")}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center ${
             activeTab === "labarugi" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-900"
@@ -186,15 +206,6 @@ export default function KeuanganPage() {
         >
           <FileText className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
           Arus Kas & Modal
-        </button>
-        <button
-          onClick={() => setActiveTab("bku")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center ${
-            activeTab === "bku" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-900"
-          }`}
-        >
-          <BookOpen className="w-3.5 h-3.5 mr-1.5 text-teal-600" />
-          Buku Kas Umum
         </button>
         <button
           onClick={() => setActiveTab("pajak")}
@@ -244,6 +255,14 @@ export default function KeuanganPage() {
       </div>
 
       {/* Tab Contents */}
+      {activeTab === "bku" && (
+        <BkuTab onRefreshReport={fetchReports} />
+      )}
+
+      {activeTab === "coa" && (
+        <CoaTab onRefreshReport={fetchReports} />
+      )}
+
       {activeTab === "labarugi" && (
         <LabaRugiTab report={report} />
       )}
@@ -258,10 +277,6 @@ export default function KeuanganPage() {
 
       {activeTab === "aruskasmodal" && (
         <ArusKasModalTab report={report} />
-      )}
-
-      {activeTab === "bku" && (
-        <BkuTab onRefreshReport={fetchReports} />
       )}
 
       {activeTab === "pajak" && (

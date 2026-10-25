@@ -94,7 +94,18 @@ export async function POST(request: Request) {
       )
     }
 
-    const { date, description, unitUsaha, lines, attachmentUrl } = validationResult.data
+    const {
+      date,
+      description,
+      unitUsaha,
+      lines,
+      attachmentUrl,
+      proofNumber,
+      proofType,
+      payeeOrPayer,
+      note,
+      verificationStatus
+    } = validationResult.data
     const txDate = date ? new Date(date) : new Date()
 
     // Verify lock period status
@@ -105,12 +116,39 @@ export async function POST(request: Request) {
       )
     }
 
-    const result = await postJournalEntry(txDate, description, unitUsaha, lines, attachmentUrl)
+    // Auto-generate proof number if proofType is provided but proofNumber is empty
+    let finalProofNumber = proofNumber
+    if (proofType && !finalProofNumber) {
+      const year = txDate.getFullYear()
+      const month = String(txDate.getMonth() + 1).padStart(2, "0")
+      const prefix = `${proofType}/${year}/${month}/`
+      const count = await db.journalEntry.count({
+        where: {
+          proofNumber: { startsWith: prefix }
+        }
+      })
+      finalProofNumber = `${prefix}${String(count + 1).padStart(4, "0")}`
+    }
+
+    const result = await postJournalEntry(
+      txDate,
+      description,
+      unitUsaha,
+      lines,
+      attachmentUrl,
+      {
+        proofNumber: finalProofNumber,
+        proofType,
+        payeeOrPayer,
+        note,
+        verificationStatus
+      }
+    )
 
     // Log to audit log
     const session = await getUserSession()
     if (session) {
-      const actDetail = `Mencatat transaksi jurnal: ${description} (Unit: ${unitUsaha}) senilai Rp ${lines.find(l => l.type === 'DEBIT')?.amount.toLocaleString("id-ID")}`
+      const actDetail = `Mencatat transaksi ${proofType || "jurnal"}: ${description} (${finalProofNumber || "-"}) senilai Rp ${lines.find(l => l.type === 'DEBIT')?.amount.toLocaleString("id-ID")}`
       await logActivity("POST_JOURNAL_ENTRY", actDetail, session)
     }
 

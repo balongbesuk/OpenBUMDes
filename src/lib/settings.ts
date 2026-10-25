@@ -10,7 +10,10 @@ export interface BumdesSettings {
   shu_sosial_pct: string
   shu_modal_pct: string
   shu_desa_pct: string
-  [key: string]: string
+  director_name?: string
+  treasurer_name?: string
+  secretary_name?: string
+  [key: string]: string | undefined
 }
 
 const defaults: BumdesSettings = {
@@ -18,6 +21,9 @@ const defaults: BumdesSettings = {
   village_name: "",
   district_name: "",
   regency_name: "",
+  director_name: "H. Suryono, S.Sos",
+  treasurer_name: "Siti Rahmawati, S.E.",
+  secretary_name: "Budi Santoso, S.Kom",
   shu_pengurus_pct: "30",
   shu_pengawas_pct: "10",
   shu_sosial_pct: "10",

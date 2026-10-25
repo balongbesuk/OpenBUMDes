@@ -1,26 +1,19 @@
 import { cookies } from "next/headers"
-import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/jwt"
+import { getUserSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import DashboardLayoutClient from "./DashboardLayoutClient"
-
-export const dynamic = "force-dynamic"
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const cookieStore = await cookies()
-  const token = cookieStore.get(AUTH_COOKIE_NAME)?.value
-
-  let user = null
-  if (token) {
-    user = await verifyToken(token)
-  }
+  let user = await getUserSession()
 
   // Fallback to legacy cookie if token is not verified/present
   if (!user) {
+    const cookieStore = await cookies()
     const legacyCookie = cookieStore.get("bumdes_user")?.value
     if (legacyCookie) {
       try {

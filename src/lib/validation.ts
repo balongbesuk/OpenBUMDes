@@ -22,7 +22,21 @@ export const bkuEntrySchema = z.object({
     message: "Unit usaha tidak valid.",
   }),
   attachmentUrl: z.string().nullable().optional(),
-  lines: z.array(journalLineSchema)
+  proofNumber: z.string().nullable().optional(),
+  proofType: z.enum(["BKM", "BKK", "MEMORIAL"]).nullable().optional(),
+  payeeOrPayer: z.string().nullable().optional(),
+  note: z.string().nullable().optional(),
+  verificationStatus: z.enum(["DRAFT", "PRINTED", "SIGNED_UPLOADED", "VERIFIED"]).optional(),
+  lines: z.array(
+    z.object({
+      accountCode: z.string().min(1, "Kode akun harus diisi."),
+      type: z.enum(["DEBIT", "CREDIT"], {
+        message: "Tipe jurnal harus DEBIT atau CREDIT.",
+      }),
+      amount: z.coerce.number().positive("Nominal harus lebih besar dari 0."),
+      cashFlowGroup: z.string().nullable().optional(),
+    })
+  )
     .min(2, "Transaksi minimal harus memiliki 2 baris jurnal (Debit & Kredit)."),
 }).refine(
   (data) => {

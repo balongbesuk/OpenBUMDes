@@ -178,7 +178,6 @@ export default function LpjTab({ report, settings }: LpjTabProps) {
             >
               <option value={2025}>2025</option>
               <option value={2026}>2026</option>
-              <option value={2027}>2027</option>
             </select>
           </div>
         </div>
