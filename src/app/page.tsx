@@ -1399,7 +1399,7 @@ export default function StislaApp() {
 
                             {/* Tombol Unduh Excel 1 Tahun Penuh */}
                             <a
-                              href={`/api/cash-book/export-excel?year=${selectedYear}`}
+                              href={`/api/cash-book/export-excel?year=${encodeURIComponent(String(selectedYear).replace(/[^0-9]/g, ""))}`}
                               download
                               title={`Unduh seluruh transaksi Buku Kas & Jurnal selama 1 Tahun Penuh (${selectedYear}) ke Excel (.xlsx)`}
                               className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs transition cursor-pointer"

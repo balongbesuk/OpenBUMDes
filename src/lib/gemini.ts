@@ -9,9 +9,9 @@ export function parseTransactionOffline(userText: string, accounts: any[] = []) 
   const text = userText.trim()
   const lower = text.toLowerCase()
 
-  // 1. Ekstraksi Nominal Uang
+  // 1. Ekstraksi Nominal Uang secara aman (Linear O(N) regex tanpa backtracking)
   let totalAmount = 0
-  const m1 = lower.match(/(\d+(?:[.,]\d+)?)\s*(miliar|milyar|jt|juta|rb|ribu|k)\b/i)
+  const m1 = lower.match(/\b(\d+(?:[.,]\d+)?)\s*(miliar|milyar|jt|juta|rb|ribu|k)\b/)
   if (m1) {
     let val = parseFloat(m1[1].replace(",", "."))
     const unit = m1[2].toLowerCase()
@@ -20,12 +20,12 @@ export function parseTransactionOffline(userText: string, accounts: any[] = []) 
     else if (unit === "rb" || unit === "ribu" || unit === "k") val *= 1000
     totalAmount = Math.round(val)
   } else {
-    const m2 = lower.match(/(?:rp\.?|sebesar|sejumlah|\s|^)\s*(\d{1,3}(?:\.\d{3})+(?:,\d+)?)/i)
+    const m2 = lower.match(/\b\d{1,3}(?:\.\d{3})+(?:,\d+)?\b/)
     if (m2) {
-      totalAmount = parseInt(m2[1].replace(/\./g, ""), 10)
+      totalAmount = parseInt(m2[0].replace(/\./g, ""), 10)
     } else {
-      const m3 = lower.match(/(?:rp\.?|\s|^)(\d{4,12})\b/i)
-      if (m3) totalAmount = parseInt(m3[1], 10)
+      const m3 = lower.match(/\b\d{4,12}\b/)
+      if (m3) totalAmount = parseInt(m3[0], 10)
     }
   }
 
@@ -54,14 +54,31 @@ export function parseTransactionOffline(userText: string, accounts: any[] = []) 
     proofType = "BKM"
   }
 
-  // 3. Ekstraksi Pihak (Penyetor / Penerima / Toko / Warga)
+  // 3. Ekstraksi Pihak (Penyetor / Penerima / Toko / Warga) tanpa ReDoS (Linear token scan)
   let payeeOrPayer = proofType === "BKM" ? "Masyarakat / Pelanggan" : "Pihak Ketiga"
   if (isPADesPayout) {
     payeeOrPayer = "Pemerintah Desa"
-  }
-  const partyMatch = text.match(/(?:dari|kepada|ke|oleh|pihak)\s+([A-Za-z0-9\s.,]+?)(?:\s+(?:sebesar|sejumlah|rp|\d|tunai|melalui|untuk|per|bulan)|$)/i)
-  if (partyMatch && partyMatch[1].trim()) {
-    payeeOrPayer = partyMatch[1].trim()
+  } else {
+    const partyKeywords = ["dari ", "kepada ", "ke ", "oleh ", "pihak "]
+    for (const kw of partyKeywords) {
+      const idx = lower.indexOf(kw)
+      if (idx !== -1) {
+        const afterKeyword = text.slice(idx + kw.length).trim()
+        const stopKeywords = [" sebesar", " sejumlah", " rp", " tunai", " melalui", " untuk", " per ", " bulan"]
+        let cutIndex = afterKeyword.length
+        for (const sk of stopKeywords) {
+          const sIdx = afterKeyword.toLowerCase().indexOf(sk)
+          if (sIdx !== -1 && sIdx < cutIndex) {
+            cutIndex = sIdx
+          }
+        }
+        const candidate = afterKeyword.slice(0, cutIndex).replace(/^[^\w]+|[^\w]+$/g, "").trim()
+        if (candidate.length > 1 && candidate.length <= 50) {
+          payeeOrPayer = candidate
+          break
+        }
+      }
+    }
   }
 
   // 4. Deteksi Akun Kas & Akun Lawan Standar Kepmendes 136
@@ -124,8 +141,13 @@ export function parseTransactionOffline(userText: string, accounts: any[] = []) 
     }
   }
 
-  // Uraian transaksi ringkas
-  let description = text.replace(/\s*(?:sebesar|sejumlah|rp\.?)\s*[\d.,]+\s*(?:miliar|milyar|jt|juta|rb|ribu|k)?/i, "").trim()
+  // Uraian transaksi ringkas (Safe linear replace)
+  let description = text
+    .replace(/\b(?:sebesar|sejumlah|rp\.?)\b\s*[\d.,]+/gi, "")
+    .replace(/\b\d+(?:[.,]\d+)?\s*(?:miliar|milyar|jt|juta|rb|ribu|k)\b/gi, "")
+    .replace(/\b\d{4,12}\b/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim()
   if (description) {
     description = description.charAt(0).toUpperCase() + description.slice(1)
   } else {

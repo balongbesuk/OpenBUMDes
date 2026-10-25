@@ -27,7 +27,7 @@
     "react-dom": "^19.3.1",
     "recharts": "^2.13.0",
     "tailwind-merge": "^2.5.4",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.6.6"
   },
   "devDependencies": {
@@ -45,6 +45,10 @@
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "overrides": {
-    "postcss": "^8.5.10"
+    "postcss": "^8.5.10",
+    "sharp": "^0.35.5",
+    "source-map-js": "^1.2.2",
+    "postcss-selector-parser": "^6.1.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }
