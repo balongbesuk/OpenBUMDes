@@ -100,24 +100,25 @@ async function generateYearReportsSnapshot(year: number) {
   // Aset Tetap & Akumulasi Penyusutan
   const fixedLines = await db.journalLine.findMany({
     where: {
-      accountCode: { startsWith: "1.3.01" },
+      accountCode: { startsWith: "1.3" },
       journalEntry: { date: { lte: endDate } }
     }
   })
   let asetTetap = 0
-  fixedLines.forEach((l) => {
-    asetTetap += l.type === "DEBIT" ? l.amount : -l.amount
-  })
-
-  const accumLines = await db.journalLine.findMany({
-    where: {
-      accountCode: { startsWith: "1.3.02" },
-      journalEntry: { date: { lte: endDate } }
-    }
-  })
   let accumPenyusutan = 0
-  accumLines.forEach((l) => {
-    accumPenyusutan += l.type === "CREDIT" ? l.amount : -l.amount
+  fixedLines.forEach((l) => {
+    const code = l.accountCode
+    const acc = accountMap.get(code)
+    const isAccPenyusutan =
+      code.startsWith("1.3.07") ||
+      code.startsWith("1.3.08") ||
+      acc?.normal === "Kredit" ||
+      (acc?.name || "").toLowerCase().includes("akumulasi")
+    if (isAccPenyusutan) {
+      accumPenyusutan += l.type === "CREDIT" ? l.amount : -l.amount
+    } else {
+      asetTetap += l.type === "DEBIT" ? l.amount : -l.amount
+    }
   })
 
   const currentAssets = [
@@ -170,7 +171,11 @@ async function generateYearReportsSnapshot(year: number) {
 
   const eqDitahanLines = await db.journalLine.findMany({
     where: {
-      accountCode: { in: ["3.1.03.01", "3.2.01.01"] },
+      OR: [
+        { accountCode: { startsWith: "3.1.03" } },
+        { accountCode: { startsWith: "3.2" } },
+        { accountCode: { startsWith: "3.3" } }
+      ],
       journalEntry: { date: { lte: endDate } }
     }
   })
@@ -203,11 +208,59 @@ async function generateYearReportsSnapshot(year: number) {
     ekuitasAkhir: eqModalAwal + eqModalMasy + eqLabaDitahan + netProfit
   }
 
-  // 4. LAK
+  // 4. LAK (Kalkulasi Arus Kas Langsung)
+  let saldoKasAwal = 0
+  const obCash = await db.openingBalance.findMany({
+    where: {
+      year,
+      accountCode: { startsWith: "1.1.01" }
+    }
+  })
+
+  if (obCash.length > 0) {
+    obCash.forEach((o) => {
+      if (o.type === "DEBIT") saldoKasAwal += o.amount
+      else saldoKasAwal -= o.amount
+    })
+  } else {
+    const prevClosing = await db.annualClosing.findFirst({
+      where: { year: year - 1 }
+    })
+    if (prevClosing) {
+      try {
+        const snap = JSON.parse(prevClosing.snapshotData)
+        saldoKasAwal = snap.lak?.saldoKasAkhir || 0
+      } catch {}
+    }
+    if (saldoKasAwal === 0) {
+      const priorLines = await db.journalLine.findMany({
+        where: {
+          accountCode: { startsWith: "1.1.01" },
+          OR: [
+            { journalEntry: { date: { lt: startDate } } },
+            { journalEntry: { proofNumber: { startsWith: "SA/" } } }
+          ]
+        }
+      })
+      priorLines.forEach((l) => {
+        if (l.type === "DEBIT") saldoKasAwal += l.amount
+        else saldoKasAwal -= l.amount
+      })
+    }
+  }
+
   const cashLinesYear = await db.journalLine.findMany({
     where: {
       accountCode: { startsWith: "1.1.01" },
-      journalEntry: { date: { gte: startDate, lte: endDate } }
+      journalEntry: {
+        date: { gte: startDate, lte: endDate },
+        NOT: {
+          OR: [
+            { proofNumber: { startsWith: "SA/" } },
+            { description: { contains: "Saldo Awal" } }
+          ]
+        }
+      }
     }
   })
 
@@ -235,6 +288,7 @@ async function generateYearReportsSnapshot(year: number) {
   })
 
   const lak = {
+    saldoKasAwal: Math.max(0, saldoKasAwal),
     operasi: {
       masuk: arusKasMasukOperasi,
       keluar: arusKasKeluarOperasi,

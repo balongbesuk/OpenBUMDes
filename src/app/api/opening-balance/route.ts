@@ -72,8 +72,15 @@ export async function GET(request: Request) {
       let netBal = 0
       let side: "DEBIT" | "CREDIT" = "DEBIT"
 
-      // Kontra aset seperti 1.3.02 (Akumulasi Penyusutan) bersaldo normal Kredit
-      if (code.startsWith("1.3.02")) {
+      // Kontra aset seperti 1.3.07 (Akumulasi Penyusutan) bersaldo normal Kredit
+      const isAccPenyusutan =
+        code.startsWith("1.3.07") ||
+        code.startsWith("1.3.08") ||
+        code.startsWith("1.3.02") ||
+        acc?.normal === "Kredit" ||
+        (acc?.name || "").toLowerCase().includes("akumulasi")
+
+      if (isAccPenyusutan) {
         netBal = val.credit - val.debit
         side = "CREDIT"
       } else if (firstChar === "1") {

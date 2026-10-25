@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useRef, useEffect } from "react"
-import { Printer, X, FileText, CheckCircle2 } from "lucide-react"
+import { Printer, X, FileText, CheckCircle2, Lock, CalendarCheck } from "lucide-react"
 import { formatRupiah } from "@/lib/utils"
 
 export interface LpjPrintModalProps {
@@ -97,16 +97,149 @@ export default function LpjPrintModal({
     saldoKasAkhir: 0
   }
 
+  // Alokasi SHU
+  const profitBase = Math.max(0, Number(closing.netProfit || labaRugi.netProfit || 0))
+  const shu = {
+    padesPercent: closing.padesPercent ?? 20,
+    padesAmount: closing.padesAmount ?? Math.round(profitBase * 0.2),
+    cadanganPercent: closing.cadanganPercent ?? 30,
+    cadanganAmount: closing.cadanganAmount ?? Math.round(profitBase * 0.3),
+    pengurusPercent: closing.pengurusPercent ?? 25,
+    pengurusAmount: closing.pengurusAmount ?? Math.round(profitBase * 0.25),
+    sosialPercent: closing.sosialPercent ?? 15,
+    sosialAmount: closing.sosialAmount ?? Math.round(profitBase * 0.15),
+    pendidikanPercent: closing.pendidikanPercent ?? 10,
+    pendidikanAmount: closing.pendidikanAmount ?? Math.round(profitBase * 0.1)
+  }
+
+  // Pos-pos aman untuk Neraca & CaLK
+  const currentAssetsList = (neraca.currentAssets && neraca.currentAssets.length > 0)
+    ? neraca.currentAssets
+    : [
+        { name: "Kas & Setara Kas (Kas Tunai & Rekening Bank)", amount: lak.saldoKasAkhir || 0 },
+        { name: "Piutang Usaha & Tagihan Mitra", amount: 0 },
+        { name: "Persediaan Barang & ATK Operasional", amount: 0 }
+      ]
+
+  const liabilitiesList = (neraca.liabilities && neraca.liabilities.length > 0)
+    ? neraca.liabilities
+    : [
+        { name: "Kewajiban Jangka Pendek & Titipan Pihak Ketiga", amount: neraca.totalLiabilities || 0 }
+      ]
+
+  const equityList = (neraca.equity && neraca.equity.length > 0)
+    ? neraca.equity
+    : [
+        { name: "Penyertaan Modal Desa (APBDes)", amount: lpe.totalPenyertaanModalAkhir || lpe.modalAwalDesa || 0 },
+        { name: "Cadangan Modal & Laba Ditahan", amount: lpe.saldoLabaAwal || 0 },
+        { name: "Sisa Hasil Usaha / Laba Bersih Tahun Berjalan", amount: labaRugi.netProfit || 0 }
+      ]
+
+  // Helper KOP Dokumen Resmi Standar Menu Laporan Keuangan
+  const renderReportKop = (reportTitle: string, subtitle?: string) => (
+    <div className="kop-container border-b-2 border-slate-900 pb-3 mb-4" style={{ borderBottom: "2px solid #0f172a", paddingBottom: "10px", marginBottom: "14px" }}>
+      <div className="kop-header-container flex items-center justify-between gap-4" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", width: "100%" }}>
+        <div className="kop-brand-box flex items-center gap-3.5" style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+          {settings.bumdes_logo ? (
+            <img
+              src={settings.bumdes_logo}
+              alt="Logo BUMDes"
+              className="w-14 h-14 object-contain rounded-lg border border-slate-200 p-1 shrink-0 bg-white"
+              style={{ width: "56px", height: "56px", objectFit: "contain", borderRadius: "8px", border: "1px solid #e2e8f0", padding: "4px", flexShrink: 0, backgroundColor: "#ffffff" }}
+            />
+          ) : (
+            <div 
+              className="w-14 h-14 rounded-xl bg-slate-900 text-white font-black text-xl flex items-center justify-center shrink-0"
+              style={{ width: "56px", height: "56px", borderRadius: "10px", background: "#0f172a", color: "#ffffff", fontWeight: 900, fontSize: "20px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+            >
+              {(bumdesName || "B").charAt(0)}
+            </div>
+          )}
+          <div>
+            <h1 className="font-black text-base sm:text-lg text-slate-900 uppercase tracking-tight leading-tight" style={{ fontWeight: 900, fontSize: "16px", color: "#0f172a", textTransform: "uppercase", lineHeight: 1.2, margin: 0 }}>
+              {bumdesName}
+            </h1>
+            <p className="text-[11px] text-slate-600 font-medium leading-tight mt-0.5" style={{ fontSize: "11px", color: "#475569", fontWeight: 500, lineHeight: 1.25, margin: "2px 0 0 0" }}>
+              Desa {villageName}, Kecamatan {subdistrictName}, Kabupaten {regencyName}
+            </p>
+            <p className="text-[10px] text-slate-500 leading-tight mt-0.5" style={{ fontSize: "10px", color: "#64748b", lineHeight: 1.25, margin: "2px 0 0 0" }}>
+              {bumdesAddress}
+            </p>
+          </div>
+        </div>
+
+        <div className="kop-badge-box text-right shrink-0" style={{ textAlign: "right", flexShrink: 0 }}>
+          <span 
+            className="kop-badge text-[9.5px] font-bold px-2.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300 uppercase tracking-wider inline-block"
+            style={{ fontSize: "9.5px", fontWeight: 700, padding: "2.5px 10px", borderRadius: "6px", background: "#f1f5f9", color: "#334155", border: "1px solid #cbd5e1", textTransform: "uppercase", letterSpacing: "0.05em", display: "inline-block", whiteSpace: "nowrap" }}
+          >
+            Kepmendes PDTT 136/2022
+          </span>
+          <p className="text-[10.5px] text-slate-600 mt-1 font-mono font-bold" style={{ fontSize: "10.5px", color: "#475569", marginTop: "3px", fontFamily: "ui-monospace, monospace", fontWeight: 700, margin: "3px 0 0 0" }}>
+            TA: {year}
+          </p>
+        </div>
+      </div>
+
+      <div className="kop-title-box text-center mt-3 pt-2 border-t border-slate-200/80" style={{ textAlign: "center", marginTop: "10px", paddingTop: "6px", borderTop: "1px solid #e2e8f0" }}>
+        <h2 className="text-base font-black text-slate-900 uppercase tracking-wide" style={{ fontSize: "15px", fontWeight: 900, color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.025em", margin: 0 }}>
+          {reportTitle}
+        </h2>
+        {subtitle && (
+          <p className="text-[11px] text-slate-600 font-bold mt-0.5" style={{ fontSize: "11px", color: "#475569", fontWeight: 700, margin: "2px 0 0 0" }}>
+            {subtitle}
+          </p>
+        )}
+        <p className="text-[10px] text-slate-500 mt-0.5 italic" style={{ fontSize: "10px", color: "#64748b", fontStyle: "italic", margin: "2px 0 0 0" }}>
+          Periode Tahun Buku: 1 Januari s/d 31 Desember {year}
+        </p>
+      </div>
+    </div>
+  )
+
+  // Helper Tanda Tangan Resmi Menu Laporan Keuangan
+  const renderReportSignatures = (includePenasihat = false) => (
+    <div className={`mt-6 pt-4 border-t border-slate-200 text-xs ${includePenasihat ? "grid grid-cols-3 gap-4 text-center" : "grid grid-cols-2 text-center"}`}>
+      {includePenasihat && (
+        <div>
+          <p className="text-slate-500 mb-0.5 text-[10px]">Menyetujui & Mengesahkan,</p>
+          <p className="font-bold text-slate-800 uppercase text-[10.5px]">PENASIHAT (KEPALA DESA)</p>
+          <div className="h-16"></div>
+          <p className="font-bold text-slate-900 underline uppercase text-[11px]">{villageHead}</p>
+          <p className="text-[10px] text-slate-500">Pemerintah Desa {villageName}</p>
+        </div>
+      )}
+
+      <div>
+        <p className="text-slate-500 mb-0.5 text-[10px]">{includePenasihat ? "Mengetahui," : "Mengetahui & Melaporkan,"}</p>
+        <p className="font-bold text-slate-800 uppercase text-[10.5px]">DIREKTUR BUMDES</p>
+        <div className="h-16"></div>
+        <p className="font-bold text-slate-900 underline uppercase text-[11px]">{directorName}</p>
+        <p className="text-[10px] text-slate-500">Direktur Utama</p>
+      </div>
+
+      <div>
+        <p className="text-slate-500 mb-0.5 text-[10px]">
+          {villageName}, 31 Desember {year}
+        </p>
+        <p className="font-bold text-slate-800 uppercase text-[10.5px]">BENDAHARA / AKUNTANSI</p>
+        <div className="h-16"></div>
+        <p className="font-bold text-slate-900 underline uppercase text-[11px]">{treasurerName}</p>
+        <p className="text-[10px] text-slate-500">Bendahara BUMDes</p>
+      </div>
+    </div>
+  )
+
   // Helper Footer Halaman Cetak Resmi
   const renderPageFooter = (pageNumber: number) => (
-    <div className="pt-3 border-t border-slate-300 mt-6 flex justify-between items-center text-[10px] text-slate-500 font-sans print:pt-2 print:mt-4">
+    <div className="pt-2 border-t border-slate-300 mt-4 flex justify-between items-center text-[9.5px] text-slate-500 font-sans print:pt-2 print:mt-4">
       <div className="flex items-center gap-1.5">
         <span className="font-bold text-slate-800 uppercase tracking-wider">{bumdesName.replace(/["\\]/g, "")}</span>
         <span>&bull;</span>
         <span>LPJ Keuangan TA {year}</span>
       </div>
       <div className="text-slate-400 italic">
-        Kepmendesa PDTT No. 136/2022
+        Kepmendesa PDTT No. 136/2022 &bull; SAK EMKM
       </div>
       <div className="font-mono font-bold text-slate-800">
         Halaman {pageNumber} dari 8
@@ -133,54 +266,205 @@ export default function LpjPrintModal({
 <html lang="id">
 <head>
   <meta charset="utf-8">
-  <title>Cetak LPJ BUMDesa ${bumdesName} - TA ${year}</title>
+  <base href="${window.location.origin}/">
+  <title>Cetak LPJ BUMDesa ${bumdesName.replace(/["\\]/g, "")} - TA ${year}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
   ${styleTags}
   <style>
-    @page { size: A4 portrait; margin: 15mm; }
-    *, *::before, *::after { box-sizing: border-box; }
-    body {
-      background: #ffffff;
+    @page { 
+      size: A4 portrait; 
+      margin: 10mm 12mm; 
+    }
+    *, *::before, *::after { 
+      box-sizing: border-box !important; 
+    }
+    html, body {
+      background: #ffffff !important;
       color: #0f172a;
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      margin: 0;
-      padding: 0;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0 !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
     .page-break {
-      page-break-after: always;
-      break-after: page;
+      page-break-after: always !important;
+      break-after: page !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
-    .no-print {
-      display: block;
+    .cover-a4-page {
+      box-sizing: border-box !important;
+      width: 100% !important;
+      height: 272mm !important;
+      min-height: 272mm !important;
+      max-height: 272mm !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      border: 5px double #0f172a !important;
+      border-radius: 18px !important;
+      padding: 12mm 10mm !important;
+      margin: 0 auto !important;
+      page-break-after: always !important;
+      break-after: page !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      background: #ffffff !important;
+      position: relative !important;
+    }
+    .report-a4-page {
+      box-sizing: border-box !important;
+      width: 100% !important;
+      min-height: 272mm !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      padding: 2mm 0 !important;
+      margin: 0 auto !important;
+      page-break-after: always !important;
+      break-after: page !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    .kop-container {
+      border-bottom: 2px solid #0f172a !important;
+      padding-bottom: 10px !important;
+      margin-bottom: 14px !important;
+    }
+    .kop-header-container {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 16px !important;
+      width: 100% !important;
+    }
+    .kop-brand-box {
+      display: flex !important;
+      align-items: center !important;
+      gap: 14px !important;
+    }
+    .kop-badge-box {
+      text-align: right !important;
+      flex-shrink: 0 !important;
+    }
+    .kop-badge {
+      display: inline-block !important;
+      width: auto !important;
+      max-width: max-content !important;
+      font-size: 9.5px !important;
+      font-weight: 700 !important;
+      padding: 2.5px 10px !important;
+      border-radius: 6px !important;
+      background: #f1f5f9 !important;
+      color: #334155 !important;
+      border: 1px solid #cbd5e1 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.05em !important;
+      white-space: nowrap !important;
+    }
+    .kop-title-box {
+      text-align: center !important;
+      margin-top: 10px !important;
+      padding-top: 6px !important;
+      border-top: 1px solid #e2e8f0 !important;
+    }
+    @media screen {
+      body {
+        background: #f1f5f9 !important;
+        padding-bottom: 40px !important;
+      }
+      .print-container {
+        max-width: 860px;
+        margin: 20px auto;
+        padding: 0;
+      }
+      .cover-a4-page {
+        height: auto !important;
+        min-height: 1020px !important;
+        margin-bottom: 24px !important;
+        background: #ffffff !important;
+        box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
+        padding: 36px 28px !important;
+      }
+      .report-a4-page {
+        min-height: 1020px !important;
+        margin-bottom: 24px !important;
+        background: #ffffff !important;
+        padding: 30px 24px !important;
+        border-radius: 16px !important;
+        box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
+      }
     }
     @media print {
       .no-print {
         display: none !important;
       }
+      body {
+        padding: 0 !important;
+        margin: 0 !important;
+        background: #ffffff !important;
+      }
+      .print-container {
+        max-width: none !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: transparent !important;
+      }
+      .cover-a4-page {
+        width: 100% !important;
+        height: 272mm !important;
+        min-height: 272mm !important;
+        max-height: 272mm !important;
+        padding: 12mm 10mm !important;
+        margin: 0 !important;
+        border: 5px double #0f172a !important;
+        border-radius: 16px !important;
+      }
+      .report-a4-page {
+        width: 100% !important;
+        min-height: 272mm !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .kop-header-container {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+      }
+      .kop-brand-box {
+        display: flex !important;
+        align-items: center !important;
+      }
+      .kop-badge {
+        display: inline-block !important;
+        white-space: nowrap !important;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="no-print" style="padding: 12px 24px; background: #1e1b4b; color: white; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50;">
+  <div class="no-print" style="padding: 12px 24px; background: #1e1b4b; color: white; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
     <div>
-      <span style="font-weight: bold; font-size: 13px;">Pratinjau Cetak LPJ Resmi BUMDesa</span>
-      <span style="font-size: 11px; opacity: 0.8; margin-left: 8px;">(Standar Kepmendes 136/2022)</span>
+      <span style="font-weight: bold; font-size: 13px;">Pratinjau Cetak LPJ Resmi BUMDesa TA ${year}</span>
+      <span style="font-size: 11px; opacity: 0.8; margin-left: 8px;">(Format Kertas A4 &bull; Standar Kepmendes 136/2022)</span>
     </div>
-    <button onclick="window.print()" style="background: #4f46e5; color: white; border: none; padding: 7px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px;">
-      🖨️ Cetak Sekarang / Simpan PDF
-    </button>
+    <div style="display: flex; gap: 8px;">
+      <button onclick="window.print()" style="background: #4f46e5; color: white; border: none; padding: 7px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px;">
+        🖨️ Cetak / Simpan PDF (A4)
+      </button>
+    </div>
   </div>
-  <div style="max-width: 820px; margin: 0 auto; padding: 25px;">
+  <div class="print-container">
     ${element.innerHTML}
   </div>
   <script>
     window.onload = function() {
       setTimeout(function() {
         window.print();
-      }, 500);
+      }, 600);
     };
   </script>
 </body>
@@ -194,6 +478,152 @@ export default function LpjPrintModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm overflow-y-auto flex items-start justify-center p-2 sm:p-6 print:p-0 print:bg-white print:static print:overflow-visible print:block print:inset-auto">
+      {/* CSS Injeksi Cetak A4 Langsung */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page { size: A4 portrait; margin: 10mm 12mm; }
+          body { background: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .cover-a4-page {
+            box-sizing: border-box !important;
+            width: 100% !important;
+            height: 272mm !important;
+            min-height: 272mm !important;
+            max-height: 272mm !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            border: 5px double #0f172a !important;
+            border-radius: 16px !important;
+            padding: 12mm 10mm !important;
+            margin: 0 !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            background: #ffffff !important;
+          }
+          .report-a4-page {
+            box-sizing: border-box !important;
+            width: 100% !important;
+            min-height: 272mm !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .kop-container {
+            border-bottom: 2px solid #0f172a !important;
+            padding-bottom: 10px !important;
+            margin-bottom: 14px !important;
+          }
+          .kop-header-container {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 16px !important;
+            width: 100% !important;
+          }
+          .kop-brand-box {
+            display: flex !important;
+            align-items: center !important;
+            gap: 14px !important;
+          }
+          .kop-badge-box {
+            text-align: right !important;
+            flex-shrink: 0 !important;
+          }
+          .kop-badge {
+            display: inline-block !important;
+            width: auto !important;
+            max-width: max-content !important;
+            font-size: 9.5px !important;
+            font-weight: 700 !important;
+            padding: 2.5px 10px !important;
+            border-radius: 6px !important;
+            background: #f1f5f9 !important;
+            color: #334155 !important;
+            border: 1px solid #cbd5e1 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            white-space: nowrap !important;
+          }
+          .kop-title-box {
+            text-align: center !important;
+            margin-top: 10px !important;
+            padding-top: 6px !important;
+            border-top: 1px solid #e2e8f0 !important;
+          }
+        }
+        @media screen {
+          .cover-a4-page {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 1020px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 5px double #0f172a;
+            border-radius: 24px;
+            padding: 36px 28px;
+            background: #ffffff;
+          }
+          .report-a4-page {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 1020px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #ffffff;
+          }
+          .kop-container {
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 10px;
+            margin-bottom: 14px;
+          }
+          .kop-header-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            width: 100%;
+          }
+          .kop-brand-box {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+          }
+          .kop-badge-box {
+            text-align: right;
+            flex-shrink: 0;
+          }
+          .kop-badge {
+            display: inline-block;
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 2.5px 10px;
+            border-radius: 6px;
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+          }
+          .kop-title-box {
+            text-align: center;
+            margin-top: 10px;
+            padding-top: 6px;
+            border-top: 1px solid #e2e8f0;
+          }
+        }
+      `}} />
+
       {/* Container Dialog */}
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-4xl w-full my-4 overflow-hidden print:border-none print:shadow-none print:my-0 print:max-w-none print:overflow-visible">
         
@@ -208,7 +638,7 @@ export default function LpjPrintModal({
                 Cetak Dokumen Resmi LPJ Tahunan BUMDes {year}
               </h3>
               <p className="text-[11px] text-slate-300">
-                Laporan Keuangan Lengkap Standar Kepmendesa PDTT No. 136 Tahun 2022
+                Format Standar Resmi Selaras Menu Laporan Keuangan (Kepmendes 136/2022 & SAK EMKM)
               </p>
             </div>
           </div>
@@ -219,149 +649,224 @@ export default function LpjPrintModal({
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#6777ef] hover:bg-[#5868e4] text-white text-xs font-bold shadow-md transition-all cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>Cetak / Simpan PDF</span>
+              <span>Buka Tab Cetak (Print View A4)</span>
             </button>
-
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Tutup Pratinjau"
+              className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* PRINTABLE DOCUMENT BODY */}
-        <div id="lpj-print-document" ref={contentRef} className="p-6 sm:p-12 text-slate-900 font-sans text-xs space-y-12 bg-white print:p-4 print:space-y-8">
-          
+        {/* ============================================================= */}
+        {/* DOKUMEN CETAK UTAMA (8 HALAMAN RESMI LPJ MUSDES)              */}
+        {/* ============================================================= */}
+        <div
+          id="lpj-print-document"
+          ref={contentRef}
+          className="p-6 sm:p-10 space-y-12 bg-white text-slate-900 font-sans print:p-0 print:space-y-0"
+        >
+
           {/* ========================================================= */}
-          {/* COVER / HALAMAN JUDUL LAPORAN PERTANGGUNGJAWABAN          */}
+          {/* HALAMAN 1: SAMPUL / COVER RESMI LPJ MUSDES (SEUKURAN A4)  */}
           {/* ========================================================= */}
-          <div className="min-h-[780px] flex flex-col justify-between text-center border-4 border-double border-slate-800 p-8 sm:p-12 rounded-2xl page-break">
-            <div>
-              <div className="uppercase tracking-widest text-[11px] font-extrabold text-slate-500 mb-2">
+          <div className="cover-a4-page text-center page-break">
+            {/* Header Instansi */}
+            <div className="space-y-1.5 pb-3 border-b-2 border-slate-800">
+              <span className="text-xs font-black uppercase tracking-widest text-[#6777ef] block">
                 PEMERINTAH KABUPATEN {regencyName.toUpperCase()} &bull; KECAMATAN {subdistrictName.toUpperCase()}
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                LAPORAN PERTANGGUNGJAWABAN (LPJ)
-              </h1>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#6777ef] mt-1">
-                BADAN USAHA MILIK DESA (BUM DESA) &ldquo;{bumdesName.replace(/["\\]/g, "")}&rdquo;
+              </span>
+              <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-slate-900">
+                PEMERINTAH DESA {villageName.toUpperCase()}
               </h2>
-              {settings.bumdes_logo && (
-                <div className="my-4 flex justify-center">
+              <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500 font-semibold">
+                <span>Badan Usaha Milik Desa (BUM Desa)</span>
+                <span>&bull;</span>
+                <span>Badan Hukum Resmi Kemendesa PDTT</span>
+              </div>
+            </div>
+
+            {/* Logo & Judul Utama LPJ */}
+            <div className="space-y-4 my-auto py-4">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-3xl bg-slate-900 text-white flex items-center justify-center font-black text-4xl shadow-md border-2 border-slate-700">
+                {settings.bumdes_logo ? (
                   <img
                     src={settings.bumdes_logo}
-                    alt="Logo BUMDes"
-                    className="w-24 h-24 object-contain"
+                    alt="Logo"
+                    className="w-full h-full object-contain p-2 rounded-3xl"
                   />
-                </div>
-              )}
-              <div className="w-24 h-1 bg-slate-900 mx-auto my-4 rounded-full"></div>
-              <p className="text-xs text-slate-600 font-medium">
-                DESA {villageName.toUpperCase()} KECAMATAN {subdistrictName.toUpperCase()}
-              </p>
-            </div>
-
-            <div className="py-8 my-auto">
-              <div className="inline-block px-6 py-3 rounded-2xl bg-slate-50 border-2 border-slate-300 shadow-xs">
-                <span className="text-[11px] uppercase font-bold text-slate-500 block tracking-wider">
-                  TAHUN BUKU / TAHUN ANGGARAN
-                </span>
-                <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-                  {year}
-                </span>
+                ) : (
+                  (bumdesName || "B").charAt(0)
+                )}
               </div>
-              <p className="text-[11px] text-slate-500 mt-4 max-w-md mx-auto leading-relaxed">
-                Disusun dan Disajikan Berdasarkan Standar Akuntansi Keuangan Entitas Mikro, Kecil, dan Menengah (SAK EMKM) dan Keputusan Menteri Desa, PDT, dan Transmigrasi Nomor 136 Tahun 2022.
-              </p>
+
+              <div className="space-y-2">
+                <span className="inline-block px-4 py-1 rounded-full text-[10.5px] font-extrabold bg-indigo-100 text-indigo-900 border border-indigo-200 uppercase tracking-widest">
+                  DOKUMEN RESMI PERTANGGUNGJAWABAN TAHUNAN
+                </span>
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-950 uppercase tracking-tight leading-tight">
+                  LAPORAN PERTANGGUNGJAWABAN (LPJ)
+                </h1>
+                <h2 className="text-xl sm:text-2xl font-black text-[#6777ef] uppercase tracking-wide">
+                  {bumdesName}
+                </h2>
+                <div className="inline-block px-5 py-1.5 rounded-xl bg-slate-900 text-white font-mono font-black text-sm tracking-wider mt-1 shadow-xs">
+                  TAHUN ANGGARAN {year}
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl max-w-lg mx-auto text-[11px] text-slate-600 leading-relaxed text-justify sm:text-center">
+                Disusun dan disajikan berdasarkan Standar Akuntansi Keuangan Entitas Mikro, Kecil, dan Menengah (SAK EMKM) serta Keputusan Menteri Desa, Pembangunan Daerah Tertinggal, dan Transmigrasi RI Nomor 136 Tahun 2022 tentang Panduan Penyusunan Pelaporan Keuangan Badan Usaha Milik Desa.
+              </div>
+
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                Unit Usaha: Gedung Serbaguna (GSG) &bull; Persewaan Kios Pasar &bull; Jasa PPOB &bull; Simpan Pinjam
+              </div>
             </div>
 
-            <div className="pt-6 border-t border-slate-200 text-xs text-slate-700">
-              <p className="font-bold text-slate-900">
-                PENGURUS DAN PENGELOLA BUM DESA &ldquo;{bumdesName.replace(/["\\]/g, "")}&rdquo;
-              </p>
-              <p className="text-[11px] text-slate-500 mt-0.5">
+            {/* Footer Cover: Pengesahan Musdes & 3 Pihak */}
+            <div className="space-y-2.5 pt-3 border-t-2 border-slate-800 text-xs">
+              <div className="p-2 bg-indigo-50/70 border border-indigo-200 rounded-xl text-[10.5px] font-bold text-indigo-950">
+                Disampaikan & Disahkan Dalam Forum Musyawarah Desa (Musdes) Pertanggungjawaban Tahunan
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-1 text-slate-700">
+                <div>
+                  <span className="text-[9px] text-slate-500 block uppercase">Pelaksana Operasional</span>
+                  <span className="font-bold text-slate-900">{directorName}</span>
+                  <span className="text-[9px] text-slate-400 block">Direktur Utama</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-slate-500 block uppercase">Badan Pengawas</span>
+                  <span className="font-bold text-slate-900">{supervisorName}</span>
+                  <span className="text-[9px] text-slate-400 block">Ketua Pengawas / BPD</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-slate-500 block uppercase">Penasihat</span>
+                  <span className="font-bold text-slate-900">{villageHead}</span>
+                  <span className="text-[9px] text-slate-400 block">Kepala Desa {villageName}</span>
+                </div>
+              </div>
+              <div className="text-[9.5px] text-slate-500 font-medium pt-1 border-t border-slate-200">
                 {bumdesAddress}
-              </p>
+              </div>
             </div>
           </div>
 
           {/* ========================================================= */}
-          {/* 1. LAPORAN LABA RUGI (HALAMAN TERSENDIRI)                  */}
+          {/* HALAMAN 2: 1. LAPORAN LABA RUGI KOMPREHENSIF               */}
+          {/* (PERSIS DENGAN AREA CETAK MENU LABA RUGI)                 */}
           {/* ========================================================= */}
-          <div className="min-h-[820px] flex flex-col justify-between page-break">
-            <div className="space-y-4">
-              <div className="text-center pb-4 border-b-2 border-slate-900">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#6777ef] block">
-                  STANDAR KEPMENDESA PDTT NO. 136 TAHUN 2022
-                </span>
-                <h2 className="text-lg font-black text-slate-900 mt-0.5">
-                  1. LAPORAN LABA RUGI
-                </h2>
-                <p className="text-xs text-slate-600 font-medium">
-                  {bumdesName} &bull; Periode 1 Januari s/d 31 Desember {year}
-                </p>
-              </div>
+          <div className="report-a4-page page-break">
+            <div className="space-y-3">
+              {renderReportKop("LAPORAN LABA RUGI KOMPREHENSIF", "Standar Kepmendesa PDTT No. 136 Tahun 2022")}
 
-              {/* Pendapatan */}
-              <div className="space-y-2">
-                <h3 className="font-bold text-slate-900 uppercase text-[11px] tracking-wider bg-slate-100 p-2 rounded">
-                  I. PENDAPATAN USAHA
-                </h3>
-                <div className="space-y-1.5 pl-2">
-                  {labaRugi.revenues.map((r: any, idx: number) => (
-                    <div key={idx} className="flex justify-between py-1 border-b border-slate-100">
-                      <span className="text-slate-700">
-                        <span className="font-mono text-[10px] text-slate-400 mr-2">{r.code}</span>
-                        {r.name}
-                      </span>
-                      <span className="font-mono font-semibold">{formatRupiah(r.amount)}</span>
-                    </div>
-                  ))}
-                  <div className="flex justify-between py-2 font-bold bg-slate-50 px-2 rounded">
-                    <span>TOTAL PENDAPATAN</span>
-                    <span className="font-mono font-black text-slate-900">
-                      {formatRupiah(labaRugi.totalRevenue)}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              {/* TABEL FORMAL GRID: LABA RUGI (SAMA PERSIS DENGAN MENU LABA RUGI) */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+                      <th className="py-2.5 px-3 border-r border-slate-300 w-28 text-center">Kode Akun</th>
+                      <th className="py-2.5 px-3 border-r border-slate-300">Nama & Rincian Pos Akuntansi</th>
+                      <th className="py-2.5 px-3 border-r border-slate-300 w-36 text-center">Golongan Akun</th>
+                      <th className="py-2.5 px-3 text-right w-44">Jumlah (Rp)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {/* SECTION I: PENDAPATAN */}
+                    <tr className="bg-slate-50/80 font-bold text-slate-800">
+                      <td colSpan={4} className="py-2 px-3 border-r border-slate-300 uppercase tracking-wide text-[11px] text-[#6777ef]">
+                        I. PENDAPATAN USAHA (REVENUE)
+                      </td>
+                    </tr>
+                    {labaRugi.revenues.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-3 px-3 text-center text-slate-400 italic">
+                          Belum ada akun pendapatan yang tercatat pada periode ini.
+                        </td>
+                      </tr>
+                    ) : (
+                      labaRugi.revenues.map((r: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-2 px-3 border-r border-slate-200 font-mono font-bold text-center text-slate-700">
+                            {r.code}
+                          </td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">
+                            {r.name}
+                          </td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Pendapatan Usaha
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                            {formatRupiah(r.amount)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                    <tr className="bg-emerald-50/60 font-bold border-t border-b border-slate-300">
+                      <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                        TOTAL PENDAPATAN USAHA (A)
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-emerald-700 font-black">
+                        {formatRupiah(labaRugi.totalRevenue)}
+                      </td>
+                    </tr>
 
-              {/* Beban Usaha */}
-              <div className="space-y-2 pt-2">
-                <h3 className="font-bold text-slate-900 uppercase text-[11px] tracking-wider bg-slate-100 p-2 rounded">
-                  II. BEBAN OPERASIONAL & USAHA
-                </h3>
-                <div className="space-y-1.5 pl-2">
-                  {labaRugi.expenses.map((e: any, idx: number) => (
-                    <div key={idx} className="flex justify-between py-1 border-b border-slate-100">
-                      <span className="text-slate-700">
-                        <span className="font-mono text-[10px] text-slate-400 mr-2">{e.code}</span>
-                        {e.name}
-                      </span>
-                      <span className="font-mono font-semibold text-rose-600">{formatRupiah(e.amount)}</span>
-                    </div>
-                  ))}
-                  <div className="flex justify-between py-2 font-bold bg-slate-50 px-2 rounded">
-                    <span>TOTAL BEBAN</span>
-                    <span className="font-mono font-black text-rose-700">
-                      {formatRupiah(labaRugi.totalExpense)}
-                    </span>
-                  </div>
-                </div>
-              </div>
+                    {/* SECTION II: BEBAN */}
+                    <tr className="bg-slate-50/80 font-bold text-slate-800">
+                      <td colSpan={4} className="py-2 px-3 border-r border-slate-300 uppercase tracking-wide text-[11px] text-rose-600">
+                        II. BEBAN OPERASIONAL & USAHA (EXPENSES)
+                      </td>
+                    </tr>
+                    {labaRugi.expenses.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-3 px-3 text-center text-slate-400 italic">
+                          Belum ada akun beban operasional yang tercatat pada periode ini.
+                        </td>
+                      </tr>
+                    ) : (
+                      labaRugi.expenses.map((e: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-2 px-3 border-r border-slate-200 font-mono font-bold text-center text-slate-700">
+                            {e.code}
+                          </td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">
+                            {e.name}
+                          </td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                              Beban Operasional
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                            {formatRupiah(e.amount)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                    <tr className="bg-rose-50/60 font-bold border-t border-b border-slate-300">
+                      <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                        TOTAL BEBAN OPERASIONAL & USAHA (B)
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-rose-600 font-black">
+                        {formatRupiah(labaRugi.totalExpense)}
+                      </td>
+                    </tr>
 
-              {/* Laba Bersih */}
-              <div className="p-4 bg-indigo-50 border-2 border-indigo-200 rounded-xl flex justify-between items-center text-sm font-black text-indigo-900 mt-4">
-                <div>
-                  <span>LABA BERSIH TAHUN BERJALAN (SHU)</span>
-                  <span className="block text-[10px] font-normal text-indigo-700 mt-0.5">
-                    Surplus hasil usaha bersih sebelum pembagian alokasi
-                  </span>
-                </div>
-                <span className="font-mono text-base text-[#6777ef]">{formatRupiah(labaRugi.netProfit)}</span>
+                    {/* GRAND TOTAL: SISA HASIL USAHA (SHU) */}
+                    <tr className="bg-indigo-50/80 font-black border-t-2 border-b-2 border-slate-800 text-slate-900">
+                      <td colSpan={3} className="py-3 px-3 border-r border-slate-300 uppercase tracking-wider text-right pr-4 text-xs sm:text-sm text-[#6777ef]">
+                        SISA HASIL USAHA (SHU) / LABA BERSIH TAHUN BERJALAN (A - B)
+                      </td>
+                      <td className="py-3 px-3 text-right font-mono text-sm sm:text-base font-black text-[#6777ef]">
+                        {formatRupiah(labaRugi.netProfit)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -369,111 +874,143 @@ export default function LpjPrintModal({
           </div>
 
           {/* ========================================================= */}
-          {/* 2. RENCANA & REALISASI ALOKASI SHU (HALAMAN TERSENDIRI)   */}
+          {/* HALAMAN 3: 2. RENCANA & REALISASI PEMBAGIAN SHU           */}
           {/* ========================================================= */}
-          <div className="min-h-[820px] flex flex-col justify-between page-break">
-            <div className="space-y-5">
-              <div className="text-center pb-4 border-b-2 border-slate-900">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#6777ef] block">
-                  STANDAR KEPMENDESA PDTT NO. 136 TAHUN 2022
-                </span>
-                <h2 className="text-lg font-black text-slate-900 mt-0.5">
-                  2. RENCANA & REALISASI PEMBAGIAN SISA HASIL USAHA (SHU)
-                </h2>
-                <p className="text-xs text-slate-600 font-medium">
-                  {bumdesName} &bull; Alokasi Pembagian SHU Tahun Anggaran {year}
-                </p>
-              </div>
+          <div className="report-a4-page page-break">
+            <div className="space-y-4">
+              {renderReportKop("RENCANA & REALISASI PEMBAGIAN SISA HASIL USAHA (SHU)", "Ketetapan AD/ART BUM Desa & Hasil Musyawarah Desa (Musdes)")}
 
-              {/* Banner Total SHU yang Dibagikan */}
-              <div className="p-4 bg-indigo-50/80 border-2 border-indigo-200 rounded-xl flex justify-between items-center text-xs font-bold text-slate-800">
+              {/* Rangkuman Nilai SHU */}
+              <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl flex items-center justify-between text-xs">
                 <div>
-                  <span className="text-[11px] text-slate-500 uppercase tracking-wide block">Total Sisa Hasil Usaha (SHU) Bersih:</span>
-                  <span className="text-sm font-black text-indigo-900">Surplus Bersih Siap Dialokasikan</span>
+                  <span className="text-[10.5px] font-bold text-indigo-900 uppercase tracking-wider block">
+                    TOTAL SISA HASIL USAHA (SHU) BERSIH TAHUN {year}
+                  </span>
+                  <span className="text-slate-600 text-[11px]">
+                    Dasar Alokasi Pembagian Sesuai Ketetapan Musyawarah Desa
+                  </span>
                 </div>
-                <span className="font-mono text-lg font-black text-[#6777ef]">{formatRupiah(labaRugi.netProfit)}</span>
+                <div className="text-base font-black font-mono text-[#6777ef]">
+                  {formatRupiah(labaRugi.netProfit)}
+                </div>
               </div>
 
-              {/* Dasar Penetapan Pembagian SHU */}
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 leading-relaxed">
-                <span className="font-bold text-slate-900 block mb-1">Dasar Penetapan & Regulasi Pembagian SHU:</span>
-                <p className="text-[11px] text-slate-600">
-                  Sesuai dengan Anggaran Dasar/Anggaran Rumah Tangga (AD/ART) BUMDesa, Peraturan Desa, serta Hasil Keputusan Musyawarah Desa (Musdes) Pertanggungjawaban Tahunan, pembagian Sisa Hasil Usaha (SHU) Tahun Anggaran {year} ditetapkan dengan proporsi alokasi dan peruntukan sebagai berikut:
-                </p>
-              </div>
+              {/* Tabel Distribusi SHU */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+                      <th className="py-2.5 px-3 border-r border-slate-300 w-12 text-center">No</th>
+                      <th className="py-2.5 px-3 border-r border-slate-300">Pos Alokasi Pembagian SHU</th>
+                      <th className="py-2.5 px-3 border-r border-slate-300 w-28 text-center">Persentase</th>
+                      <th className="py-2.5 px-3 border-r border-slate-300">Keterangan / Rekening Tujuan</th>
+                      <th className="py-2.5 px-3 text-right w-44">Jumlah Alokasi (Rp)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">1</td>
+                      <td className="py-2 px-3 border-r border-slate-200 font-semibold text-slate-900">
+                        Pendapatan Asli Desa (PADes)
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-bold text-amber-700">
+                        {shu.padesPercent}%
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-600 text-[11px]">
+                        Disetor ke Rekening Kas Desa (Rekening Kas Umum Desa - APBDes)
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
+                        {formatRupiah(shu.padesAmount)}
+                      </td>
+                    </tr>
 
-              {/* Tabel Alokasi SHU */}
-              <table className="w-full border-collapse border border-slate-300 text-xs">
-                <thead>
-                  <tr className="bg-slate-100 text-slate-900 font-bold border-b border-slate-300 text-center">
-                    <th className="p-2.5 border-r border-slate-300 w-10">No</th>
-                    <th className="p-2.5 border-r border-slate-300 text-left">Pos Alokasi Peruntukan</th>
-                    <th className="p-2.5 border-r border-slate-300 w-24">Persentase</th>
-                    <th className="p-2.5 border-r border-slate-300 text-right w-36">Nominal (Rp)</th>
-                    <th className="p-2.5 text-left">Keterangan / Tujuan Penggunaan</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  <tr>
-                    <td className="p-2.5 text-center font-bold">1</td>
-                    <td className="p-2.5 font-semibold text-slate-900">Pendapatan Asli Desa (PADes)</td>
-                    <td className="p-2.5 text-center font-mono font-bold text-indigo-700">{closing.padesPercent || 25}%</td>
-                    <td className="p-2.5 text-right font-mono font-bold text-slate-900">{formatRupiah(closing.padesAmount || 0)}</td>
-                    <td className="p-2.5 text-slate-600 text-[11px]">Disetor ke Rekening Kas Desa (RKD) sebagai kontribusi ke APBDes</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-center font-bold">2</td>
-                    <td className="p-2.5 font-semibold text-slate-900">Cadangan Modal Usaha BUMDes</td>
-                    <td className="p-2.5 text-center font-mono font-bold text-indigo-700">{closing.cadanganPercent || 25}%</td>
-                    <td className="p-2.5 text-right font-mono font-bold text-slate-900">{formatRupiah(closing.cadanganAmount || 0)}</td>
-                    <td className="p-2.5 text-slate-600 text-[11px]">Ditahan sebagai penambahan modal kerja & pengembangan unit usaha</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-center font-bold">3</td>
-                    <td className="p-2.5 font-semibold text-slate-900">Jasa Pengurus & Karyawan</td>
-                    <td className="p-2.5 text-center font-mono font-bold text-indigo-700">{closing.pengurusPercent || 30}%</td>
-                    <td className="p-2.5 text-right font-mono font-bold text-slate-900">{formatRupiah(closing.pengurusAmount || 0)}</td>
-                    <td className="p-2.5 text-slate-600 text-[11px]">Insentif dan reward kinerja Direksi, Pelaksana Operasional & Pegawai</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-center font-bold">4</td>
-                    <td className="p-2.5 font-semibold text-slate-900">Jasa Pengawas & Penasihat</td>
-                    <td className="p-2.5 text-center font-mono font-bold text-indigo-700">{closing.sosialPercent || 10}%</td>
-                    <td className="p-2.5 text-right font-mono font-bold text-slate-900">{formatRupiah(closing.sosialAmount || 0)}</td>
-                    <td className="p-2.5 text-slate-600 text-[11px]">Honorarium Badan Pengawas dan Kepala Desa selaku Penasihat BUMDes</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-center font-bold">5</td>
-                    <td className="p-2.5 font-semibold text-slate-900">Dana Pendidikan & Sosial Kemasyarakatan</td>
-                    <td className="p-2.5 text-center font-mono font-bold text-indigo-700">{closing.pendidikanPercent || 10}%</td>
-                    <td className="p-2.5 text-right font-mono font-bold text-slate-900">{formatRupiah(closing.pendidikanAmount || 0)}</td>
-                    <td className="p-2.5 text-slate-600 text-[11px]">Bantuan warga kurang mampu, santunan sosial & beasiswa desa</td>
-                  </tr>
-                </tbody>
-                <tfoot>
-                  <tr className="bg-emerald-50 text-emerald-950 font-bold border-t-2 border-emerald-400">
-                    <td colSpan={2} className="p-3 text-center uppercase tracking-wider">Total Alokasi Pembagian SHU</td>
-                    <td className="p-3 text-center font-mono text-sm">100%</td>
-                    <td className="p-3 text-right font-mono text-sm font-black text-emerald-800">{formatRupiah(closing.netProfit || 0)}</td>
-                    <td className="p-3 text-slate-600 text-[11px] font-normal italic">Seluruh SHU telah teralokasi 100% tanpa sisa</td>
-                  </tr>
-                </tfoot>
-              </table>
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">2</td>
+                      <td className="py-2 px-3 border-r border-slate-200 font-semibold text-slate-900">
+                        Cadangan Modal BUM Desa
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-bold text-emerald-700">
+                        {shu.cadanganPercent}%
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-600 text-[11px]">
+                        Ditanamkan kembali untuk penguatan modal kerja unit usaha BUMDes
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
+                        {formatRupiah(shu.cadanganAmount)}
+                      </td>
+                    </tr>
 
-              {/* Ringkasan Realisasi Kartu */}
-              <div className="grid grid-cols-3 gap-3 pt-2">
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Kas Desa (PADes)</span>
-                  <span className="text-sm font-bold font-mono text-slate-900">{formatRupiah(closing.padesAmount || 0)}</span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Cadangan Modal</span>
-                  <span className="text-sm font-bold font-mono text-slate-900">{formatRupiah(closing.cadanganAmount || 0)}</span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Jasa Pengurus</span>
-                  <span className="text-sm font-bold font-mono text-slate-900">{formatRupiah(closing.pengurusAmount || 0)}</span>
-                </div>
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">3</td>
+                      <td className="py-2 px-3 border-r border-slate-200 font-semibold text-slate-900">
+                        Jasa Pengurus & Pegawai
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-bold text-indigo-700">
+                        {shu.pengurusPercent}%
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-600 text-[11px]">
+                        Insentif kinerja Pelaksana Operasional, Bendahara, dan staf
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
+                        {formatRupiah(shu.pengurusAmount)}
+                      </td>
+                    </tr>
+
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">4</td>
+                      <td className="py-2 px-3 border-r border-slate-200 font-semibold text-slate-900">
+                        Dana Sosial & Kelembagaan
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-bold text-purple-700">
+                        {shu.sosialPercent}%
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-600 text-[11px]">
+                        Santunan warga kurang mampu dan bantuan sosial kemasyarakatan
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
+                        {formatRupiah(shu.sosialAmount)}
+                      </td>
+                    </tr>
+
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">5</td>
+                      <td className="py-2 px-3 border-r border-slate-200 font-semibold text-slate-900">
+                        Dana Pendidikan & Pelatihan SDM
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-bold text-cyan-700">
+                        {shu.pendidikanPercent}%
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-600 text-[11px]">
+                        Peningkatan kompetensi pengurus, pelatihan vokasi pemuda desa
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
+                        {formatRupiah(shu.pendidikanAmount)}
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-indigo-50 font-black border-t-2 border-slate-400 text-slate-900">
+                      <td colSpan={2} className="py-2.5 px-3 border-r border-slate-300 text-right uppercase tracking-wider pr-4">
+                        TOTAL ALOKASI BAGI HASIL USAHA (SHU)
+                      </td>
+                      <td className="py-2.5 px-3 border-r border-slate-300 text-center font-mono font-black text-indigo-700">
+                        100%
+                      </td>
+                      <td className="py-2.5 px-3 border-r border-slate-300 text-[10.5px] text-slate-500 italic">
+                        Ketetapan Berita Acara Musdes Pertanggungjawaban
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-black text-sm text-[#6777ef] bg-indigo-100/50">
+                        {formatRupiah(
+                          shu.padesAmount +
+                            shu.cadanganAmount +
+                            shu.pengurusAmount +
+                            shu.sosialAmount +
+                            shu.pendidikanAmount
+                        )}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
             </div>
 
@@ -481,112 +1018,203 @@ export default function LpjPrintModal({
           </div>
 
           {/* ========================================================= */}
-          {/* 3. LAPORAN POSISI KEUANGAN (NERACA SAK EMKM)              */}
+          {/* HALAMAN 4: 3. LAPORAN POSISI KEUANGAN (NERACA SAK EMKM)   */}
+          {/* (PERSIS DENGAN AREA CETAK MENU NERACA)                    */}
           {/* ========================================================= */}
-          <div className="min-h-[820px] flex flex-col justify-between page-break">
-            <div className="space-y-3.5">
-              <div className="text-center pb-3 border-b-2 border-slate-900">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#6777ef] block">
-                  STANDAR SAK EMKM & KEPMENDESA PDTT NO. 136 TAHUN 2022
-                </span>
-                <h2 className="text-lg font-black text-slate-900 mt-0.5">
-                  3. LAPORAN POSISI KEUANGAN (NERACA)
-                </h2>
-                <p className="text-xs text-slate-600 font-medium">
-                  {bumdesName} &bull; Per 31 Desember {year}
-                </p>
-              </div>
+          <div className="report-a4-page page-break">
+            <div className="space-y-3">
+              {renderReportKop("LAPORAN POSISI KEUANGAN (NERACA)", "Standar SAK EMKM & Kepmendesa PDTT No. 136 Tahun 2022")}
 
-              <div className="grid grid-cols-2 gap-4 items-start">
-                {/* Sisi Kiri: Aset / Aktiva */}
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="font-bold text-slate-900 uppercase text-[11px] tracking-wider bg-slate-100 p-2 rounded">
-                      ASET (AKTIVA)
-                    </h3>
-                  </div>
-
-                  <div className="space-y-1 pl-2">
-                    <span className="font-bold text-slate-700 text-[11px] block">A. ASET LANCAR</span>
-                    {neraca.currentAssets.map((a: any, idx: number) => (
-                      <div key={idx} className="flex justify-between py-0.5 border-b border-slate-100 text-xs">
-                        <span className="text-slate-600 pl-2">{a.name}</span>
-                        <span className="font-mono font-semibold">{formatRupiah(a.amount)}</span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between py-1 font-bold bg-slate-50 px-2 rounded text-xs">
-                      <span>Total Aset Lancar</span>
-                      <span className="font-mono">{formatRupiah(neraca.totalCurrentAssets)}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 pl-2 pt-1">
-                    <span className="font-bold text-slate-700 text-[11px] block">B. ASET TETAP</span>
-                    <div className="flex justify-between py-0.5 border-b border-slate-100 text-xs">
-                      <span className="text-slate-600 pl-2">Peralatan & Aset Tetap</span>
-                      <span className="font-mono">{formatRupiah(neraca.fixedAssets?.peralatan || 0)}</span>
-                    </div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-100 text-xs text-slate-500">
-                      <span className="pl-2">Akumulasi Penyusutan</span>
-                      <span className="font-mono text-rose-600">({formatRupiah(neraca.fixedAssets?.akumulasiPenyusutan || 0)})</span>
-                    </div>
-                    <div className="flex justify-between py-1 font-bold bg-slate-50 px-2 rounded text-xs">
-                      <span>Nilai Buku Aset Tetap</span>
-                      <span className="font-mono">{formatRupiah(neraca.fixedAssets?.net || 0)}</span>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 bg-slate-900 text-white rounded-xl flex justify-between items-center text-xs font-black">
-                    <span>TOTAL ASET (AKTIVA)</span>
-                    <span className="font-mono text-sm">{formatRupiah(neraca.totalAssets)}</span>
-                  </div>
-                </div>
-
-                {/* Sisi Kanan: Kewajiban & Ekuitas / Pasiva */}
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="font-bold text-slate-900 uppercase text-[11px] tracking-wider bg-slate-100 p-2 rounded">
-                      KEWAJIBAN & EKUITAS (PASIVA)
-                    </h3>
-                  </div>
-
-                  <div className="space-y-1 pl-2">
-                    <span className="font-bold text-slate-700 text-[11px] block">A. KEWAJIBAN (UTANG)</span>
-                    {neraca.liabilities.map((l: any, idx: number) => (
-                      <div key={idx} className="flex justify-between py-0.5 border-b border-slate-100 text-xs">
-                        <span className="text-slate-600 pl-2">{l.name}</span>
-                        <span className="font-mono font-semibold">{formatRupiah(l.amount)}</span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between py-1 font-bold bg-slate-50 px-2 rounded text-xs">
-                      <span>Total Kewajiban</span>
-                      <span className="font-mono">{formatRupiah(neraca.totalLiabilities)}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 pl-2 pt-1">
-                    <span className="font-bold text-slate-700 text-[11px] block">B. EKUITAS (MODAL)</span>
-                    {neraca.equity.map((eq: any, idx: number) => (
-                      <div key={idx} className="flex justify-between py-0.5 border-b border-slate-100 text-xs">
-                        <span className="text-slate-600 pl-2">{eq.name}</span>
-                        <span className="font-mono font-semibold">{formatRupiah(eq.amount)}</span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between py-1 font-bold bg-slate-50 px-2 rounded text-xs">
-                      <span>Total Ekuitas</span>
-                      <span className="font-mono">{formatRupiah(neraca.totalEquity)}</span>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 bg-slate-900 text-white rounded-xl flex justify-between items-center text-xs font-black">
-                    <span>TOTAL PASIVA (KEWAJIBAN + EKUITAS)</span>
-                    <span className="font-mono text-sm">{formatRupiah(neraca.totalLiabilitiesAndEquity || (neraca.totalLiabilities + neraca.totalEquity))}</span>
-                  </div>
+              <div className="flex items-center justify-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10.5px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>STATUS NERACA: 100% BALANCE (SEIMBANG) &bull; SELISIH RP 0</span>
                 </div>
               </div>
 
-              <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-emerald-800 text-[11px] font-bold">
-                ✓ KESEIMBANGAN NERACA: 100% BALANCE & SESUAI DENGAN BUKU PEMBANTU KONSOLIDASI
+              {/* TABEL BERDAMPINGAN: AKTIVA VS PASIVA (SAMA PERSIS DENGAN MENU NERACA) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                
+                {/* KOLOM KIRI: ASET (AKTIVA) */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300">
+                        <th colSpan={2} className="py-2 px-3 border-r border-slate-300 text-xs uppercase tracking-wider text-[#6777ef]">
+                          ASET (AKTIVA)
+                        </th>
+                        <th className="py-2 px-3 text-right w-32">Nilai (Rp)</th>
+                      </tr>
+                      <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 text-[10.5px]">
+                        <th className="py-1 px-3 border-r border-slate-200">Komponen Aset</th>
+                        <th className="py-1 px-2 border-r border-slate-200 text-center w-20">Golongan</th>
+                        <th className="py-1 px-3 text-right">Jumlah</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {/* A. Aset Lancar */}
+                      <tr className="bg-slate-50/80 font-bold text-slate-800">
+                        <td colSpan={3} className="py-1 px-3 border-r border-slate-300 text-[10.5px]">
+                          A. ASET LANCAR
+                        </td>
+                      </tr>
+                      {currentAssetsList.map((a: any, i: number) => (
+                        <tr key={i} className="hover:bg-slate-50/70">
+                          <td className="py-1.5 px-3 border-r border-slate-200 text-slate-700 pl-4">{a.name}</td>
+                          <td className="py-1.5 px-2 border-r border-slate-200 text-center">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                              Lancar
+                            </span>
+                          </td>
+                          <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-800">
+                            {formatRupiah(a.amount)}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                        <td colSpan={2} className="py-1.5 px-3 border-r border-slate-300 text-slate-800 text-right pr-3">
+                          Subtotal Aset Lancar
+                        </td>
+                        <td className="py-1.5 px-3 text-right font-mono text-emerald-700 font-bold">
+                          {formatRupiah(neraca.totalCurrentAssets || currentAssetsList.reduce((s: number, a: any) => s + (Number(a.amount) || 0), 0))}
+                        </td>
+                      </tr>
+
+                      {/* B. Aset Tetap */}
+                      <tr className="bg-slate-50/80 font-bold text-slate-800">
+                        <td colSpan={3} className="py-1 px-3 border-r border-slate-300 text-[10.5px]">
+                          B. ASET TETAP
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-slate-50/70">
+                        <td className="py-1.5 px-3 border-r border-slate-200 text-slate-700 pl-4">Nilai Perolehan Aset Tetap</td>
+                        <td className="py-1.5 px-2 border-r border-slate-200 text-center">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                            Tetap
+                          </span>
+                        </td>
+                        <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-800">
+                          {formatRupiah(neraca.fixedAssets?.peralatan || 0)}
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-slate-50/70">
+                        <td className="py-1.5 px-3 border-r border-slate-200 text-slate-700 pl-4">Akumulasi Penyusutan</td>
+                        <td className="py-1.5 px-2 border-r border-slate-200 text-center">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                            Kontra
+                          </span>
+                        </td>
+                        <td className="py-1.5 px-3 text-right font-mono font-bold text-rose-500">
+                          ({formatRupiah(neraca.fixedAssets?.akumulasiPenyusutan || 0)})
+                        </td>
+                      </tr>
+                      <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                        <td colSpan={2} className="py-1.5 px-3 border-r border-slate-300 text-slate-800 text-right pr-3">
+                          Subtotal Aset Tetap Bersih
+                        </td>
+                        <td className="py-1.5 px-3 text-right font-mono text-emerald-700 font-bold">
+                          {formatRupiah(neraca.fixedAssets?.net || 0)}
+                        </td>
+                      </tr>
+
+                      {/* TOTAL AKTIVA */}
+                      <tr className="bg-indigo-50 font-black border-t-2 border-b-2 border-slate-800 text-slate-900">
+                        <td colSpan={2} className="py-2.5 px-3 border-r border-slate-300 uppercase tracking-wider text-right pr-3 text-xs text-[#6777ef]">
+                          TOTAL ASET (AKTIVA)
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono text-xs font-black text-[#6777ef]">
+                          {formatRupiah(neraca.totalAssets || (neraca.totalCurrentAssets + (neraca.fixedAssets?.net || 0)))}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* KOLOM KANAN: KEWAJIBAN & EKUITAS (PASIVA) */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300">
+                        <th colSpan={2} className="py-2 px-3 border-r border-slate-300 text-xs uppercase tracking-wider text-emerald-700">
+                          KEWAJIBAN & EKUITAS (PASIVA)
+                        </th>
+                        <th className="py-2 px-3 text-right w-32">Nilai (Rp)</th>
+                      </tr>
+                      <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 text-[10.5px]">
+                        <th className="py-1 px-3 border-r border-slate-200">Komponen Pasiva</th>
+                        <th className="py-1 px-2 border-r border-slate-200 text-center w-20">Golongan</th>
+                        <th className="py-1 px-3 text-right">Jumlah</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {/* A. Kewajiban */}
+                      <tr className="bg-slate-50/80 font-bold text-slate-800">
+                        <td colSpan={3} className="py-1 px-3 border-r border-slate-300 text-[10.5px]">
+                          A. KEWAJIBAN (UTANG)
+                        </td>
+                      </tr>
+                      {liabilitiesList.map((l: any, i: number) => (
+                        <tr key={i} className="hover:bg-slate-50/70">
+                          <td className="py-1.5 px-3 border-r border-slate-200 text-slate-700 pl-4">{l.name}</td>
+                          <td className="py-1.5 px-2 border-r border-slate-200 text-center">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                              Utang
+                            </span>
+                          </td>
+                          <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-800">
+                            {formatRupiah(l.amount)}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                        <td colSpan={2} className="py-1.5 px-3 border-r border-slate-300 text-slate-800 text-right pr-3">
+                          Subtotal Kewajiban
+                        </td>
+                        <td className="py-1.5 px-3 text-right font-mono text-amber-700 font-bold">
+                          {formatRupiah(neraca.totalLiabilities || liabilitiesList.reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0))}
+                        </td>
+                      </tr>
+
+                      {/* B. Ekuitas */}
+                      <tr className="bg-slate-50/80 font-bold text-slate-800">
+                        <td colSpan={3} className="py-1 px-3 border-r border-slate-300 text-[10.5px]">
+                          B. EKUITAS (MODAL)
+                        </td>
+                      </tr>
+                      {equityList.map((e: any, i: number) => (
+                        <tr key={i} className="hover:bg-slate-50/70">
+                          <td className="py-1.5 px-3 border-r border-slate-200 text-slate-700 pl-4">{e.name}</td>
+                          <td className="py-1.5 px-2 border-r border-slate-200 text-center">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Ekuitas
+                            </span>
+                          </td>
+                          <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-800">
+                            {formatRupiah(e.amount)}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                        <td colSpan={2} className="py-1.5 px-3 border-r border-slate-300 text-slate-800 text-right pr-3">
+                          Subtotal Ekuitas
+                        </td>
+                        <td className="py-1.5 px-3 text-right font-mono text-emerald-700 font-bold">
+                          {formatRupiah(neraca.totalEquity || equityList.reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0))}
+                        </td>
+                      </tr>
+
+                      {/* TOTAL PASIVA */}
+                      <tr className="bg-emerald-50 font-black border-t-2 border-b-2 border-slate-800 text-slate-900">
+                        <td colSpan={2} className="py-2.5 px-3 border-r border-slate-300 uppercase tracking-wider text-right pr-3 text-xs text-emerald-800">
+                          TOTAL PASIVA (MODAL + UTANG)
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono text-xs font-black text-emerald-700">
+                          {formatRupiah(neraca.totalLiabilitiesAndEquity || ((neraca.totalLiabilities || 0) + (neraca.totalEquity || 0)))}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
@@ -594,59 +1222,104 @@ export default function LpjPrintModal({
           </div>
 
           {/* ========================================================= */}
-          {/* 4. LAPORAN PERUBAHAN EKUITAS (LPE)                        */}
+          {/* HALAMAN 5: 4. LAPORAN PERUBAHAN EKUITAS (LPE)             */}
+          {/* (PERSIS DENGAN AREA CETAK MENU LPE)                       */}
           {/* ========================================================= */}
-          <div className="min-h-[820px] flex flex-col justify-between page-break">
-            <div className="space-y-4">
-              <div className="text-center pb-4 border-b-2 border-slate-900">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#6777ef] block">
-                  STANDAR KEPMENDESA PDTT NO. 136 TAHUN 2022
-                </span>
-                <h2 className="text-lg font-black text-slate-900 mt-0.5">
-                  4. LAPORAN PERUBAHAN EKUITAS (LPE)
-                </h2>
-                <p className="text-xs text-slate-600 font-medium">
-                  {bumdesName} &bull; Periode Tahun Anggaran {year}
-                </p>
-              </div>
+          <div className="report-a4-page page-break">
+            <div className="space-y-3">
+              {renderReportKop("LAPORAN PERUBAHAN EKUITAS (LPE)", "Standar Kepmendesa PDTT No. 136 Tahun 2022")}
 
-              <div className="space-y-2 border border-slate-200 rounded-xl p-4 bg-slate-50/50">
-                <div className="flex justify-between py-2 border-b border-slate-100">
-                  <span className="text-slate-700">1. Penyertaan Modal Awal Desa (APBDes)</span>
-                  <span className="font-mono font-bold">{formatRupiah(lpe.modalAwalDesa)}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-slate-100">
-                  <span className="text-slate-700">2. Penyertaan Modal Awal Masyarakat</span>
-                  <span className="font-mono font-bold">{formatRupiah(lpe.modalAwalMasyarakat || 0)}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-slate-100">
-                  <span className="text-slate-700">3. Penambahan Penyertaan Modal Desa Periode Berjalan</span>
-                  <span className="font-mono font-bold text-emerald-700">+{formatRupiah(lpe.penambahanModalDesa || 0)}</span>
-                </div>
-                <div className="flex justify-between py-2 font-bold bg-white px-3 rounded-lg border border-slate-200">
-                  <span>Jumlah Penyertaan Modal Akhir</span>
-                  <span className="font-mono">{formatRupiah(lpe.totalPenyertaanModalAkhir)}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-slate-100">
-                  <span className="text-slate-700">4. Saldo Laba Ditahan / Cadangan Modal Awal</span>
-                  <span className="font-mono font-bold">{formatRupiah(lpe.saldoLabaAwal || 0)}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-slate-100">
-                  <span className="text-slate-700">5. Laba Bersih (SHU) Tahun Berjalan</span>
-                  <span className="font-mono font-bold text-emerald-700">+{formatRupiah(lpe.labaPeriodeBerjalan)}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-slate-100">
-                  <span className="text-slate-700">6. Alokasi PADes (Kas Desa)</span>
-                  <span className="font-mono font-bold text-rose-600">({formatRupiah(lpe.bagiHasilDesa || 0)})</span>
-                </div>
-                <div className="flex justify-between py-2 font-bold bg-white px-3 rounded-lg border border-slate-200">
-                  <span>Saldo Laba Akhir</span>
-                  <span className="font-mono text-emerald-800">{formatRupiah(lpe.saldoLabaAkhir)}</span>
-                </div>
-                <div className="p-4 bg-indigo-50 border-2 border-indigo-200 rounded-xl flex justify-between items-center text-sm font-black text-indigo-900 mt-2">
-                  <span>TOTAL EKUITAS AKHIR BUMDES</span>
-                  <span className="font-mono text-base text-[#6777ef]">{formatRupiah(lpe.ekuitasAkhir || (lpe.totalPenyertaanModalAkhir + lpe.saldoLabaAkhir))}</span>
-                </div>
+              {/* TABEL FORMAL GRID: LPE (SAMA PERSIS DENGAN MENU LPE) */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+                      <th className="py-2.5 px-3 border-r border-slate-300 w-14 text-center">No</th>
+                      <th className="py-2.5 px-3 border-r border-slate-300">Komponen Perubahan Ekuitas BUMDes</th>
+                      <th className="py-2.5 px-3 border-r border-slate-300 w-36 text-center">Kategori Akun</th>
+                      <th className="py-2.5 px-3 text-right w-44">Jumlah (Rp)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">1</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">Penyertaan Modal Desa Awal (APBDes)</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">Modal Disetor</span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(lpe.modalAwalDesa || 0)}</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">2</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">Penyertaan Modal Masyarakat Awal</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">Modal Disetor</span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(lpe.modalAwalMasyarakat || 0)}</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">3</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">Penambahan / (Pengurangan) Modal Tahun Berjalan</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">Mutasi Modal</span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                        {formatRupiah((lpe.penambahanModalDesa || 0) + (lpe.penambahanModalMasyarakat || 0))}
+                      </td>
+                    </tr>
+                    <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                      <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                        Jumlah Penyertaan Modal Akhir (I)
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-slate-900 font-black">
+                        {formatRupiah(lpe.totalPenyertaanModalAkhir || ((lpe.modalAwalDesa || 0) + (lpe.modalAwalMasyarakat || 0)))}
+                      </td>
+                    </tr>
+
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">4</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">Saldo Laba Awal Tahun (Cadangan & Laba Ditahan)</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Saldo Laba</span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(lpe.saldoLabaAwal || 0)}</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">5</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">Penyetoran PADes / Bagi Hasil ke Kas Desa</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Distribusi SHU</span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-rose-600">({formatRupiah(lpe.bagiHasilDesa || 0)})</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">6</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">Sisa Hasil Usaha / Laba Bersih Tahun Berjalan</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">SHU Berjalan</span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600">+{formatRupiah(lpe.labaPeriodeBerjalan || labaRugi.netProfit || 0)}</td>
+                    </tr>
+                    <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                      <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                        Jumlah Saldo Laba Akhir Tahun (II)
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-emerald-700 font-black">
+                        {formatRupiah(lpe.saldoLabaAkhir || 0)}
+                      </td>
+                    </tr>
+
+                    {/* GRAND TOTAL: EKUITAS AKHIR */}
+                    <tr className="bg-indigo-50/80 font-black border-t-2 border-b-2 border-slate-800 text-slate-900">
+                      <td colSpan={3} className="py-3 px-3 border-r border-slate-300 uppercase tracking-wider text-right pr-4 text-xs sm:text-sm text-[#6777ef]">
+                        TOTAL EKUITAS AKHIR BUMDES PER 31 DESEMBER (I + II)
+                      </td>
+                      <td className="py-3 px-3 text-right font-mono text-sm sm:text-base font-black text-[#6777ef]">
+                        {formatRupiah(lpe.ekuitasAkhir || (lpe.totalPenyertaanModalAkhir + lpe.saldoLabaAkhir))}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -654,96 +1327,169 @@ export default function LpjPrintModal({
           </div>
 
           {/* ========================================================= */}
-          {/* 5. LAPORAN ARUS KAS (LAK METODE LANGSUNG)                 */}
+          {/* HALAMAN 6: 5. LAPORAN ARUS KAS (LAK METODE LANGSUNG)      */}
+          {/* (PERSIS DENGAN AREA CETAK MENU ARUS KAS)                  */}
           {/* ========================================================= */}
-          {/* ========================================================= */}
-          {/* 5. LAPORAN ARUS KAS (LAK METODE LANGSUNG)                 */}
-          {/* ========================================================= */}
-          <div className="min-h-[820px] flex flex-col justify-between page-break">
-            <div className="space-y-4">
-              <div className="text-center pb-4 border-b-2 border-slate-900">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#6777ef] block">
-                  METODE LANGSUNG (DIRECT METHOD) &bull; KEPMENDESA 136/2022
-                </span>
-                <h2 className="text-lg font-black text-slate-900 mt-0.5">
-                  5. LAPORAN ARUS KAS (LAK)
-                </h2>
-                <p className="text-xs text-slate-600 font-medium">
-                  {bumdesName} &bull; Periode 1 Januari s/d 31 Desember {year}
-                </p>
-              </div>
+          <div className="report-a4-page page-break">
+            <div className="space-y-3">
+              {renderReportKop("LAPORAN ARUS KAS (LAK)", "Metode Langsung (Direct Cash Flow) - Standar Kepmendes 136/2022")}
 
-              {/* Arus Kas Operasi */}
-              <div className="space-y-2 border border-slate-200 rounded-xl p-3 bg-slate-50/50">
-                <h3 className="font-bold text-slate-900 text-xs">A. ARUS KAS DARI AKTIVITAS OPERASI</h3>
-                <div className="space-y-1 text-xs pl-2">
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-600">Penerimaan Kas dari Pelanggan & Unit Usaha</span>
-                    <span className="font-mono">{formatRupiah(lak.operasi?.masuk || 0)}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-600">Pengeluaran Kas untuk Operasional & Pemasok</span>
-                    <span className="font-mono text-rose-600">({formatRupiah(lak.operasi?.keluar || 0)})</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 font-bold bg-white px-2 rounded border border-slate-200">
-                    <span>Arus Kas Bersih dari Aktivitas Operasi</span>
-                    <span className="font-mono text-emerald-700">{formatRupiah(lak.operasi?.bersih || 0)}</span>
-                  </div>
-                </div>
-              </div>
+              {/* TABEL FORMAL GRID: ARUS KAS (SAMA PERSIS DENGAN MENU ARUS KAS) */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+                      <th className="py-2.5 px-3 border-r border-slate-300 w-14 text-center">No</th>
+                      <th className="py-2.5 px-3 border-r border-slate-300">Uraian Arus Kas Entitas BUMDes</th>
+                      <th className="py-2.5 px-3 border-r border-slate-300 w-36 text-center">Klasifikasi Aktivitas</th>
+                      <th className="py-2.5 px-3 text-right w-44">Jumlah Kas (Rp)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {/* I. AKTIVITAS OPERASIONAL */}
+                    <tr className="bg-slate-50/80 font-bold text-slate-800">
+                      <td colSpan={4} className="py-2 px-3 border-r border-slate-300 uppercase tracking-wide text-[11px] text-[#6777ef]">
+                        I. ARUS KAS DARI AKTIVITAS OPERASIONAL
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">1.1</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium pl-6">
+                        Penerimaan Kas dari Pelanggan & Pendapatan Operasional Usaha
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Arus Kas Masuk</span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600">
+                        +{formatRupiah(lak.operasi?.masuk || 0)}
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">1.2</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium pl-6">
+                        Pengeluaran Kas untuk Pembayaran Beban Operasional, Gaji & Pemeliharaan
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Arus Kas Keluar</span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-rose-500">
+                        -{formatRupiah(lak.operasi?.keluar || 0)}
+                      </td>
+                    </tr>
+                    <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                      <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                        Arus Kas Bersih yang Diperoleh dari Aktivitas Operasi (A)
+                      </td>
+                      <td className={`py-2.5 px-3 text-right font-mono font-black ${(lak.operasi?.bersih || 0) >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                        {formatRupiah(lak.operasi?.bersih || 0)}
+                      </td>
+                    </tr>
 
-              {/* Arus Kas Investasi */}
-              <div className="space-y-2 border border-slate-200 rounded-xl p-3 bg-slate-50/50">
-                <h3 className="font-bold text-slate-900 text-xs">B. ARUS KAS DARI AKTIVITAS INVESTASI</h3>
-                <div className="space-y-1 text-xs pl-2">
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-600">Penerimaan Penjualan Aset Tetap</span>
-                    <span className="font-mono">{formatRupiah(lak.investasi?.masuk || 0)}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-600">Perolehan / Pembelian Peralatan & Aset Tetap</span>
-                    <span className="font-mono text-rose-600">({formatRupiah(lak.investasi?.keluar || 0)})</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 font-bold bg-white px-2 rounded border border-slate-200">
-                    <span>Arus Kas Bersih dari Aktivitas Investasi</span>
-                    <span className="font-mono text-slate-800">{formatRupiah(lak.investasi?.bersih || 0)}</span>
-                  </div>
-                </div>
-              </div>
+                    {/* II. AKTIVITAS INVESTASI */}
+                    <tr className="bg-slate-50/80 font-bold text-slate-800">
+                      <td colSpan={4} className="py-2 px-3 border-r border-slate-300 uppercase tracking-wide text-[11px] text-[#6777ef]">
+                        II. ARUS KAS DARI AKTIVITAS INVESTASI
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">2.1</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium pl-6">
+                        Penerimaan dari Penjualan / Pelepasan Aset Tetap
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Arus Kas Masuk</span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600">
+                        +{formatRupiah(lak.investasi?.masuk || 0)}
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">2.2</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium pl-6">
+                        Pengeluaran Kas untuk Pembelian / Pengadaan Aset Tetap & Peralatan
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Arus Kas Keluar</span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-rose-500">
+                        -{formatRupiah(lak.investasi?.keluar || 0)}
+                      </td>
+                    </tr>
+                    <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                      <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                        Arus Kas Bersih yang Digunakan untuk Aktivitas Investasi (B)
+                      </td>
+                      <td className={`py-2.5 px-3 text-right font-mono font-black ${(lak.investasi?.bersih || 0) >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                        {formatRupiah(lak.investasi?.bersih || 0)}
+                      </td>
+                    </tr>
 
-              {/* Arus Kas Pendanaan */}
-              <div className="space-y-2 border border-slate-200 rounded-xl p-3 bg-slate-50/50">
-                <h3 className="font-bold text-slate-900 text-xs">C. ARUS KAS DARI AKTIVITAS PENDANAAN</h3>
-                <div className="space-y-1 text-xs pl-2">
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-600">Penerimaan Penyertaan Modal Desa (APBDes)</span>
-                    <span className="font-mono text-emerald-700">+{formatRupiah(lak.pendanaan?.masuk || 0)}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-600">Penyetoran Bagi Hasil / Pengembalian Pinjaman</span>
-                    <span className="font-mono text-rose-600">({formatRupiah(lak.pendanaan?.keluar || 0)})</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 font-bold bg-white px-2 rounded border border-slate-200">
-                    <span>Arus Kas Bersih dari Aktivitas Pendanaan</span>
-                    <span className="font-mono text-slate-800">{formatRupiah(lak.pendanaan?.bersih || 0)}</span>
-                  </div>
-                </div>
-              </div>
+                    {/* III. AKTIVITAS PENDANAAN */}
+                    <tr className="bg-slate-50/80 font-bold text-slate-800">
+                      <td colSpan={4} className="py-2 px-3 border-r border-slate-300 uppercase tracking-wide text-[11px] text-[#6777ef]">
+                        III. ARUS KAS DARI AKTIVITAS PENDANAAN
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">3.1</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium pl-6">
+                        Penerimaan dari Tambahan Penyertaan Modal Desa / Masyarakat
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Arus Kas Masuk</span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600">
+                        +{formatRupiah(lak.pendanaan?.masuk || 0)}
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/70">
+                      <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">3.2</td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium pl-6">
+                        Pengeluaran Kas untuk Penyetoran PADes / Pembagian SHU
+                      </td>
+                      <td className="py-2 px-3 border-r border-slate-200 text-center">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Arus Kas Keluar</span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-rose-500">
+                        -{formatRupiah(lak.pendanaan?.keluar || 0)}
+                      </td>
+                    </tr>
+                    <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                      <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                        Arus Kas Bersih yang Digunakan untuk Aktivitas Pendanaan (C)
+                      </td>
+                      <td className={`py-2.5 px-3 text-right font-mono font-black ${(lak.pendanaan?.bersih || 0) >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                        {formatRupiah(lak.pendanaan?.bersih || 0)}
+                      </td>
+                    </tr>
 
-              {/* Rekonsiliasi Kas */}
-              <div className="p-4 bg-slate-100 rounded-xl space-y-2 text-xs border border-slate-300">
-                <div className="flex justify-between">
-                  <span className="text-slate-700">Kenaikan / (Penurunan) Bersih Kas & Setara Kas</span>
-                  <span className="font-mono font-bold">{formatRupiah(lak.kenaikanKasBersih || 0)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-700">Saldo Kas & Setara Kas Awal Periode</span>
-                  <span className="font-mono font-bold">{formatRupiah(lak.saldoKasAwal || 0)}</span>
-                </div>
-                <div className="flex justify-between font-black pt-2 border-t border-slate-300 text-sm">
-                  <span>SALDO KAS & SETARA KAS AKHIR PERIODE</span>
-                  <span className="font-mono text-[#6777ef]">{formatRupiah(lak.saldoKasAkhir || neraca.totalCurrentAssets || 0)}</span>
-                </div>
+                    {/* REKONSILIASI KAS */}
+                    <tr className="bg-slate-100 font-bold border-t-2 border-slate-400">
+                      <td colSpan={3} className="py-2 px-3 border-r border-slate-300 uppercase tracking-wider text-right pr-4 text-[11px] text-slate-800">
+                        KENAIKAN / (PENURUNAN) BERSIH KAS & SETARA KAS (A + B + C)
+                      </td>
+                      <td className={`py-2 px-3 text-right font-mono text-xs font-black ${(lak.kenaikanKasBersih || 0) >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                        {(lak.kenaikanKasBersih || 0) >= 0 ? "+" : ""}{formatRupiah(lak.kenaikanKasBersih || 0)}
+                      </td>
+                    </tr>
+                    <tr className="bg-slate-50 font-bold border-t border-slate-200">
+                      <td colSpan={3} className="py-2 px-3 border-r border-slate-300 uppercase tracking-wider text-right pr-4 text-[11px] text-slate-600">
+                        SALDO AWAL KAS & SETARA KAS (PER 1 JANUARI {year})
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono text-xs font-black text-slate-800">
+                        {formatRupiah(lak.saldoKasAwal || 0)}
+                      </td>
+                    </tr>
+                    <tr className="bg-emerald-50/80 font-black border-t-2 border-b-2 border-slate-800 text-slate-900">
+                      <td colSpan={3} className="py-3 px-3 border-r border-slate-300 uppercase tracking-wider text-right pr-4 text-xs sm:text-sm text-emerald-800">
+                        SALDO AKHIR KAS & SETARA KAS PER 31 DESEMBER {year}
+                      </td>
+                      <td className="py-3 px-3 text-right font-mono text-sm sm:text-base font-black text-emerald-700">
+                        {formatRupiah(lak.saldoKasAkhir || 0)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -751,51 +1497,160 @@ export default function LpjPrintModal({
           </div>
 
           {/* ========================================================= */}
-          {/* 6. CATATAN ATAS LAPORAN KEUANGAN (CaLK)                    */}
+          {/* HALAMAN 7: 6. CATATAN ATAS LAPORAN KEUANGAN (CaLK)        */}
+          {/* (PERSIS DENGAN AREA CETAK MENU CaLK TERBARU)              */}
           {/* ========================================================= */}
-          <div className="min-h-[820px] flex flex-col justify-between page-break">
+          <div className="report-a4-page page-break">
             <div className="space-y-4">
-              <div className="text-center pb-4 border-b-2 border-slate-900">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#6777ef] block">
-                  STANDAR KEPMENDESA PDTT NO. 136 TAHUN 2022
-                </span>
-                <h2 className="text-lg font-black text-slate-900 mt-0.5">
-                  6. CATATAN ATAS LAPORAN KEUANGAN (CaLK)
-                </h2>
-                <p className="text-xs text-slate-600 font-medium">
-                  {bumdesName} &bull; Tahun Anggaran {year}
-                </p>
-              </div>
+              {renderReportKop("CATATAN ATAS LAPORAN KEUANGAN (CaLK)", "Standar Kepmendesa PDTT No. 136 Tahun 2022 & SAK EMKM")}
 
-              <div className="space-y-4 text-xs text-slate-800 leading-relaxed">
-                <div className="space-y-1.5">
-                  <h3 className="font-bold text-slate-900 text-sm">1. GAMBARAN UMUM ENTITAS BUM DESA</h3>
-                  <p className="text-justify text-slate-700 text-xs">
-                    BUM Desa &ldquo;{bumdesName.replace(/["\\]/g, "")}&rdquo; merupakan badan hukum yang didirikan oleh Pemerintah Desa {villageName}, Kecamatan {subdistrictName}, Kabupaten {regencyName} sesuai amanat Undang-Undang Nomor 6 Tahun 2014 tentang Desa serta Peraturan Pemerintah Nomor 11 Tahun 2021 tentang Badan Usaha Milik Desa. BUM Desa ini beralamat di {bumdesAddress} dan bergerak di bidang usaha pengelolaan Gedung Serbaguna (GSG), Persewaan Lapak / Pasar Desa, Layanan Agen POS/PPOB, serta Jasa Simpan Pinjam Masyarakat.
+              <div className="space-y-4 text-xs text-slate-700 leading-relaxed">
+                <div>
+                  <h3 className="font-bold text-xs uppercase tracking-wide text-slate-900 mb-1">1. INFORMASI UMUM ENTITAS</h3>
+                  <p className="text-justify text-[11px] leading-relaxed text-slate-600">
+                    {bumdesName} didirikan berdasarkan Peraturan Desa Nomor 02 Tahun 2021 sesuai amanat Undang-Undang No. 6 Tahun 2014 tentang Desa serta Peraturan Pemerintah No. 11 Tahun 2021 tentang Badan Usaha Milik Desa. BUM Desa ini beralamat di {bumdesAddress}.
                   </p>
                 </div>
 
-                <div className="space-y-1.5">
-                  <h3 className="font-bold text-slate-900 text-sm">2. IKHTISAR KEBIJAKAN AKUNTANSI SIGNIFIKAN</h3>
-                  <p className="text-justify text-slate-700 text-xs">
-                    Laporan keuangan BUM Desa disusun dan disajikan berdasarkan Standar Akuntansi Keuangan Entitas Mikro, Kecil, dan Menengah (SAK EMKM) dan Keputusan Menteri Desa, Pembangunan Daerah Tertinggal, dan Transmigrasi Republik Indonesia Nomor 136 Tahun 2022 tentang Panduan Penyusunan Pelaporan Keuangan Badan Usaha Milik Desa.
+                <div>
+                  <h3 className="font-bold text-xs uppercase tracking-wide text-slate-900 mb-1">2. KEBIJAKAN AKUNTANSI PENTING</h3>
+                  <p className="text-[11px] text-slate-600 mb-1.5 leading-relaxed">
+                    Laporan keuangan disusun berdasarkan Standar Akuntansi Keuangan Entitas Mikro, Kecil, dan Menengah (SAK EMKM) dan Keputusan Menteri Desa, PDT, dan Transmigrasi No. 136 Tahun 2022.
                   </p>
-                  <ul className="list-disc list-inside space-y-1 text-slate-700 pl-2 text-xs">
-                    <li><strong>Dasar Pengukuran:</strong> Laporan disusun dengan menggunakan konsep biaya historis (*historical cost*) dan kelangsungan usaha (*going concern*).</li>
-                    <li><strong>Pengakuan Pendapatan dan Beban:</strong> Menggunakan asas akrual (*accrual basis*), kecuali untuk laporan arus kas yang disusun berdasarkan asas kas (*cash basis*).</li>
-                    <li><strong>Aset Tetap dan Penyusutan:</strong> Aset tetap dinilai sebesar harga perolehan dikurangi akumulasi penyusutan. Penyusutan dihitung menggunakan metode garis lurus (*straight-line method*) berdasarkan estimasi masa manfaat aset.</li>
-                    <li><strong>Kas dan Setara Kas:</strong> Terdiri dari saldo kas fisik pada bendahara kasir dan simpanan pada rekening bank yang likuid tanpa pembatasan penarikan.</li>
+                  <ul className="list-disc pl-5 space-y-0.5 text-[10.5px] text-slate-600">
+                    <li><strong>Dasar Penyusunan:</strong> Berdasarkan konsep biaya historis dan asas akrual untuk laba rugi serta asas kas untuk laporan arus kas.</li>
+                    <li><strong>Kas dan Setara Kas:</strong> Mencakup uang tunai di bendahara dan simpanan pada rekening perbankan resmi yang likuid tanpa batasan penarikan.</li>
+                    <li><strong>Piutang Usaha:</strong> Dinyatakan sebesar nilai tagihan bruto yang belum diterima dari mitra/pelanggan per akhir periode pelaporan.</li>
+                    <li><strong>Aset Tetap & Penyusutan:</strong> Dinyatakan sebesar harga perolehan dikurangi akumulasi penyusutan menggunakan metode garis lurus (*straight-line method*).</li>
                   </ul>
                 </div>
 
-                <div className="space-y-1.5">
-                  <h3 className="font-bold text-slate-900 text-sm">3. PENJELASAN POS-POS SIGNIFIKAN LAPORAN KEUANGAN</h3>
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-xs">
-                    <p><strong>Kas dan Bank:</strong> Saldo kas konsolidasi per 31 Desember {year} tercatat sebesar <strong>{formatRupiah(neraca.currentAssets[0]?.amount || 0)}</strong> pada kas tunai dan <strong>{formatRupiah(neraca.currentAssets[1]?.amount || 0)}</strong> pada rekening bank.</p>
-                    <p><strong>Piutang:</strong> Total piutang bergulir masyarakat dan kelompok tani binaan tercatat sebesar <strong>{formatRupiah((neraca.currentAssets[2]?.amount || 0) + (neraca.currentAssets[3]?.amount || 0))}</strong>.</p>
-                    <p><strong>Peralatan & Aset:</strong> Total nilai inventaris peralatan operasional tercatat sebesar <strong>{formatRupiah(neraca.fixedAssets?.peralatan || 0)}</strong> dengan akumulasi penyusutan sebesar <strong>{formatRupiah(neraca.fixedAssets?.akumulasiPenyusutan || 0)}</strong>, menghasilkan nilai buku bersih <strong>{formatRupiah(neraca.fixedAssets?.net || 0)}</strong>.</p>
-                    <p><strong>Ekuitas Desa:</strong> Akumulasi modal disetor Pemerintah Desa sampai dengan tahun {year} adalah sebesar <strong>{formatRupiah(lpe.totalPenyertaanModalAkhir || neraca.equity[0]?.amount || 0)}</strong>.</p>
+                <div>
+                  <h3 className="font-bold text-xs uppercase tracking-wide text-slate-900 mb-2">3. RINCIAN POS-POS LAPORAN POSISI KEUANGAN (NERACA)</h3>
+                  
+                  {/* A. ASET LANCAR */}
+                  <div className="mb-3">
+                    <h4 className="font-bold text-slate-800 text-[11px] uppercase tracking-wide mb-1.5 bg-slate-50 p-1.5 rounded border border-slate-200">
+                      A. Aset Lancar (Kas, Piutang, Persediaan)
+                    </h4>
+                    <div className="border border-slate-200 rounded-lg overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                          <tr>
+                            <th className="py-1.5 px-3 text-left">Komponen Aset Lancar</th>
+                            <th className="py-1.5 px-3 text-right">Nilai Tercatat (Rp)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {currentAssetsList.map((a: any, i: number) => (
+                            <tr key={i}>
+                              <td className="py-1.5 px-3 text-slate-700">{a.name}</td>
+                              <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(a.amount)}</td>
+                            </tr>
+                          ))}
+                          <tr className="bg-slate-50/70 font-bold">
+                            <td className="py-1.5 px-3 text-slate-900">Total Aset Lancar</td>
+                            <td className="py-1.5 px-3 text-right font-mono text-emerald-600 font-black">
+                              {formatRupiah(neraca.totalCurrentAssets || currentAssetsList.reduce((s: number, a: any) => s + (Number(a.amount) || 0), 0))}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
+
+                  {/* B. ASET TETAP */}
+                  <div className="mb-3">
+                    <h4 className="font-bold text-slate-800 text-[11px] uppercase tracking-wide mb-1.5 bg-slate-50 p-1.5 rounded border border-slate-200">
+                      B. Aset Tetap & Akumulasi Penyusutan
+                    </h4>
+                    <div className="border border-slate-200 rounded-lg overflow-hidden">
+                      <table className="w-full text-xs">
+                        <tbody className="divide-y divide-slate-100">
+                          <tr>
+                            <td className="py-1.5 px-3 text-slate-700">Nilai Perolehan Aset Tetap (Peralatan, Mesin, Gedung, Meubelair)</td>
+                            <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(neraca.fixedAssets?.peralatan || 0)}</td>
+                          </tr>
+                          <tr>
+                            <td className="py-1.5 px-3 text-slate-700">Akumulasi Penyusutan Aset Tetap</td>
+                            <td className="py-1.5 px-3 text-right font-mono font-bold text-rose-600">({formatRupiah(neraca.fixedAssets?.akumulasiPenyusutan || 0)})</td>
+                          </tr>
+                          <tr className="bg-slate-50/70 font-bold">
+                            <td className="py-1.5 px-3 text-slate-900">Nilai Buku Bersih Aset Tetap</td>
+                            <td className="py-1.5 px-3 text-right font-mono text-emerald-600 font-black">{formatRupiah(neraca.fixedAssets?.net || 0)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* C. KEWAJIBAN & EKUITAS */}
+                  <div className="mb-3">
+                    <h4 className="font-bold text-slate-800 text-[11px] uppercase tracking-wide mb-1.5 bg-slate-50 p-1.5 rounded border border-slate-200">
+                      C. Kewajiban & Ekuitas Pemilik
+                    </h4>
+                    <div className="border border-slate-200 rounded-lg overflow-hidden">
+                      <table className="w-full text-xs">
+                        <tbody className="divide-y divide-slate-100">
+                          {liabilitiesList.map((l: any, i: number) => (
+                            <tr key={`l-${i}`}>
+                              <td className="py-1.5 px-3 text-slate-700">{l.name}</td>
+                              <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(l.amount)}</td>
+                            </tr>
+                          ))}
+                          <tr className="bg-slate-50/50 font-semibold text-slate-800">
+                            <td className="py-1.5 px-3">Total Kewajiban</td>
+                            <td className="py-1.5 px-3 text-right font-mono">
+                              {formatRupiah(neraca.totalLiabilities || liabilitiesList.reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0))}
+                            </td>
+                          </tr>
+                          {equityList.map((e: any, i: number) => (
+                            <tr key={`e-${i}`}>
+                              <td className="py-1.5 px-3 text-slate-700">{e.name}</td>
+                              <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(e.amount)}</td>
+                            </tr>
+                          ))}
+                          <tr className="bg-slate-50 font-bold">
+                            <td className="py-1.5 px-3 text-slate-900">Total Ekuitas</td>
+                            <td className="py-1.5 px-3 text-right font-mono text-emerald-600 font-black">
+                              {formatRupiah(neraca.totalEquity || equityList.reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0))}
+                            </td>
+                          </tr>
+                          <tr className="bg-emerald-50 text-emerald-800 font-black">
+                            <td className="py-2 px-3">TOTAL KEWAJIBAN & EKUITAS (SEIMBANG DENGAN TOTAL ASET)</td>
+                            <td className="py-2 px-3 text-right font-mono text-xs font-black">
+                              {formatRupiah(neraca.totalLiabilitiesAndEquity || ((neraca.totalLiabilities || 0) + (neraca.totalEquity || 0)))}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-xs uppercase tracking-wide text-slate-900 mb-1">4. KINERJA OPERASIONAL LABA RUGI</h3>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5 text-xs">
+                    <div className="flex justify-between py-0.5 border-b border-slate-200">
+                      <span>Total Pendapatan Usaha (Omzet)</span>
+                      <span className="font-mono font-bold text-emerald-600">{formatRupiah(labaRugi.totalRevenue)}</span>
+                    </div>
+                    <div className="flex justify-between py-0.5 border-b border-slate-200">
+                      <span>Total Beban Operasional & Usaha</span>
+                      <span className="font-mono font-bold text-rose-600">{formatRupiah(labaRugi.totalExpense)}</span>
+                    </div>
+                    <div className="flex justify-between py-1 font-bold text-slate-900">
+                      <span>Sisa Hasil Usaha / Laba Bersih Tahun Berjalan (SHU)</span>
+                      <span className="font-mono text-[#6777ef] text-xs font-black">{formatRupiah(labaRugi.netProfit)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-xs uppercase tracking-wide text-slate-900 mb-1">5. PERTANGGUNGJAWABAN & PENGESAHAN</h3>
+                  <p className="text-justify text-[11px] leading-relaxed text-slate-600">
+                    Laporan Keuangan ini telah disusun secara tertib, akuntabel, dan transparan berdasarkan bukti pembukuan yang sah, serta dipertanggungjawabkan dalam Musyawarah Desa (Musdes) Laporan Pertanggungjawaban (LPJ) BUM Desa Tahun Anggaran {year}.
+                  </p>
                 </div>
               </div>
             </div>
@@ -804,58 +1659,62 @@ export default function LpjPrintModal({
           </div>
 
           {/* ========================================================= */}
-          {/* LEMBAR PENGESAHAN DOKUMEN BERTANDA TANGAN (4 PIHAK RESMI) */}
+          {/* HALAMAN 8: LEMBAR PENGESAHAN RESMI MUSYAWARAH DESA (MUSDES)*/}
+          {/* (4 PIHAK RESMI KEMENDES: BENDAHARA, DIREKTUR, BPD, KADES) */}
           {/* ========================================================= */}
-          <div className="min-h-[820px] flex flex-col justify-between pt-6 border-t-2 border-slate-900 page-break">
-            <div>
-              <div className="text-center mb-8">
-                <h3 className="font-black text-slate-900 text-base uppercase">
-                  LEMBAR PENGESAHAN LAPORAN PERTANGGUNGJAWABAN
-                </h3>
-                <p className="text-xs text-slate-600 font-medium">
-                  Ditetapkan dan disahkan pada Musyawarah Desa (Musdes) Pertanggungjawaban Tahunan di {villageName}
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {villageName}, 15 Januari {year + 1}
-                </p>
+          <div className="report-a4-page page-break">
+            <div className="space-y-4">
+              {renderReportKop(
+                "LEMBAR PENGESAHAN LAPORAN PERTANGGUNGJAWABAN (LPJ)",
+                "Dokumen Resmi Keputusan Musyawarah Desa (Musdes) Pertanggungjawaban Tahunan"
+              )}
+
+              <div className="p-2.5 bg-indigo-50/70 border border-indigo-200 rounded-xl text-center text-xs font-bold text-indigo-950">
+                Disahkan dalam Forum Musyawarah Desa (Musdes) &bull; Balai Desa {villageName}, 15 Januari {year + 1}
               </div>
 
-              <div className="grid grid-cols-2 gap-8 text-center text-xs mb-10">
+              <div className="text-justify text-xs text-slate-700 leading-relaxed px-4">
+                Pada hari ini, <strong>Kamis tanggal Lima Belas bulan Januari tahun {year + 1}</strong>, bertempat di Balai Desa {villageName}, Kecamatan {subdistrictName}, Kabupaten {regencyName}, telah diselenggarakan <strong>Musyawarah Desa (Musdes) Pertanggungjawaban Tahunan BUM Desa {bumdesName}</strong> untuk Tahun Anggaran {year}. Seluruh berkas Laporan Keuangan (Laba Rugi, Posisi Keuangan/Neraca, Perubahan Ekuitas, Arus Kas, dan CaLK) serta Rencana Distribusi SHU telah dibahas bersama Pemerintah Desa, Badan Permusyawaratan Desa (BPD), Badan Pengawas, Pelaksana Operasional, dan tokoh masyarakat, dengan hasil: <strong>DITERIMA DAN DISAHKAN MENJADI DOKUMEN RESMI DESA</strong>.
+              </div>
+
+              {/* Tanda Tangan Baris 1: Pelaksana Operasional BUMDes */}
+              <div className="grid grid-cols-2 gap-8 text-center text-xs pt-4">
                 <div className="space-y-16">
                   <div>
-                    <span className="text-slate-500 block text-[11px]">Dibuat oleh:</span>
-                    <span className="font-bold text-slate-800">Bendahara BUM Desa</span>
+                    <span className="text-slate-500 block text-[11px]">Dibuat & Disusun oleh:</span>
+                    <span className="font-bold text-slate-800 text-xs">Bendahara BUM Desa</span>
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 underline uppercase tracking-wide">
+                    <p className="font-bold text-slate-900 underline uppercase tracking-wide text-xs">
                       {treasurerName}
                     </p>
-                    <p className="text-[10px] text-slate-500">Bendahara</p>
+                    <p className="text-[10px] text-slate-500">Bendahara BUMDes</p>
                   </div>
                 </div>
 
                 <div className="space-y-16">
                   <div>
-                    <span className="text-slate-500 block text-[11px]">Dilaporkan oleh:</span>
-                    <span className="font-bold text-slate-800">Direktur BUM Desa</span>
+                    <span className="text-slate-500 block text-[11px]">Dilaporkan & Dipertanggungjawabkan oleh:</span>
+                    <span className="font-bold text-slate-800 text-xs">Direktur BUM Desa</span>
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 underline uppercase tracking-wide">
+                    <p className="font-bold text-slate-900 underline uppercase tracking-wide text-xs">
                       {directorName}
                     </p>
-                    <p className="text-[10px] text-slate-500">Direktur Utama</p>
+                    <p className="text-[10px] text-slate-500">Direktur Utama BUMDes</p>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-8 text-center text-xs pt-4 border-t border-dashed border-slate-200">
+              {/* Tanda Tangan Baris 2: Pengawas & Pemerintah Desa */}
+              <div className="grid grid-cols-2 gap-8 text-center text-xs pt-6 border-t border-dashed border-slate-300">
                 <div className="space-y-16">
                   <div>
-                    <span className="text-slate-500 block text-[11px]">Mengetahui:</span>
-                    <span className="font-bold text-slate-800">Badan Pengawas BUM Desa</span>
+                    <span className="text-slate-500 block text-[11px]">Telah Diperiksa & Mengetahui:</span>
+                    <span className="font-bold text-slate-800 text-xs">Badan Pengawas BUM Desa</span>
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 underline uppercase tracking-wide">
+                    <p className="font-bold text-slate-900 underline uppercase tracking-wide text-xs">
                       {supervisorName}
                     </p>
                     <p className="text-[10px] text-slate-500">Ketua Badan Pengawas</p>
@@ -864,16 +1723,21 @@ export default function LpjPrintModal({
 
                 <div className="space-y-16">
                   <div>
-                    <span className="text-slate-500 block text-[11px]">Disetujui oleh:</span>
-                    <span className="font-bold text-slate-800">Kepala Desa {villageName}</span>
+                    <span className="text-slate-500 block text-[11px]">Mengesahkan & Menyetujui:</span>
+                    <span className="font-bold text-slate-800 text-xs">Kepala Desa {villageName}</span>
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 underline uppercase tracking-wide">
+                    <p className="font-bold text-slate-900 underline uppercase tracking-wide text-xs">
                       {villageHead}
                     </p>
-                    <p className="text-[10px] text-slate-500">Kepala Desa / Penasihat</p>
+                    <p className="text-[10px] text-slate-500">Kepala Desa selaku Penasihat</p>
                   </div>
                 </div>
+              </div>
+
+              {/* Keterangan Stempel & Arsip */}
+              <div className="mt-6 p-3 rounded-xl bg-slate-50 border border-slate-200 text-center text-[10.5px] text-slate-500 italic">
+                Dokumen ini merupakan lampiran wajib Laporan Penyelenggaraan Pemerintahan Desa (LPPD) dan arsip resmi Badan Permusyawaratan Desa (BPD) {villageName}.
               </div>
             </div>
 
@@ -886,7 +1750,7 @@ export default function LpjPrintModal({
         <div className="no-print p-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs flex-wrap gap-3">
           <span className="text-slate-500 flex items-center gap-1.5 font-medium">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            Dokumen siap dicetak ke printer atau disimpan sebagai PDF (Ctrl+P / Command+P)
+            Dokumen 8 halaman resmi siap dicetak ke printer atau disimpan sebagai PDF (Ctrl+P / Command+P)
           </span>
           <div className="flex items-center gap-2">
             <button

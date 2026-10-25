@@ -20,9 +20,11 @@ import {
   AlertCircle,
   ShieldCheck,
   Building2,
+  ChevronLeft,
   ChevronRight,
   ChevronDown,
   ChevronUp,
+  Filter,
   TrendingDown,
   DollarSign,
   Wallet,
@@ -54,6 +56,10 @@ import LoginModal from "@/components/LoginModal"
 import SystemMaintenanceTab from "@/components/SystemMaintenanceTab"
 import InlinePartyEditor from "@/components/InlinePartyEditor"
 import { ManualTransactionModal } from "@/components/ManualTransactionModal"
+import GeneralLedgerTab from "@/components/GeneralLedgerTab"
+import TrialBalanceTab from "@/components/TrialBalanceTab"
+import SubsidiaryLedgerTab from "@/components/SubsidiaryLedgerTab"
+import EisHealthTab from "@/components/EisHealthTab"
 
 export default function StislaApp() {
   const [activeTab, setActiveTab] = useState<string>("dashboard")
@@ -95,6 +101,7 @@ export default function StislaApp() {
     return fallbackNames[code] || ""
   }
   const [reports, setReports] = useState<any>(null)
+  const [eisData, setEisData] = useState<any>(null)
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [logoPreview, setLogoPreview] = useState<string>("")
   const logoInputRef = useRef<HTMLInputElement>(null)
@@ -175,8 +182,17 @@ export default function StislaApp() {
   // Modal Manual Entry State
   const [showManualModal, setShowManualModal] = useState(false)
 
-  // Modal New Account (COA Dinamis)
+  // Modal New Account (COA Dinamis) & Pagination States
   const [showCoaModal, setShowCoaModal] = useState(false)
+  const [coaSearch, setCoaSearch] = useState("")
+  const [coaCategoryFilter, setCoaCategoryFilter] = useState("all")
+  const [coaPage, setCoaPage] = useState(1)
+  const [coaPerPage, setCoaPerPage] = useState(15)
+
+  // Buku Kas & Jurnal Search & Pagination States
+  const [cashBookSearch, setCashBookSearch] = useState("")
+  const [cashBookPage, setCashBookPage] = useState(1)
+  const [cashBookPerPage, setCashBookPerPage] = useState(15)
 
   // Closing / Tutup Buku State
   const [closingList, setClosingList] = useState<any[]>([])
@@ -233,19 +249,21 @@ export default function StislaApp() {
   const loadData = async (targetYear = selectedYear) => {
     setLoading(true)
     try {
-      const [resEntries, resCoa, resRep, resSet, resGroups, resAiStatus, resClosing] = await Promise.all([
+      const [resEntries, resCoa, resRep, resSet, resGroups, resAiStatus, resClosing, resEis] = await Promise.all([
         fetch(`/api/cash-book?month=${selectedMonth}&year=${targetYear}&proofType=${proofTypeFilter}`).then(r => r.json()),
         fetch("/api/keuangan/coa").then(r => r.json()).catch(() => ({ success: false, data: [] })),
         fetch(`/api/reports?year=${targetYear}`).then(r => r.json()),
         fetch("/api/settings").then(r => r.json()),
         fetch("/api/keuangan/coa").then(r => r.json()).catch(() => ({ success: false, data: [] })),
         fetch("/api/ai/status").then(r => r.json()).catch(() => null),
-        fetch("/api/closing").then(r => r.json()).catch(() => ({ success: false, data: [] }))
+        fetch("/api/closing").then(r => r.json()).catch(() => ({ success: false, data: [] })),
+        fetch(`/api/eis?year=${targetYear}`).then(r => r.json()).catch(() => null)
       ])
 
       if (resEntries.success) setEntries(resEntries.data)
       if (resCoa.success) setCoaList(resCoa.data)
       if (resRep.success) setReports({ ...resRep.data, isArchived: resRep.isArchived, closingMeta: resRep.closingMeta })
+      if (resEis && resEis.success) setEisData(resEis)
       if (resSet.success) {
         setSettings(resSet.data)
         if (resSet.data.bumdes_logo) {
@@ -378,15 +396,9 @@ export default function StislaApp() {
   const debtToAssetRatio = totalAset > 0 ? (totalKewajiban / totalAset) * 100 : 0
   const cashCoverageRatio = totalKewajiban > 0 ? totalKas / totalKewajiban : 0
 
-  // Health Score (0-100) - Hanya dihitung jika sudah ada data keuangan
-  let healthScore = 0
-  if (hasFinancialData) {
-    healthScore = 70
-    if (totalKewajiban === 0 || debtToAssetRatio <= 20) healthScore += 15
-    if (labaBersih > 0) healthScore += 10
-    if (netProfitMargin >= 20) healthScore += 5
-    if (healthScore > 100) healthScore = 100
-  }
+  // Health Score (0-100) Diselaraskan Penuh dengan EIS Standar PPAK 4.5
+  const healthScore = eisData?.meta?.totalScore ?? (hasFinancialData ? 53 : 0)
+  const healthCategory = eisData?.meta?.category || (healthScore >= 65 ? "SEHAT" : healthScore >= 30 ? "KURANG SEHAT" : "TIDAK SEHAT")
 
   const getHealthBadge = () => {
     if (!hasFinancialData) {
@@ -398,29 +410,29 @@ export default function StislaApp() {
         subtext: "Menunggu Input Data Transaksi / Saldo Awal"
       }
     }
-    if (healthScore >= 85) {
+    if (healthCategory === "SEHAT") {
       return {
-        text: "SANGAT SEHAT (Kategori AA)",
+        text: `SEHAT (${healthScore} Poin)`,
         color: "bg-emerald-500 text-white",
         border: "border-emerald-300",
         bgLight: "bg-emerald-50",
-        subtext: "Bebas Risiko Gagal Bayar"
+        subtext: "Kinerja Keuangan Optimal (Standar PPAK 4.5)"
       }
-    } else if (healthScore >= 70) {
+    } else if (healthCategory === "KURANG SEHAT") {
       return {
-        text: "SEHAT (Kategori A)",
-        color: "bg-blue-600 text-white",
-        border: "border-blue-300",
-        bgLight: "bg-blue-50",
-        subtext: "Kondisi Operasional Stabil"
-      }
-    } else {
-      return {
-        text: "CUKUP SEHAT (Kategori B)",
+        text: `KURANG SEHAT (${healthScore} Poin)`,
         color: "bg-amber-500 text-white",
         border: "border-amber-300",
         bgLight: "bg-amber-50",
-        subtext: "Perlu Peningkatan Likuiditas"
+        subtext: "Perlu Akselerasi Omzet & Penagihan Piutang"
+      }
+    } else {
+      return {
+        text: `TIDAK SEHAT (${healthScore} Poin)`,
+        color: "bg-rose-500 text-white",
+        border: "border-rose-300",
+        bgLight: "bg-rose-50",
+        subtext: "Kondisi Keuangan Kritis (Perlu Restrukturisasi)"
       }
     }
   }
@@ -439,7 +451,141 @@ export default function StislaApp() {
     .filter((y) => parseInt(y, 10) <= 2026)
     .sort((a, b) => parseInt(b, 10) - parseInt(a, 10))
 
-  const renderReportYearFilter = (reportTitle?: string) => (
+  // --- HELPER CETAK BERSIH LAPORAN RESMI (A4 PRINT VIEW) ---
+  const handlePrintDocument = (elementId: string, docTitle: string) => {
+    const printContent = document.getElementById(elementId)
+    if (!printContent) return
+
+    const printWindow = window.open("", "_blank")
+    if (!printWindow) {
+      window.print()
+      return
+    }
+
+    const styleTags = Array.from(document.querySelectorAll("link[rel='stylesheet'], style"))
+      .map((el) => el.outerHTML)
+      .join("\n")
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>${docTitle} - ${settings.bumdes_name || "PPAK BUMDesa"} TA ${selectedYear}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+  ${styleTags}
+  <style>
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #fff !important; }
+      @page { size: A4 portrait; margin: 12mm; }
+      .no-print { display: none !important; }
+    }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #fff; color: #1e293b; padding: 20px; }
+  </style>
+</head>
+<body>
+  ${printContent.innerHTML}
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 500);
+    };
+  </script>
+</body>
+</html>`)
+    printWindow.document.close()
+  }
+
+  // --- KOP RESMI LAPORAN KEUANGAN KEMENDES 136 ---
+  const renderReportKop = (reportTitle: string, subtitle?: string) => (
+    <div className="border-b-2 border-slate-800 pb-4 mb-6">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {(settings.bumdes_logo || logoPreview) ? (
+            <img
+              src={settings.bumdes_logo || logoPreview}
+              alt="Logo BUMDes"
+              className="w-16 h-16 object-contain rounded-lg border border-slate-200 p-1"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-xl bg-slate-900 text-white font-black text-2xl flex items-center justify-center">
+              {(settings.bumdes_name || "B").charAt(0)}
+            </div>
+          )}
+          <div>
+            <h1 className="font-black text-xl text-slate-900 uppercase tracking-tight">
+              {settings.bumdes_name || "PPAK BUMDesa"}
+            </h1>
+            <p className="text-xs text-slate-600 font-medium">
+              Desa {settings.village_name || "Balongbesuk"}, Kecamatan {settings.subdistrict_name || "Diwek"}, Kabupaten {settings.regency_name || "Jombang"}
+            </p>
+            <p className="text-[11px] text-slate-500">
+              {settings.bumdes_address || `Kantor BUMDes Desa ${settings.village_name || "Balongbesuk"}`}
+            </p>
+          </div>
+        </div>
+
+        <div className="text-right">
+          <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-300 uppercase tracking-wider">
+            Kepmendes PDTT 136/2022
+          </span>
+          <p className="text-[11px] text-slate-500 mt-1 font-mono">
+            TA: {selectedYear}
+          </p>
+        </div>
+      </div>
+
+      <div className="text-center mt-5">
+        <h2 className="text-lg font-black text-slate-900 uppercase tracking-wide">
+          {reportTitle}
+        </h2>
+        {subtitle && (
+          <p className="text-xs text-slate-600 font-bold mt-0.5">
+            {subtitle}
+          </p>
+        )}
+        <p className="text-xs text-slate-500 mt-0.5 italic">
+          Periode Tahun Buku: {selectedYear}
+        </p>
+      </div>
+    </div>
+  )
+
+  // --- LEMBAR TANDA TANGAN AUDIT / PENGESAHAN LAPORAN KEUANGAN ---
+  const renderReportSignatures = (includePenasihat = false) => (
+    <div className={`mt-12 pt-6 border-t border-slate-200 text-xs ${includePenasihat ? "grid grid-cols-1 sm:grid-cols-3 gap-6 text-center" : "grid grid-cols-2 text-center"}`}>
+      {includePenasihat && (
+        <div>
+          <p className="text-slate-500 mb-1">Mengetahui & Menyetujui,</p>
+          <p className="font-bold text-slate-800 uppercase">PENASIHAT (KEPALA DESA)</p>
+          <div className="h-20"></div>
+          <p className="font-bold text-slate-900 underline uppercase">{settings.village_head || "MOCHAMAD SAIFUR"}</p>
+          <p className="text-[11px] text-slate-500">Pemerintah Desa {settings.village_name || "Balongbesuk"}</p>
+        </div>
+      )}
+
+      <div>
+        <p className="text-slate-500 mb-1">{includePenasihat ? "Menyetujui," : "Mengetahui,"}</p>
+        <p className="font-bold text-slate-800 uppercase">DIREKTUR BUMDES</p>
+        <div className="h-20"></div>
+        <p className="font-bold text-slate-900 underline uppercase">{settings.director_name || "DODIK SUSANTO, S.Fil.I"}</p>
+        <p className="text-[11px] text-slate-500">NIP. {settings.director_nip || "-"}</p>
+      </div>
+
+      <div>
+        <p className="text-slate-500 mb-1">
+          {settings.village_name || "Balongbesuk"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+        </p>
+        <p className="font-bold text-slate-800 uppercase">BENDAHARA / PETUGAS AKUNTANSI</p>
+        <div className="h-20"></div>
+        <p className="font-bold text-slate-900 underline uppercase">{settings.treasurer_name || "MAMIK KURNIAWATI"}</p>
+        <p className="text-[11px] text-slate-500">NIP. {settings.treasurer_nip || "-"}</p>
+      </div>
+    </div>
+  )
+
+  const renderReportYearFilter = (reportTitle?: string, printElementId?: string) => (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 border border-slate-200/90 rounded-2xl p-3 sm:p-4 mb-2 shadow-xs">
       <div className="flex items-center gap-2.5">
         <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-[#6777ef] shrink-0">
@@ -493,6 +639,17 @@ export default function StislaApp() {
         >
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-[#6777ef]" : ""}`} />
         </button>
+
+        {printElementId && (
+          <button
+            type="button"
+            onClick={() => handlePrintDocument(printElementId, reportTitle || "Laporan Keuangan")}
+            className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-[#6777ef] text-white text-xs font-bold hover:bg-[#5868e4] shadow-xs transition-all cursor-pointer"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>Cetak {reportTitle || "Laporan"}</span>
+          </button>
+        )}
       </div>
     </div>
   )
@@ -577,6 +734,18 @@ export default function StislaApp() {
                 >
                   <LayoutDashboard className="w-5 h-5 shrink-0" />
                   <span>Dashboard Kesehatan</span>
+                </button>
+
+                <button
+                  onClick={() => handleNavClick("eis")}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm text-left transition-all ${
+                    activeTab === "eis"
+                      ? "bg-[#6777ef] text-white shadow-md shadow-indigo-200"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <Activity className="w-5 h-5 shrink-0" />
+                  <span className="text-left leading-tight">EIS / Kesehatan BUMDes</span>
                 </button>
 
                 <button
@@ -675,6 +844,53 @@ export default function StislaApp() {
                 >
                   <FileText className="w-4 h-4 shrink-0" />
                   <span>5. Catatan (CaLK)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* ===================== GRUP KHUSUS TERPISAH: BUKU & AUDIT INSPEKTORAT ===================== */}
+            <div>
+              <div className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                <span>Buku & Audit Inspektorat</span>
+                <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Audit
+                </span>
+              </div>
+              <div className="space-y-1">
+                <button
+                  onClick={() => handleNavClick("general-ledger")}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left transition-all ${
+                    activeTab === "general-ledger"
+                      ? "bg-[#6777ef] text-white shadow-md shadow-indigo-200 font-semibold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4 shrink-0" />
+                  <span className="text-left leading-tight">Buku Besar (General Ledger)</span>
+                </button>
+
+                <button
+                  onClick={() => handleNavClick("trial-balance")}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left transition-all ${
+                    activeTab === "trial-balance"
+                      ? "bg-[#6777ef] text-white shadow-md shadow-indigo-200 font-semibold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                  }`}
+                >
+                  <Scale className="w-4 h-4 shrink-0" />
+                  <span className="text-left leading-tight">Neraca Saldo (Trial Balance)</span>
+                </button>
+
+                <button
+                  onClick={() => handleNavClick("sub-ledger")}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left transition-all ${
+                    activeTab === "sub-ledger"
+                      ? "bg-[#6777ef] text-white shadow-md shadow-indigo-200 font-semibold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                  }`}
+                >
+                  <Users className="w-4 h-4 shrink-0" />
+                  <span className="text-left leading-tight">Buku Pembantu Piutang/Utang</span>
                 </button>
               </div>
             </div>
@@ -861,7 +1077,11 @@ export default function StislaApp() {
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between sm:justify-start gap-4 sm:gap-5 bg-[#f8fafc] p-3.5 sm:p-4 rounded-xl border border-slate-200 shrink-0">
+                    <div
+                      onClick={() => handleNavClick("eis")}
+                      className="flex items-center justify-between sm:justify-start gap-4 sm:gap-5 bg-[#f8fafc] hover:bg-slate-100/80 transition-all p-3.5 sm:p-4 rounded-xl border border-slate-200 shrink-0 cursor-pointer group"
+                      title="Klik untuk membuka rincian 8 Indikator EIS"
+                    >
                       <div className="text-center">
                         <div className="text-2xl sm:text-3xl font-black text-[#6777ef]">
                           {hasFinancialData ? healthScore : "-"}
@@ -875,7 +1095,10 @@ export default function StislaApp() {
                         <div className={`px-2.5 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-extrabold ${healthBadge.color}`}>
                           {healthBadge.text}
                         </div>
-                        <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium">{healthBadge.subtext}</p>
+                        <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium flex items-center gap-1">
+                          <span>{healthBadge.subtext}</span>
+                          <span className="text-indigo-600 font-bold group-hover:translate-x-0.5 transition-transform">➔</span>
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1324,41 +1547,253 @@ export default function StislaApp() {
                   )}
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-                  {(() => {
-                    const signedCount = entries.filter((e: any) => !!e.attachmentUrl).length
-                    const totalCount = entries.length
-                    const displayedEntries = entries.filter((e: any) => {
-                      if (attachmentFilter === "signed") return !!e.attachmentUrl
-                      if (attachmentFilter === "unsigned") return !e.attachmentUrl
-                      return true
-                    })
+                {/* EXECUTIVE STAT CARDS FOR BUKU KAS & JURNAL */}
+                {(() => {
+                  const q = cashBookSearch.toLowerCase().trim()
+                  const filteredEntries = entries.filter((e: any) => {
+                    if (attachmentFilter === "signed" && !e.attachmentUrl) return false
+                    if (attachmentFilter === "unsigned" && !!e.attachmentUrl) return false
 
-                    return (
-                      <>
-                        <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    if (q) {
+                      const matchProof = e.proofNumber?.toLowerCase().includes(q)
+                      const matchDesc = e.description?.toLowerCase().includes(q)
+                      const matchParty = e.payeeOrPayer?.toLowerCase().includes(q)
+                      const matchAccount = e.lines?.some(
+                        (l: any) =>
+                          l.accountCode?.toLowerCase().includes(q) ||
+                          getAccountName(l.accountCode)?.toLowerCase().includes(q)
+                      )
+                      if (!matchProof && !matchDesc && !matchParty && !matchAccount) return false
+                    }
+                    return true
+                  })
+
+                  const totalFilteredCount = filteredEntries.length
+                  const signedCount = filteredEntries.filter((e: any) => !!e.attachmentUrl).length
+                  const totalDebit = filteredEntries.reduce(
+                    (sum: number, e: any) =>
+                      sum +
+                      (e.lines
+                        ?.filter((l: any) => l.type === "DEBIT")
+                        .reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0) || 0),
+                    0
+                  )
+                  const totalCredit = filteredEntries.reduce(
+                    (sum: number, e: any) =>
+                      sum +
+                      (e.lines
+                        ?.filter((l: any) => l.type === "CREDIT")
+                        .reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0) || 0),
+                    0
+                  )
+                  const bkmTotal = filteredEntries
+                    .filter((e: any) => e.proofType === "BKM")
+                    .reduce(
+                      (sum: number, e: any) =>
+                        sum +
+                        (e.lines
+                          ?.filter((l: any) => l.type === "DEBIT")
+                          .reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0) || 0),
+                      0
+                    )
+                  const bkkTotal = filteredEntries
+                    .filter((e: any) => e.proofType === "BKK")
+                    .reduce(
+                      (sum: number, e: any) =>
+                        sum +
+                        (e.lines
+                          ?.filter((l: any) => l.type === "CREDIT")
+                          .reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0) || 0),
+                      0
+                    )
+                  const isBalanced = Math.abs(totalDebit - totalCredit) < 1
+
+                  // Paginasi
+                  const totalPages =
+                    cashBookPerPage === 0 ? 1 : Math.ceil(filteredEntries.length / cashBookPerPage) || 1
+                  const currentPage = Math.min(Math.max(1, cashBookPage), totalPages)
+                  const startIndex =
+                    cashBookPerPage === 0 ? 0 : (currentPage - 1) * cashBookPerPage
+                  const endIndex =
+                    cashBookPerPage === 0
+                      ? filteredEntries.length
+                      : Math.min(startIndex + cashBookPerPage, filteredEntries.length)
+                  const paginatedEntries =
+                    cashBookPerPage === 0
+                      ? filteredEntries
+                      : filteredEntries.slice(startIndex, endIndex)
+
+                  return (
+                    <div className="space-y-4">
+                      {/* STAT CARDS */}
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                              Total Transaksi
+                            </span>
+                            <BookOpen className="w-4 h-4 text-slate-400" />
+                          </div>
+                          <div className="text-lg sm:text-xl font-black text-slate-800 mt-1 font-mono">
+                            {totalFilteredCount}{" "}
+                            <span className="text-xs font-semibold text-slate-500">Item</span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-0.5 truncate">
+                            {selectedMonth === "all"
+                              ? `TA ${selectedYear} Penuh`
+                              : `Bulan ${selectedMonth} ${selectedYear}`}
+                          </p>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">
+                              Kas Masuk (BKM)
+                            </span>
+                            <TrendingUp className="w-4 h-4 text-emerald-500" />
+                          </div>
+                          <div className="text-lg sm:text-xl font-black text-emerald-600 mt-1 font-mono">
+                            {formatRupiah(bkmTotal)}
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-0.5">Penerimaan kas periode ini</p>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-rose-500 uppercase tracking-wider block">
+                              Kas Keluar (BKK)
+                            </span>
+                            <TrendingDown className="w-4 h-4 text-rose-500" />
+                          </div>
+                          <div className="text-lg sm:text-xl font-black text-rose-500 mt-1 font-mono">
+                            {formatRupiah(bkkTotal)}
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-0.5">Pengeluaran kas operasional</p>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-[#6777ef] uppercase tracking-wider block">
+                              Keseimbangan
+                            </span>
+                            <Scale className="w-4 h-4 text-[#6777ef]" />
+                          </div>
+                          <div className="text-lg sm:text-xl font-black text-[#6777ef] mt-1 font-mono">
+                            {isBalanced ? "100% Klir" : "Ada Selisih"}
+                          </div>
+                          <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">
+                            {isBalanced
+                              ? "Debit = Kredit (Seimbang)"
+                              : `Selisih: ${formatRupiah(Math.abs(totalDebit - totalCredit))}`}
+                          </p>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs col-span-2 sm:col-span-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                              Bukti Fisik TTD
+                            </span>
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          </div>
+                          <div className="text-lg sm:text-xl font-black text-slate-800 mt-1 font-mono">
+                            {signedCount}/{totalFilteredCount}
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            {totalFilteredCount > 0
+                              ? `${Math.round((signedCount / totalFilteredCount) * 100)}% Kwitansi Ber-TTD`
+                              : "0% Lengkap"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* MAIN AUDIT TABLE CONTAINER */}
+                      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                        {/* HEADER BANNER */}
+                        <div className="p-4 border-b border-slate-200 bg-white flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-bold text-slate-900 text-sm sm:text-base">Buku Kas Umum (Jurnal Harian)</h3>
+                              <h3 className="font-bold text-slate-900 text-sm sm:text-base">
+                                Buku Kas Umum (Jurnal Harian)
+                              </h3>
                               <span
                                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                                  signedCount === totalCount && totalCount > 0
+                                  signedCount === totalFilteredCount && totalFilteredCount > 0
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                     : "bg-amber-50 text-amber-700 border-amber-200"
                                 }`}
                               >
-                                {signedCount}/{totalCount} Bukti Fisik Ber-TTD
+                                {signedCount}/{totalFilteredCount} Bukti Fisik Ber-TTD
+                              </span>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                TA {selectedYear}
                               </span>
                             </div>
-                            <p className="text-xs text-slate-500">Seluruh penerimaan & pengeluaran kas tersimpan kronologis lengkap dengan status bukti fisik.</p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              Seluruh penerimaan & pengeluaran kas tersimpan kronologis berpasangan sesuai standar Kepmendes 136/2022.
+                            </p>
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+                          <div className="flex items-center gap-2 shrink-0">
+                            {/* Tombol Unduh Excel 1 Tahun Penuh */}
+                            <a
+                              href={`/api/cash-book/export-excel?year=${encodeURIComponent(
+                                String(selectedYear).replace(/[^0-9]/g, "")
+                              )}`}
+                              download
+                              title={`Unduh seluruh transaksi Buku Kas & Jurnal selama 1 Tahun Penuh (${selectedYear}) ke Excel (.xlsx)`}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+                            >
+                              <FileSpreadsheet className="w-3.5 h-3.5" />
+                              <span>Unduh Excel (1 Thn)</span>
+                            </a>
+
+                            <button
+                              onClick={() => setShowManualModal(true)}
+                              className="bg-[#6777ef] hover:bg-[#5868e4] text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Catat Manual</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* TOOLBAR FILTER & SEARCH */}
+                        <div className="p-3 bg-slate-50/70 border-b border-slate-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                          {/* Search input */}
+                          <div className="relative flex-1 max-w-md">
+                            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <input
+                              type="text"
+                              value={cashBookSearch}
+                              onChange={(e) => {
+                                setCashBookSearch(e.target.value)
+                                setCashBookPage(1)
+                              }}
+                              placeholder="Cari No. Bukti, Uraian, Rekanan, Akun..."
+                              className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#6777ef] transition-colors"
+                            />
+                            {cashBookSearch && (
+                              <button
+                                onClick={() => {
+                                  setCashBookSearch("")
+                                  setCashBookPage(1)
+                                }}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2">
                             {/* Filter Bulan */}
                             <select
                               value={selectedMonth}
-                              onChange={(e) => setSelectedMonth(e.target.value)}
-                              className="bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none focus:border-[#6777ef]"
+                              onChange={(e) => {
+                                setSelectedMonth(e.target.value)
+                                setCashBookPage(1)
+                              }}
+                              className="bg-white border border-slate-200 text-xs rounded-xl px-2.5 py-2 text-slate-700 font-medium focus:outline-none focus:border-[#6777ef] transition-colors"
                             >
                               <option value="all">Semua Bulan</option>
                               <option value="1">Januari</option>
@@ -1378,90 +1813,116 @@ export default function StislaApp() {
                             {/* Filter Jenis Bukti */}
                             <select
                               value={proofTypeFilter}
-                              onChange={(e) => setProofTypeFilter(e.target.value)}
-                              className="bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none"
+                              onChange={(e) => {
+                                setProofTypeFilter(e.target.value)
+                                setCashBookPage(1)
+                              }}
+                              className="bg-white border border-slate-200 text-xs rounded-xl px-2.5 py-2 text-slate-700 font-medium focus:outline-none focus:border-[#6777ef] transition-colors"
                             >
                               <option value="all">Semua Bukti</option>
                               <option value="BKM">BKM (Kas Masuk)</option>
                               <option value="BKK">BKK (Kas Keluar)</option>
+                              <option value="MEMORIAL">Memorial / Saldo Awal (BM/SA)</option>
                             </select>
 
                             {/* Filter Status Bukti Fisik */}
                             <select
                               value={attachmentFilter}
-                              onChange={(e) => setAttachmentFilter(e.target.value)}
-                              className="bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none"
+                              onChange={(e) => {
+                                setAttachmentFilter(e.target.value)
+                                setCashBookPage(1)
+                              }}
+                              className="bg-white border border-slate-200 text-xs rounded-xl px-2.5 py-2 text-slate-700 font-medium focus:outline-none focus:border-[#6777ef] transition-colors"
                             >
                               <option value="all">Semua Status Bukti</option>
-                              <option value="signed">✓ Sudah TTD ({signedCount})</option>
-                              <option value="unsigned">⚠ Belum TTD ({totalCount - signedCount})</option>
+                              <option value="signed">✓ Sudah TTD</option>
+                              <option value="unsigned">⚠ Belum TTD</option>
                             </select>
 
-                            {/* Tombol Unduh Excel 1 Tahun Penuh */}
-                            <a
-                              href={`/api/cash-book/export-excel?year=${encodeURIComponent(String(selectedYear).replace(/[^0-9]/g, ""))}`}
-                              download
-                              title={`Unduh seluruh transaksi Buku Kas & Jurnal selama 1 Tahun Penuh (${selectedYear}) ke Excel (.xlsx)`}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs transition cursor-pointer"
-                            >
-                              <FileSpreadsheet className="w-3.5 h-3.5" />
-                              <span>Unduh Excel (1 Thn)</span>
-                            </a>
-
-                            <button
-                              onClick={() => setShowManualModal(true)}
-                              className="bg-[#6777ef] hover:bg-[#5868e4] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs cursor-pointer"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>Catat Manual</span>
-                            </button>
+                            {/* Opsi Baris Per Halaman */}
+                            <div className="flex items-center gap-1.5 pl-1">
+                              <span className="text-[11px] font-medium text-slate-400">Baris:</span>
+                              <select
+                                value={cashBookPerPage}
+                                onChange={(e) => {
+                                  setCashBookPerPage(parseInt(e.target.value, 10))
+                                  setCashBookPage(1)
+                                }}
+                                className="bg-white border border-slate-200 text-xs rounded-xl px-2 py-2 text-slate-700 font-medium focus:outline-none focus:border-[#6777ef] transition-colors"
+                              >
+                                <option value={15}>15</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                                <option value={0}>Semua</option>
+                              </select>
+                            </div>
                           </div>
                         </div>
 
+                        {/* TABEL FORMAL GRID: BUKU KAS & JURNAL */}
                         <div className="overflow-x-auto">
-                          <table className="w-full text-left text-xs min-w-[800px]">
-                            <thead className="bg-[#f8fafc] text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
-                              <tr>
-                                <th className="py-3 px-4">No. Bukti / Tgl</th>
-                                <th className="py-3 px-4">Uraian & Penyetor/Penerima</th>
-                                <th className="py-3 px-4 min-w-[220px]">Kode & Nama Akun</th>
-                                <th className="py-3 px-4 text-right">Debit (Rp)</th>
-                                <th className="py-3 px-4 text-right">Kredit (Rp)</th>
-                                <th className="py-3 px-4 text-center">Kwitansi & Bukti Fisik</th>
+                          <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                            <thead>
+                              <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+                                <th className="py-2.5 px-3 border-r border-slate-300 w-36">No. Bukti & Tanggal</th>
+                                <th className="py-2.5 px-3 border-r border-slate-300">Uraian Transaksi & Pihak/Rekanan</th>
+                                <th className="py-2.5 px-3 border-r border-slate-300 min-w-[260px]">
+                                  Kode & Nama Akun Jurnal (COA)
+                                </th>
+                                <th className="py-2.5 px-3 border-r border-slate-300 text-right w-36">Debit (Rp)</th>
+                                <th className="py-2.5 px-3 border-r border-slate-300 text-right w-36">Kredit (Rp)</th>
+                                <th className="py-2.5 px-3 text-center w-36">Kwitansi & Bukti Fisik</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {displayedEntries.length === 0 ? (
+                            <tbody className="divide-y divide-slate-200">
+                              {paginatedEntries.length === 0 ? (
                                 <tr>
-                                  <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
-                                    {entries.length === 0
-                                      ? "Belum ada transaksi di periode ini."
-                                      : "Tidak ada transaksi yang cocok dengan filter status bukti."}
+                                  <td colSpan={6} className="py-12 text-center text-slate-400 bg-slate-50/50">
+                                    <BookOpen className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                                    <p className="font-semibold text-slate-600">Tidak ada transaksi yang cocok</p>
+                                    <p className="text-xs text-slate-400 mt-1">
+                                      {cashBookSearch
+                                        ? `Tidak ditemukan transaksi dengan kata kunci "${cashBookSearch}".`
+                                        : entries.length === 0
+                                        ? "Belum ada transaksi di periode ini."
+                                        : "Tidak ada transaksi yang cocok dengan filter yang dipilih."}
+                                    </p>
                                   </td>
                                 </tr>
                               ) : (
-                                displayedEntries.map((entry) => (
+                                paginatedEntries.map((entry: any) => (
                                   <React.Fragment key={entry.id}>
                                     {entry.lines.map((line: any, idx: number) => (
-                                      <tr key={line.id} className="hover:bg-slate-50/70 transition-colors">
+                                      <tr key={line.id} className="hover:bg-slate-50/80 transition-colors">
                                         {idx === 0 ? (
                                           <td
                                             rowSpan={entry.lines.length}
-                                            className="py-3 px-4 align-top font-mono text-[11px] border-r border-slate-50"
+                                            className="py-2.5 px-3 align-top font-mono text-[11px] border-r border-slate-300 bg-slate-50/30"
                                           >
-                                            <span
-                                              className={`font-bold px-2 py-0.5 rounded ${
-                                                entry.proofType === "BKM"
-                                                  ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                                  : entry.proofType === "MEMORIAL" || entry.proofType === "BM" || entry.proofType === "SA" || entry.proofNumber?.startsWith("SA/") || entry.proofNumber?.startsWith("BM/")
-                                                  ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
-                                                  : "bg-rose-50 text-rose-700 border border-rose-200"
-                                              }`}
-                                            >
-                                              {entry.proofNumber}
-                                            </span>
-                                            <div className="text-slate-400 mt-1">
-                                              {new Date(entry.date).toLocaleDateString("id-ID")}
+                                            <div className="flex flex-col gap-1">
+                                              <span
+                                                className={`font-bold px-2 py-0.5 rounded text-[10.5px] inline-block w-fit ${
+                                                  entry.proofType === "BKM"
+                                                    ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                                    : entry.proofType === "MEMORIAL" ||
+                                                      entry.proofType === "BM" ||
+                                                      entry.proofType === "SA" ||
+                                                      entry.proofNumber?.startsWith("SA/") ||
+                                                      entry.proofNumber?.startsWith("BM/")
+                                                    ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                                    : "bg-rose-50 text-rose-700 border border-rose-200"
+                                                }`}
+                                              >
+                                                {entry.proofNumber}
+                                              </span>
+                                              <span className="text-slate-500 text-[10.5px] font-sans">
+                                                {new Date(entry.date).toLocaleDateString("id-ID", {
+                                                  day: "2-digit",
+                                                  month: "short",
+                                                  year: "numeric"
+                                                })}
+                                              </span>
                                             </div>
                                           </td>
                                         ) : null}
@@ -1469,53 +1930,78 @@ export default function StislaApp() {
                                         {idx === 0 ? (
                                           <td
                                             rowSpan={entry.lines.length}
-                                            className="py-3 px-4 align-top border-r border-slate-50"
+                                            className="py-2.5 px-3 align-top border-r border-slate-300"
                                           >
-                                            <div className="font-bold text-slate-800 text-xs">{entry.description}</div>
+                                            <div className="font-bold text-slate-800 text-xs leading-snug">
+                                              {entry.description}
+                                            </div>
                                             <div className="text-[11px] text-slate-500 mt-1">
                                               <InlinePartyEditor entry={entry} onSave={handleSaveParty} />
                                             </div>
                                           </td>
                                         ) : null}
 
-                                        <td className="py-2.5 px-4">
-                                          <div className={`flex items-baseline gap-2 ${line.type === "CREDIT" ? "pl-5" : ""}`}>
+                                        <td className="py-2 px-3 border-r border-slate-300">
+                                          <div
+                                            className={`flex items-baseline gap-2 ${
+                                              line.type === "CREDIT" ? "pl-5" : ""
+                                            }`}
+                                          >
                                             <span className="font-mono font-bold text-slate-800 shrink-0 text-[11px] bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
                                               {line.accountCode}
                                             </span>
-                                            <span className={`text-xs ${line.type === "CREDIT" ? "text-slate-600 font-medium italic" : "text-slate-900 font-bold"}`}>
+                                            <span
+                                              className={`text-xs ${
+                                                line.type === "CREDIT"
+                                                  ? "text-slate-600 font-medium italic"
+                                                  : "text-slate-900 font-bold"
+                                              }`}
+                                            >
                                               {getAccountName(line.accountCode) || line.accountCode}
                                             </span>
                                           </div>
                                         </td>
-                                        <td className="py-2.5 px-4 text-right font-mono font-medium">
-                                          {line.type === "DEBIT" ? formatRupiah(line.amount) : "-"}
+
+                                        <td className="py-2 px-3 border-r border-slate-300 text-right font-mono font-bold">
+                                          {line.type === "DEBIT" ? (
+                                            <span className="text-emerald-700 bg-emerald-50/60 px-1.5 py-0.5 rounded">
+                                              {formatRupiah(line.amount)}
+                                            </span>
+                                          ) : (
+                                            <span className="text-slate-300">-</span>
+                                          )}
                                         </td>
-                                        <td className="py-2.5 px-4 text-right font-mono font-medium">
-                                          {line.type === "CREDIT" ? formatRupiah(line.amount) : "-"}
+
+                                        <td className="py-2 px-3 border-r border-slate-300 text-right font-mono font-bold">
+                                          {line.type === "CREDIT" ? (
+                                            <span className="text-rose-700 bg-rose-50/60 px-1.5 py-0.5 rounded">
+                                              {formatRupiah(line.amount)}
+                                            </span>
+                                          ) : (
+                                            <span className="text-slate-300">-</span>
+                                          )}
                                         </td>
 
                                         {idx === 0 ? (
                                           <td
                                             rowSpan={entry.lines.length}
-                                            className="py-3 px-4 align-top text-center"
+                                            className="py-2.5 px-3 align-top text-center bg-slate-50/30"
                                           >
                                             <div className="flex flex-col items-center gap-1.5">
                                               <button
                                                 onClick={() => setSelectedKwitansi(entry)}
-                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 text-white hover:bg-[#6777ef] text-[11px] font-bold shadow-xs transition-all"
+                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 text-white hover:bg-[#6777ef] text-[11px] font-bold shadow-xs transition-all cursor-pointer"
                                                 title="Buka Cetak Kwitansi & Upload Bukti"
                                               >
                                                 <Printer className="w-3 h-3" />
                                                 <span>Cetak</span>
                                               </button>
 
-                                              {/* Penanda Status Bukti Fisik Terupload */}
                                               {entry.attachmentUrl ? (
                                                 <div className="flex items-center gap-1">
                                                   <button
                                                     onClick={() => setSelectedKwitansi(entry)}
-                                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 text-[10px] font-bold transition-all shadow-xs"
+                                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 text-[10px] font-bold transition-all shadow-xs cursor-pointer"
                                                     title="Bukti fisik sudah diunggah. Klik untuk melihat."
                                                   >
                                                     <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
@@ -1535,7 +2021,7 @@ export default function StislaApp() {
                                               ) : (
                                                 <button
                                                   onClick={() => setSelectedKwitansi(entry)}
-                                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-300 text-[10px] font-bold transition-all"
+                                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-300 text-[10px] font-bold transition-all cursor-pointer"
                                                   title="Bukti tanda tangan belum diunggah. Klik untuk cetak dan unggah foto kwitansi."
                                                 >
                                                   <AlertCircle className="w-3 h-3 text-amber-500 shrink-0" />
@@ -1543,14 +2029,13 @@ export default function StislaApp() {
                                                 </button>
                                               )}
 
-                                              {/* Tombol Hapus Khusus Admin */}
                                               {currentUser?.role === "ADMIN" && (
                                                 <button
                                                   onClick={() => {
                                                     setDeleteError(null)
                                                     setDeletingTransaction(entry)
                                                   }}
-                                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 text-[10px] font-bold transition-all shadow-2xs mt-1"
+                                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 text-[10px] font-bold transition-all shadow-2xs mt-1 cursor-pointer"
                                                   title="Hapus transaksi ini (Khusus Admin)"
                                                 >
                                                   <Trash2 className="w-3 h-3 text-rose-600" />
@@ -1566,22 +2051,159 @@ export default function StislaApp() {
                                 ))
                               )}
                             </tbody>
+
+                            {/* FORMAL AUDIT TOTAL MUTASI JURNAL ROW */}
+                            <tfoot className="border-t-2 border-slate-400 bg-slate-100 font-black text-slate-900">
+                              <tr>
+                                <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300">
+                                  <div className="flex items-center justify-between">
+                                    <span
+                                      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10.5px] font-bold ${
+                                        isBalanced
+                                          ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                          : "bg-rose-100 text-rose-800 border border-rose-300"
+                                      }`}
+                                    >
+                                      <CheckCircle2 className="w-3 h-3" />
+                                      {isBalanced
+                                        ? "Jurnal 100% Seimbang & Klir"
+                                        : "Perhatian: Terdapat Selisih Jurnal"}
+                                    </span>
+                                    <span className="text-slate-800 uppercase tracking-wider text-xs">
+                                      TOTAL MUTASI KAS & JURNAL:
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3 border-r border-slate-300 text-right font-mono text-xs font-black text-emerald-800 bg-emerald-50/50">
+                                  {formatRupiah(totalDebit)}
+                                </td>
+                                <td className="py-2.5 px-3 border-r border-slate-300 text-right font-mono text-xs font-black text-rose-800 bg-rose-50/50">
+                                  {formatRupiah(totalCredit)}
+                                </td>
+                                <td className="py-2.5 px-3 text-center text-[11px] font-bold text-slate-700">
+                                  {signedCount}/{totalFilteredCount} TTD
+                                </td>
+                              </tr>
+                            </tfoot>
                           </table>
                         </div>
-                      </>
-                    )
-                  })()}
-                </div>
+
+                        {/* PAGINATION CONTROLS */}
+                        {cashBookPerPage > 0 && totalPages > 1 && (
+                          <div className="p-3 bg-white border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                            <div className="text-xs text-slate-500 font-medium">
+                              Menampilkan{" "}
+                              <span className="font-bold text-slate-800">
+                                {filteredEntries.length === 0 ? 0 : startIndex + 1}
+                              </span>{" "}
+                              - <span className="font-bold text-slate-800">{endIndex}</span> dari{" "}
+                              <span className="font-bold text-slate-800">{filteredEntries.length}</span> transaksi
+                              {filteredEntries.length !== entries.length && (
+                                <span className="text-slate-400"> (disaring dari total {entries.length})</span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => setCashBookPage((p) => Math.max(1, p - 1))}
+                                disabled={currentPage <= 1}
+                                className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <ChevronLeft className="w-3.5 h-3.5" />
+                                <span>Sebelumnya</span>
+                              </button>
+
+                              {Array.from({ length: totalPages }).map((_, i) => {
+                                const pageNum = i + 1
+                                if (
+                                  pageNum === 1 ||
+                                  pageNum === totalPages ||
+                                  (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                                ) {
+                                  return (
+                                    <button
+                                      key={pageNum}
+                                      onClick={() => setCashBookPage(pageNum)}
+                                      className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                        currentPage === pageNum
+                                          ? "bg-[#6777ef] text-white shadow-xs"
+                                          : "border border-slate-200 text-slate-700 hover:bg-slate-50"
+                                      }`}
+                                    >
+                                      {pageNum}
+                                    </button>
+                                  )
+                                }
+                                if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
+                                  return (
+                                    <span key={pageNum} className="px-1 text-slate-400 text-xs">
+                                      &bull;
+                                    </span>
+                                  )
+                                }
+                                return null
+                              })}
+
+                              <button
+                                onClick={() => setCashBookPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={currentPage >= totalPages}
+                                className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <span>Selanjutnya</span>
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             )}
 
             {/* TAB: 1. LABA RUGI */}
             {activeTab === "laba-rugi" && reports && (
               <div className="max-w-4xl mx-auto space-y-4">
-                {renderReportYearFilter("Laba Rugi")}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-8 space-y-6">
+                {renderReportYearFilter("Laba Rugi", "laba-rugi-print-area")}
+
+                {/* EXECUTIVE STAT CARDS (NO-PRINT) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 no-print">
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Pendapatan</span>
+                    <div className="text-lg sm:text-xl font-black text-emerald-600 mt-1 font-mono">
+                      {formatRupiah(reports.labaRugi.totalRevenue)}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Seluruh pos pendapatan usaha</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Beban Usaha</span>
+                    <div className="text-lg sm:text-xl font-black text-rose-500 mt-1 font-mono">
+                      {formatRupiah(reports.labaRugi.totalExpense)}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Biaya operasional & adm.</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Laba Bersih (SHU)</span>
+                    <div className="text-lg sm:text-xl font-black text-[#6777ef] mt-1 font-mono">
+                      {formatRupiah(reports.labaRugi.netProfit)}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Surplus hasil usaha bersih</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Margin Laba (NPM)</span>
+                    <div className="text-lg sm:text-xl font-black text-slate-800 mt-1 font-mono">
+                      {reports.labaRugi.totalRevenue > 0
+                        ? `${((reports.labaRugi.netProfit / reports.labaRugi.totalRevenue) * 100).toFixed(1)}%`
+                        : "0.0%"}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Rasio laba thd omzet</p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-6" id="laba-rugi-print-area">
                   {reports.isArchived && currentUser?.role === "ADMIN" && (
-                    <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 no-print">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center font-bold flex-shrink-0">
                           <Lock className="w-5 h-5" />
@@ -1604,339 +2226,686 @@ export default function StislaApp() {
                     </div>
                   )}
 
-                  <div className="text-center border-b border-slate-200 pb-5">
-                    <div className="text-[11px] sm:text-xs uppercase font-extrabold tracking-widest text-[#6777ef]">
-                      Standar Kepmendesa PDTT No. 136 Tahun 2022
-                    </div>
-                    <h2 className="text-lg sm:text-xl font-black text-slate-900 mt-1">LAPORAN LABA RUGI</h2>
-                    <p className="text-xs text-slate-500 font-medium">{settings.bumdes_name || "BUM Desa Barokah"} &bull; Periode Tahun {selectedYear}</p>
-                  </div>
+                  {renderReportKop("LAPORAN LABA RUGI KOMPREHENSIF", "Standar Kepmendesa PDTT No. 136 Tahun 2022")}
 
-                  <div>
-                    <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 bg-slate-50 p-2 rounded">
-                      I. PENDAPATAN USAHA
-                    </h4>
-                    <table className="w-full text-xs">
-                      <tbody>
+                  {/* TABEL FORMAL GRID: LABA RUGI */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                      <thead>
+                        <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+                          <th className="py-2.5 px-3 border-r border-slate-300 w-28 text-center">Kode Akun</th>
+                          <th className="py-2.5 px-3 border-r border-slate-300">Nama & Rincian Pos Akuntansi</th>
+                          <th className="py-2.5 px-3 border-r border-slate-300 w-36 text-center">Golongan Akun</th>
+                          <th className="py-2.5 px-3 text-right w-44">Jumlah (Rp)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {/* SECTION I: PENDAPATAN */}
+                        <tr className="bg-slate-50/80 font-bold text-slate-800">
+                          <td colSpan={4} className="py-2 px-3 border-r border-slate-300 uppercase tracking-wide text-[11px] text-[#6777ef]">
+                            I. PENDAPATAN USAHA (REVENUE)
+                          </td>
+                        </tr>
                         {reports.labaRugi.revenues.length === 0 ? (
-                          <tr><td className="py-2 text-slate-400 italic">Belum ada pendapatan tercatat.</td></tr>
+                          <tr>
+                            <td colSpan={4} className="py-3 px-3 text-center text-slate-400 italic">
+                              Belum ada akun pendapatan yang tercatat pada periode ini.
+                            </td>
+                          </tr>
                         ) : (
                           reports.labaRugi.revenues.map((r: any) => (
-                            <tr key={r.code} className="border-b border-slate-50">
-                              <td className="py-2 text-slate-500 font-mono w-24 sm:w-28">{r.code}</td>
-                              <td className="py-2 text-slate-800 font-medium">{r.name}</td>
-                              <td className="py-2 text-right font-mono font-bold">{formatRupiah(r.amount)}</td>
+                            <tr key={r.code} className="hover:bg-slate-50/70 transition-colors">
+                              <td className="py-2 px-3 border-r border-slate-200 font-mono font-bold text-center text-slate-700">
+                                {r.code}
+                              </td>
+                              <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">
+                                {r.name}
+                              </td>
+                              <td className="py-2 px-3 border-r border-slate-200 text-center">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  Pendapatan Usaha
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                                {formatRupiah(r.amount)}
+                              </td>
                             </tr>
                           ))
                         )}
-                        <tr className="border-t border-slate-200 font-bold bg-slate-50/50">
-                          <td colSpan={2} className="py-2.5 px-2 text-slate-800">TOTAL PENDAPATAN</td>
-                          <td className="py-2.5 px-2 text-right font-mono text-emerald-600 font-black">
+                        <tr className="bg-emerald-50/60 font-bold border-t border-b border-slate-300">
+                          <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                            TOTAL PENDAPATAN USAHA (A)
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-emerald-700 font-black">
                             {formatRupiah(reports.labaRugi.totalRevenue)}
                           </td>
                         </tr>
-                      </tbody>
-                    </table>
-                  </div>
 
-                  <div>
-                    <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 bg-slate-50 p-2 rounded">
-                      II. BEBAN OPERASIONAL & USAHA
-                    </h4>
-                    <table className="w-full text-xs">
-                      <tbody>
+                        {/* SECTION II: BEBAN */}
+                        <tr className="bg-slate-50/80 font-bold text-slate-800">
+                          <td colSpan={4} className="py-2 px-3 border-r border-slate-300 uppercase tracking-wide text-[11px] text-rose-600">
+                            II. BEBAN OPERASIONAL & USAHA (EXPENSES)
+                          </td>
+                        </tr>
                         {reports.labaRugi.expenses.length === 0 ? (
-                          <tr><td className="py-2 text-slate-400 italic">Belum ada beban tercatat.</td></tr>
+                          <tr>
+                            <td colSpan={4} className="py-3 px-3 text-center text-slate-400 italic">
+                              Belum ada akun beban operasional yang tercatat pada periode ini.
+                            </td>
+                          </tr>
                         ) : (
                           reports.labaRugi.expenses.map((e: any) => (
-                            <tr key={e.code} className="border-b border-slate-50">
-                              <td className="py-2 text-slate-500 font-mono w-24 sm:w-28">{e.code}</td>
-                              <td className="py-2 text-slate-800 font-medium">{e.name}</td>
-                              <td className="py-2 text-right font-mono font-bold">{formatRupiah(e.amount)}</td>
+                            <tr key={e.code} className="hover:bg-slate-50/70 transition-colors">
+                              <td className="py-2 px-3 border-r border-slate-200 font-mono font-bold text-center text-slate-700">
+                                {e.code}
+                              </td>
+                              <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">
+                                {e.name}
+                              </td>
+                              <td className="py-2 px-3 border-r border-slate-200 text-center">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                  Beban Operasional
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                                {formatRupiah(e.amount)}
+                              </td>
                             </tr>
                           ))
                         )}
-                        <tr className="border-t border-slate-200 font-bold bg-slate-50/50">
-                          <td colSpan={2} className="py-2.5 px-2 text-slate-800">TOTAL BEBAN</td>
-                          <td className="py-2.5 px-2 text-right font-mono text-rose-500 font-black">
+                        <tr className="bg-rose-50/60 font-bold border-t border-b border-slate-300">
+                          <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                            TOTAL BEBAN OPERASIONAL & USAHA (B)
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-rose-600 font-black">
                             {formatRupiah(reports.labaRugi.totalExpense)}
+                          </td>
+                        </tr>
+
+                        {/* GRAND TOTAL ROW: LABA BERSIH (SHU) */}
+                        <tr className="bg-indigo-50/80 font-black border-t-2 border-b-2 border-slate-800 text-slate-900">
+                          <td colSpan={3} className="py-3 px-3 border-r border-slate-300 uppercase tracking-wider text-right pr-4 text-xs sm:text-sm text-[#6777ef]">
+                            SISA HASIL USAHA (SHU) / LABA BERSIH TAHUN BERJALAN (A - B)
+                          </td>
+                          <td className="py-3 px-3 text-right font-mono text-sm sm:text-base font-black text-[#6777ef]">
+                            {formatRupiah(reports.labaRugi.netProfit)}
                           </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs uppercase font-extrabold text-[#6777ef] tracking-wider">
-                        LABA BERSIH TAHUN BERJALAN (SHU)
-                      </span>
-                      <p className="text-[11px] text-slate-500">Akan ditransfer otomatis ke Ekuitas di Neraca.</p>
-                    </div>
-                    <div className="text-lg sm:text-xl font-black text-[#6777ef] font-mono">
-                      {formatRupiah(reports.labaRugi.netProfit)}
-                    </div>
-                  </div>
+                  {renderReportSignatures()}
                 </div>
               </div>
             )}
 
             {/* TAB: 2. NERACA */}
             {activeTab === "neraca" && reports && (
-              <div className="max-w-4xl mx-auto space-y-4">
-                {renderReportYearFilter("Neraca")}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-8 space-y-6">
-                  <div className="text-center border-b border-slate-200 pb-5">
-                    <div className="text-[11px] sm:text-xs uppercase font-extrabold tracking-widest text-[#6777ef]">
-                      Standar SAK EMKM & Kepmendesa PDTT No. 136 Tahun 2022
-                    </div>
-                    <h2 className="text-lg sm:text-xl font-black text-slate-900 mt-1">LAPORAN POSISI KEUANGAN (NERACA)</h2>
-                    <p className="text-xs text-slate-500 font-medium">
-                      {settings.bumdes_name || "BUM Desa Barokah"} &bull;{" "}
-                      {selectedYear === "2026" ? "Per 24 Oktober 2026 (Tahun Berjalan)" : `Per 31 Desember ${selectedYear} (Tutup Buku)`}
-                    </p>
-                  </div>
+              <div className="max-w-5xl mx-auto space-y-4">
+                {renderReportYearFilter("Neraca", "neraca-print-area")}
 
-                <div className="flex items-center justify-center">
-                  <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>STATUS NERACA: 100% BALANCE (SEIMBANG)</span>
+                {/* EXECUTIVE STAT CARDS (NO-PRINT) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 no-print">
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Aset (Aktiva)</span>
+                    <div className="text-lg sm:text-xl font-black text-[#6777ef] mt-1 font-mono">
+                      {formatRupiah(reports.neraca.totalAssets)}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Aset lancar & aset tetap bersih</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Kewajiban</span>
+                    <div className="text-lg sm:text-xl font-black text-amber-600 mt-1 font-mono">
+                      {formatRupiah(reports.neraca.totalLiabilities)}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Utang lancar ke pihak ketiga</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Ekuitas</span>
+                    <div className="text-lg sm:text-xl font-black text-emerald-600 mt-1 font-mono">
+                      {formatRupiah(reports.neraca.totalEquity)}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Modal desa, cadangan & SHU</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Keseimbangan (Balance)</span>
+                    <div className="text-lg sm:text-xl font-black text-emerald-600 mt-1 font-mono flex items-center gap-1.5">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                      <span>100% Klir</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Aktiva = Pasiva (Selisih Rp 0)</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                  <div className="space-y-4">
-                    <h3 className="font-extrabold text-sm text-slate-900 border-b-2 border-[#6777ef] pb-1">
-                      ASET (AKTIVA)
-                    </h3>
-                    <div className="space-y-2">
-                      <div className="text-xs font-bold text-slate-700">A. ASET LANCAR</div>
-                      {reports.neraca.currentAssets.map((a: any, i: number) => (
-                        <div key={i} className="flex justify-between text-xs py-1 pl-3 border-b border-slate-50">
-                          <span className="text-slate-600">{a.name}</span>
-                          <span className="font-mono font-bold text-slate-800">{formatRupiah(a.amount)}</span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between text-xs font-bold bg-slate-50 p-2 rounded">
-                        <span>Total Aset Lancar</span>
-                        <span className="font-mono">{formatRupiah(reports.neraca.totalCurrentAssets)}</span>
-                      </div>
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-6" id="neraca-print-area">
+                  {renderReportKop("LAPORAN POSISI KEUANGAN (NERACA)", "Standar SAK EMKM & Kepmendesa PDTT No. 136 Tahun 2022")}
 
-                      <div className="text-xs font-bold text-slate-700 pt-2">B. ASET TETAP</div>
-                      <div className="flex justify-between text-xs py-1 pl-3 border-b border-slate-50">
-                        <span className="text-slate-600">Peralatan & Aset Tetap</span>
-                        <span className="font-mono font-bold text-slate-800">
-                          {formatRupiah(reports.neraca.fixedAssets.peralatan)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs py-1 pl-3 border-b border-slate-50">
-                        <span className="text-slate-600">Akumulasi Penyusutan</span>
-                        <span className="font-mono font-bold text-rose-500">
-                          ({formatRupiah(reports.neraca.fixedAssets.akumulasiPenyusutan)})
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs font-bold bg-slate-50 p-2 rounded">
-                        <span>Aset Tetap Bersih</span>
-                        <span className="font-mono">{formatRupiah(reports.neraca.fixedAssets.net)}</span>
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex justify-between items-center text-xs sm:text-sm font-extrabold text-[#6777ef]">
-                      <span>TOTAL ASET</span>
-                      <span className="font-mono">{formatRupiah(reports.neraca.totalAssets)}</span>
+                  <div className="flex items-center justify-center no-print">
+                    <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>STATUS NERACA: 100% BALANCE (SEIMBANG) &bull; SELISIH RP 0</span>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <h3 className="font-extrabold text-sm text-slate-900 border-b-2 border-emerald-500 pb-1">
-                      KEWAJIBAN & EKUITAS (PASIVA)
-                    </h3>
-                    <div className="space-y-2">
-                      <div className="text-xs font-bold text-slate-700">A. KEWAJIBAN (UTANG)</div>
-                      {reports.neraca.liabilities.map((l: any, i: number) => (
-                        <div key={i} className="flex justify-between text-xs py-1 pl-3 border-b border-slate-50">
-                          <span className="text-slate-600">{l.name}</span>
-                          <span className="font-mono font-bold text-slate-800">{formatRupiah(l.amount)}</span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between text-xs font-bold bg-slate-50 p-2 rounded">
-                        <span>Total Kewajiban</span>
-                        <span className="font-mono">{formatRupiah(reports.neraca.totalLiabilities)}</span>
-                      </div>
+                  {/* TABEL BERDAMPINGAN: AKTIVA VS PASIVA */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    {/* KOLOM KIRI: ASET (AKTIVA) */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                        <thead>
+                          <tr className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300">
+                            <th colSpan={2} className="py-2.5 px-3 border-r border-slate-300 text-xs uppercase tracking-wider text-[#6777ef]">
+                              ASET (AKTIVA)
+                            </th>
+                            <th className="py-2.5 px-3 text-right w-36">Nilai (Rp)</th>
+                          </tr>
+                          <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 text-[11px]">
+                            <th className="py-1.5 px-3 border-r border-slate-200">Komponen Aset</th>
+                            <th className="py-1.5 px-2 border-r border-slate-200 text-center w-24">Golongan</th>
+                            <th className="py-1.5 px-3 text-right">Jumlah</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {/* A. Aset Lancar */}
+                          <tr className="bg-slate-50/80 font-bold text-slate-800">
+                            <td colSpan={3} className="py-1.5 px-3 border-r border-slate-300 text-[11px]">
+                              A. ASET LANCAR
+                            </td>
+                          </tr>
+                          {reports.neraca.currentAssets.map((a: any, i: number) => (
+                            <tr key={i} className="hover:bg-slate-50/70">
+                              <td className="py-2 px-3 border-r border-slate-200 text-slate-700 pl-4">{a.name}</td>
+                              <td className="py-2 px-2 border-r border-slate-200 text-center">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                  Lancar
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                                {formatRupiah(a.amount)}
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                            <td colSpan={2} className="py-2 px-3 border-r border-slate-300 text-slate-800 text-right pr-3">
+                              Subtotal Aset Lancar
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono text-emerald-700 font-bold">
+                              {formatRupiah(reports.neraca.totalCurrentAssets)}
+                            </td>
+                          </tr>
 
-                      <div className="text-xs font-bold text-slate-700 pt-2">B. EKUITAS (MODAL)</div>
-                      {reports.neraca.equity.map((eq: any, i: number) => (
-                        <div key={i} className="flex justify-between text-xs py-1 pl-3 border-b border-slate-50">
-                          <span className="text-slate-600">{eq.name}</span>
-                          <span className="font-mono font-bold text-slate-800">{formatRupiah(eq.amount)}</span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between text-xs font-bold bg-slate-50 p-2 rounded">
-                        <span>Total Ekuitas</span>
-                        <span className="font-mono text-emerald-600">{formatRupiah(reports.neraca.totalEquity)}</span>
-                      </div>
+                          {/* B. Aset Tetap */}
+                          <tr className="bg-slate-50/80 font-bold text-slate-800">
+                            <td colSpan={3} className="py-1.5 px-3 border-r border-slate-300 text-[11px]">
+                              B. ASET TETAP
+                            </td>
+                          </tr>
+                          <tr className="hover:bg-slate-50/70">
+                            <td className="py-2 px-3 border-r border-slate-200 text-slate-700 pl-4">Nilai Perolehan Aset Tetap</td>
+                            <td className="py-2 px-2 border-r border-slate-200 text-center">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                Tetap
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                              {formatRupiah(reports.neraca.fixedAssets.peralatan)}
+                            </td>
+                          </tr>
+                          <tr className="hover:bg-slate-50/70">
+                            <td className="py-2 px-3 border-r border-slate-200 text-slate-700 pl-4">Akumulasi Penyusutan</td>
+                            <td className="py-2 px-2 border-r border-slate-200 text-center">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                Kontra
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-bold text-rose-500">
+                              ({formatRupiah(reports.neraca.fixedAssets.akumulasiPenyusutan)})
+                            </td>
+                          </tr>
+                          <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                            <td colSpan={2} className="py-2 px-3 border-r border-slate-300 text-slate-800 text-right pr-3">
+                              Subtotal Aset Tetap Bersih
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono text-emerald-700 font-bold">
+                              {formatRupiah(reports.neraca.fixedAssets.net)}
+                            </td>
+                          </tr>
+
+                          {/* TOTAL AKTIVA */}
+                          <tr className="bg-indigo-50 font-black border-t-2 border-b-2 border-slate-800 text-slate-900">
+                            <td colSpan={2} className="py-3 px-3 border-r border-slate-300 uppercase tracking-wider text-right pr-3 text-xs sm:text-sm text-[#6777ef]">
+                              TOTAL ASET (AKTIVA)
+                            </td>
+                            <td className="py-3 px-3 text-right font-mono text-xs sm:text-sm font-black text-[#6777ef]">
+                              {formatRupiah(reports.neraca.totalAssets)}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
 
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex justify-between items-center text-xs sm:text-sm font-extrabold text-emerald-700">
-                      <span>TOTAL KEWAJIBAN & EKUITAS</span>
-                      <span className="font-mono">{formatRupiah(reports.neraca.totalLiabilitiesAndEquity)}</span>
+                    {/* KOLOM KANAN: KEWAJIBAN & EKUITAS (PASIVA) */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                        <thead>
+                          <tr className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300">
+                            <th colSpan={2} className="py-2.5 px-3 border-r border-slate-300 text-xs uppercase tracking-wider text-emerald-700">
+                              KEWAJIBAN & EKUITAS (PASIVA)
+                            </th>
+                            <th className="py-2.5 px-3 text-right w-36">Nilai (Rp)</th>
+                          </tr>
+                          <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 text-[11px]">
+                            <th className="py-1.5 px-3 border-r border-slate-200">Komponen Pasiva</th>
+                            <th className="py-1.5 px-2 border-r border-slate-200 text-center w-24">Golongan</th>
+                            <th className="py-1.5 px-3 text-right">Jumlah</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {/* A. Kewajiban */}
+                          <tr className="bg-slate-50/80 font-bold text-slate-800">
+                            <td colSpan={3} className="py-1.5 px-3 border-r border-slate-300 text-[11px]">
+                              A. KEWAJIBAN (UTANG)
+                            </td>
+                          </tr>
+                          {reports.neraca.liabilities.map((l: any, i: number) => (
+                            <tr key={i} className="hover:bg-slate-50/70">
+                              <td className="py-2 px-3 border-r border-slate-200 text-slate-700 pl-4">{l.name}</td>
+                              <td className="py-2 px-2 border-r border-slate-200 text-center">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                  Utang
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                                {formatRupiah(l.amount)}
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                            <td colSpan={2} className="py-2 px-3 border-r border-slate-300 text-slate-800 text-right pr-3">
+                              Subtotal Kewajiban
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono text-amber-700 font-bold">
+                              {formatRupiah(reports.neraca.totalLiabilities)}
+                            </td>
+                          </tr>
+
+                          {/* B. Ekuitas */}
+                          <tr className="bg-slate-50/80 font-bold text-slate-800">
+                            <td colSpan={3} className="py-1.5 px-3 border-r border-slate-300 text-[11px]">
+                              B. EKUITAS (MODAL PEMILIK)
+                            </td>
+                          </tr>
+                          {reports.neraca.equity.map((eq: any, i: number) => (
+                            <tr key={i} className="hover:bg-slate-50/70">
+                              <td className="py-2 px-3 border-r border-slate-200 text-slate-700 pl-4">{eq.name}</td>
+                              <td className="py-2 px-2 border-r border-slate-200 text-center">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  Ekuitas
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                                {formatRupiah(eq.amount)}
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                            <td colSpan={2} className="py-2 px-3 border-r border-slate-300 text-slate-800 text-right pr-3">
+                              Subtotal Ekuitas
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono text-emerald-700 font-bold">
+                              {formatRupiah(reports.neraca.totalEquity)}
+                            </td>
+                          </tr>
+
+                          {/* TOTAL PASIVA */}
+                          <tr className="bg-emerald-50 font-black border-t-2 border-b-2 border-slate-800 text-slate-900">
+                            <td colSpan={2} className="py-3 px-3 border-r border-slate-300 uppercase tracking-wider text-right pr-3 text-xs sm:text-sm text-emerald-800">
+                              TOTAL KEWAJIBAN & EKUITAS
+                            </td>
+                            <td className="py-3 px-3 text-right font-mono text-xs sm:text-sm font-black text-emerald-700">
+                              {formatRupiah(reports.neraca.totalLiabilitiesAndEquity)}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </div>
+
+                  {renderReportSignatures()}
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
             {/* TAB: 3. PERUBAHAN MODAL (LPE) */}
             {activeTab === "lpe" && reports && (
-              <div className="max-w-3xl mx-auto space-y-4">
-                {renderReportYearFilter("Perubahan Ekuitas")}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-8 space-y-6">
-                  <div className="text-center border-b border-slate-200 pb-5">
-                    <div className="text-[11px] sm:text-xs uppercase font-extrabold tracking-widest text-[#6777ef]">
-                      Standar Kepmendesa PDTT No. 136 Tahun 2022
+              <div className="max-w-4xl mx-auto space-y-4">
+                {renderReportYearFilter("Perubahan Ekuitas", "lpe-print-area")}
+
+                {/* EXECUTIVE STAT CARDS (NO-PRINT) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 no-print">
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Penyertaan Desa (APBDes)</span>
+                    <div className="text-lg sm:text-xl font-black text-[#6777ef] mt-1 font-mono">
+                      {formatRupiah(reports.lpe.modalAwalDesa)}
                     </div>
-                    <h2 className="text-lg sm:text-xl font-black text-slate-900 mt-1">LAPORAN PERUBAHAN EKUITAS (LPE)</h2>
-                    <p className="text-xs text-slate-500 font-medium">{settings.bumdes_name || "BUM Desa Barokah"} &bull; Periode Tahun {selectedYear}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Modal awal pemerintah desa</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Saldo Laba Awal Tahun</span>
+                    <div className="text-lg sm:text-xl font-black text-slate-800 mt-1 font-mono">
+                      {formatRupiah(reports.lpe.saldoLabaAwal)}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Akumulasi cadangan & laba lalu</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Penyetoran PADes</span>
+                    <div className="text-lg sm:text-xl font-black text-amber-600 mt-1 font-mono">
+                      {formatRupiah(reports.lpe.bagiHasilDesa)}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Bagi hasil disetor ke kas desa</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Ekuitas Akhir</span>
+                    <div className="text-lg sm:text-xl font-black text-emerald-600 mt-1 font-mono">
+                      {formatRupiah(reports.lpe.ekuitasAkhir)}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Nilai bersih ekuitas per 31 Des</p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-6" id="lpe-print-area">
+                  {renderReportKop("LAPORAN PERUBAHAN EKUITAS (LPE)", "Standar Kepmendesa PDTT No. 136 Tahun 2022")}
+
+                  {/* TABEL FORMAL GRID: LPE */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                      <thead>
+                        <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+                          <th className="py-2.5 px-3 border-r border-slate-300 w-14 text-center">No</th>
+                          <th className="py-2.5 px-3 border-r border-slate-300">Komponen Perubahan Ekuitas BUMDes</th>
+                          <th className="py-2.5 px-3 border-r border-slate-300 w-36 text-center">Kategori Akun</th>
+                          <th className="py-2.5 px-3 text-right w-44">Jumlah (Rp)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        <tr className="hover:bg-slate-50/70">
+                          <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">1</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">Penyertaan Modal Desa Awal (APBDes)</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">Modal Disetor</span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(reports.lpe.modalAwalDesa)}</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/70">
+                          <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">2</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">Penyertaan Modal Masyarakat Awal</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">Modal Disetor</span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(reports.lpe.modalAwalMasyarakat)}</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/70">
+                          <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">3</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">Penambahan / (Pengurangan) Modal Tahun Berjalan</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">Mutasi Modal</span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">Rp 0</td>
+                        </tr>
+                        <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                          <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                            Jumlah Penyertaan Modal Akhir (I)
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-900 font-black">
+                            {formatRupiah(reports.lpe.totalPenyertaanModalAkhir)}
+                          </td>
+                        </tr>
+
+                        <tr className="hover:bg-slate-50/70">
+                          <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">4</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">Saldo Laba Awal Tahun (Cadangan & Laba Ditahan)</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Saldo Laba</span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(reports.lpe.saldoLabaAwal)}</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/70">
+                          <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">5</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">Penyetoran PADes / Bagi Hasil ke Kas Desa</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Distribusi SHU</span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-rose-600">({formatRupiah(reports.lpe.bagiHasilDesa)})</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/70">
+                          <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">6</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium">Sisa Hasil Usaha / Laba Bersih Tahun Berjalan</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">SHU Berjalan</span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600">+{formatRupiah(reports.lpe.labaPeriodeBerjalan)}</td>
+                        </tr>
+                        <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                          <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                            Jumlah Saldo Laba Akhir Tahun (II)
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-emerald-700 font-black">
+                            {formatRupiah(reports.lpe.saldoLabaAkhir)}
+                          </td>
+                        </tr>
+
+                        {/* GRAND TOTAL: EKUITAS AKHIR */}
+                        <tr className="bg-indigo-50/80 font-black border-t-2 border-b-2 border-slate-800 text-slate-900">
+                          <td colSpan={3} className="py-3 px-3 border-r border-slate-300 uppercase tracking-wider text-right pr-4 text-xs sm:text-sm text-[#6777ef]">
+                            TOTAL EKUITAS AKHIR BUMDES PER 31 DESEMBER (I + II)
+                          </td>
+                          <td className="py-3 px-3 text-right font-mono text-sm sm:text-base font-black text-[#6777ef]">
+                            {formatRupiah(reports.lpe.ekuitasAkhir)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
 
-                  <div className="space-y-3 text-xs">
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-600">1. Penyertaan Modal Desa Awal (APBDes)</span>
-                      <span className="font-mono font-bold">{formatRupiah(reports.lpe.modalAwalDesa)}</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-600">2. Penyertaan Modal Masyarakat Awal</span>
-                      <span className="font-mono font-bold">{formatRupiah(reports.lpe.modalAwalMasyarakat)}</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-600">3. Penambahan / Pengurangan Modal Periode Berjalan</span>
-                      <span className="font-mono font-bold">Rp 0</span>
-                    </div>
-                    <div className="flex justify-between py-2.5 font-bold bg-slate-50 px-2 rounded">
-                      <span>Jumlah Penyertaan Modal Akhir</span>
-                      <span className="font-mono">{formatRupiah(reports.lpe.totalPenyertaanModalAkhir)}</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-600">4. Saldo Laba Awal (Cadangan Modal)</span>
-                      <span className="font-mono font-bold">{formatRupiah(reports.lpe.saldoLabaAwal)}</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-600">5. Laba Bersih Tahun Berjalan</span>
-                      <span className="font-mono font-bold text-emerald-600">+{formatRupiah(reports.lpe.labaPeriodeBerjalan)}</span>
-                    </div>
-                    <div className="flex justify-between py-2.5 font-bold bg-slate-50 px-2 rounded">
-                      <span>Saldo Laba Akhir</span>
-                      <span className="font-mono text-emerald-600">{formatRupiah(reports.lpe.saldoLabaAkhir)}</span>
-                    </div>
-
-                    <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex justify-between items-center text-xs sm:text-sm font-black text-[#6777ef]">
-                      <span>EKUITAS AKHIR BUMDES</span>
-                      <span className="font-mono">{formatRupiah(reports.lpe.ekuitasAkhir)}</span>
-                    </div>
-                  </div>
+                  {renderReportSignatures()}
                 </div>
               </div>
             )}
 
             {/* TAB: 4. ARUS KAS (LAK) */}
             {activeTab === "lak" && reports && (
-              <div className="max-w-3xl mx-auto space-y-4">
-                {renderReportYearFilter("Arus Kas")}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-8 space-y-6">
-                  <div className="text-center border-b border-slate-200 pb-5">
-                    <div className="text-[11px] sm:text-xs uppercase font-extrabold tracking-widest text-[#6777ef]">
-                      Metode Langsung (Direct Cash Flow) - Kepmendes 136
+              <div className="max-w-4xl mx-auto space-y-4">
+                {renderReportYearFilter("Arus Kas", "lak-print-area")}
+
+                {/* EXECUTIVE STAT CARDS (NO-PRINT) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 no-print">
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Saldo Kas Awal (1 Jan)</span>
+                    <div className="text-lg sm:text-xl font-black text-slate-800 mt-1 font-mono">
+                      {formatRupiah(reports.lak.saldoKasAwal || 0)}
                     </div>
-                    <h2 className="text-lg sm:text-xl font-black text-slate-900 mt-1">LAPORAN ARUS KAS (LAK)</h2>
-                    <p className="text-xs text-slate-500 font-medium">{settings.bumdes_name || "BUM Desa Barokah"} &bull; Periode Tahun {selectedYear}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Saldo awal kasir & rekening bank</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Arus Kas Operasional</span>
+                    <div className={`text-lg sm:text-xl font-black mt-1 font-mono ${reports.lak.operasi.bersih >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
+                      {formatRupiah(reports.lak.operasi.bersih)}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Kas bersih kegiatan operasional</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Kenaikan / (Penurunan) Kas</span>
+                    <div className={`text-lg sm:text-xl font-black mt-1 font-mono ${reports.lak.kenaikanKasBersih >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
+                      {reports.lak.kenaikanKasBersih >= 0 ? "+" : ""}{formatRupiah(reports.lak.kenaikanKasBersih)}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Net cash flow 3 aktivitas</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Saldo Kas Akhir (31 Des)</span>
+                    <div className="text-lg sm:text-xl font-black text-emerald-600 mt-1 font-mono">
+                      {formatRupiah(reports.lak.saldoKasAkhir)}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Sinkron 100% dengan Neraca</p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-6" id="lak-print-area">
+                  {renderReportKop("LAPORAN ARUS KAS (LAK)", "Metode Langsung (Direct Cash Flow) - Standar Kepmendes 136/2022")}
+
+                  {/* TABEL FORMAL GRID: ARUS KAS METODE LANGSUNG */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                      <thead>
+                        <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+                          <th className="py-2.5 px-3 border-r border-slate-300 w-14 text-center">No</th>
+                          <th className="py-2.5 px-3 border-r border-slate-300">Uraian Arus Kas Entitas BUMDes</th>
+                          <th className="py-2.5 px-3 border-r border-slate-300 w-36 text-center">Klasifikasi Aktivitas</th>
+                          <th className="py-2.5 px-3 text-right w-44">Jumlah Kas (Rp)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {/* I. AKTIVITAS OPERASIONAL */}
+                        <tr className="bg-slate-50/80 font-bold text-slate-800">
+                          <td colSpan={4} className="py-2 px-3 border-r border-slate-300 uppercase tracking-wide text-[11px] text-[#6777ef]">
+                            I. ARUS KAS DARI AKTIVITAS OPERASIONAL
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/70">
+                          <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">1.1</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium pl-6">
+                            Penerimaan Kas dari Pelanggan & Pendapatan Operasional Usaha
+                          </td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Arus Kas Masuk</span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600">
+                            +{formatRupiah(reports.lak.operasi.masuk)}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/70">
+                          <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">1.2</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium pl-6">
+                            Pengeluaran Kas untuk Pembayaran Beban Operasional, Gaji & Pemeliharaan
+                          </td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Arus Kas Keluar</span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-rose-500">
+                            -{formatRupiah(reports.lak.operasi.keluar)}
+                          </td>
+                        </tr>
+                        <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                          <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                            Arus Kas Bersih yang Diperoleh dari Aktivitas Operasi
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-emerald-700 font-black">
+                            {formatRupiah(reports.lak.operasi.bersih)}
+                          </td>
+                        </tr>
+
+                        {/* II. AKTIVITAS INVESTASI */}
+                        <tr className="bg-slate-50/80 font-bold text-slate-800">
+                          <td colSpan={4} className="py-2 px-3 border-r border-slate-300 uppercase tracking-wide text-[11px] text-indigo-700">
+                            II. ARUS KAS DARI AKTIVITAS INVESTASI
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/70">
+                          <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">2.1</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium pl-6">
+                            Perolehan / Pembelian Aset Tetap, Peralatan, & Fasilitas Usaha
+                          </td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">Investasi Aset</span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                            -{formatRupiah(reports.lak.investasi.keluar)}
+                          </td>
+                        </tr>
+                        <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                          <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                            Arus Kas Bersih yang Digunakan untuk Aktivitas Investasi
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-800 font-black">
+                            {formatRupiah(reports.lak.investasi.bersih)}
+                          </td>
+                        </tr>
+
+                        {/* III. AKTIVITAS PENDANAAN */}
+                        <tr className="bg-slate-50/80 font-bold text-slate-800">
+                          <td colSpan={4} className="py-2 px-3 border-r border-slate-300 uppercase tracking-wide text-[11px] text-amber-700">
+                            III. ARUS KAS DARI AKTIVITAS PENDANAAN
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/70">
+                          <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-500">3.1</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-slate-800 font-medium pl-6">
+                            Penyetoran Bagian SHU ke Kas Desa (Pendapatan Asli Desa / PADes)
+                          </td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Distribusi Kas</span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-rose-600">
+                            -{formatRupiah(reports.lak.pendanaan.keluar)}
+                          </td>
+                        </tr>
+                        <tr className="bg-slate-100/70 font-bold border-t border-b border-slate-300">
+                          <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-slate-800 uppercase tracking-wider text-right pr-4">
+                            Arus Kas Bersih yang Digunakan untuk Aktivitas Pendanaan
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-rose-600 font-black">
+                            {formatRupiah(reports.lak.pendanaan.bersih)}
+                          </td>
+                        </tr>
+
+                        {/* REKONSILIASI SALDO KAS */}
+                        <tr className="bg-slate-50 font-bold text-slate-800 border-t border-slate-300">
+                          <td colSpan={3} className="py-2.5 px-3 border-r border-slate-300 text-right pr-4 uppercase tracking-wider">
+                            Kenaikan / (Penurunan) Kas Bersih Periode Berjalan
+                          </td>
+                          <td className={`py-2.5 px-3 text-right font-mono font-black ${reports.lak.kenaikanKasBersih >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                            {reports.lak.kenaikanKasBersih >= 0 ? "+" : ""}{formatRupiah(reports.lak.kenaikanKasBersih)}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/70 font-semibold text-slate-700">
+                          <td colSpan={3} className="py-2 px-3 border-r border-slate-200 text-right pr-4">
+                            Saldo Awal Kas dan Setara Kas per 1 Januari
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono text-slate-800 font-bold">
+                            {formatRupiah(reports.lak.saldoKasAwal || 0)}
+                          </td>
+                        </tr>
+
+                        {/* GRAND TOTAL ROW: SALDO KAS AKHIR */}
+                        <tr className="bg-emerald-50/80 font-black border-t-2 border-b-2 border-slate-800 text-slate-900">
+                          <td colSpan={3} className="py-3 px-3 border-r border-slate-300 uppercase tracking-wider text-right pr-4 text-xs sm:text-sm text-emerald-800">
+                            SALDO AKHIR KAS & SETARA KAS PER 31 DESEMBER
+                          </td>
+                          <td className="py-3 px-3 text-right font-mono text-sm sm:text-base font-black text-emerald-700">
+                            {formatRupiah(reports.lak.saldoKasAkhir)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
 
-                  <div className="space-y-4 text-xs">
-                    <div>
-                      <h4 className="font-bold text-slate-800 uppercase tracking-wider mb-2 bg-slate-50 p-2 rounded">
-                        I. AKTIVITAS OPERASIONAL
-                      </h4>
-                      <div className="space-y-1.5 pl-3">
-                        <div className="flex justify-between py-1 border-b border-slate-50">
-                          <span className="text-slate-600">Arus Kas Masuk dari Operasional Usaha</span>
-                          <span className="font-mono font-bold text-emerald-600">+{formatRupiah(reports.lak.operasi.masuk)}</span>
-                        </div>
-                        <div className="flex justify-between py-1 border-b border-slate-50">
-                          <span className="text-slate-600">Arus Kas Keluar untuk Beban Operasional</span>
-                          <span className="font-mono font-bold text-rose-500">-{formatRupiah(reports.lak.operasi.keluar)}</span>
-                        </div>
-                        <div className="flex justify-between py-1.5 font-bold">
-                          <span>Arus Kas Bersih dari Aktivitas Operasi</span>
-                          <span className="font-mono text-emerald-700">{formatRupiah(reports.lak.operasi.bersih)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-bold text-slate-800 uppercase tracking-wider mb-2 bg-slate-50 p-2 rounded">
-                        II. AKTIVITAS INVESTASI
-                      </h4>
-                      <div className="space-y-1.5 pl-3">
-                        <div className="flex justify-between py-1 border-b border-slate-50">
-                          <span className="text-slate-600">Perolehan / Pembelian Aset Tetap</span>
-                          <span className="font-mono font-bold text-slate-800">-{formatRupiah(reports.lak.investasi.keluar)}</span>
-                        </div>
-                        <div className="flex justify-between py-1.5 font-bold">
-                          <span>Arus Kas Bersih dari Aktivitas Investasi</span>
-                          <span className="font-mono">{formatRupiah(reports.lak.investasi.bersih)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-bold text-slate-800 uppercase tracking-wider mb-2 bg-slate-50 p-2 rounded">
-                        III. AKTIVITAS PENDANAAN
-                      </h4>
-                      <div className="space-y-1.5 pl-3">
-                        <div className="flex justify-between py-1 border-b border-slate-50">
-                          <span className="text-slate-600">Penerimaan Penyertaan Modal APBDes / Masyarakat</span>
-                          <span className="font-mono font-bold text-emerald-600">+{formatRupiah(reports.lak.pendanaan.masuk)}</span>
-                        </div>
-                        <div className="flex justify-between py-1.5 font-bold">
-                          <span>Arus Kas Bersih dari Aktivitas Pendanaan</span>
-                          <span className="font-mono text-emerald-700">{formatRupiah(reports.lak.pendanaan.bersih)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex justify-between items-center text-xs sm:text-sm font-black text-emerald-800">
-                      <div>
-                        <span>SALDO KAS AKHIR PERIODE</span>
-                        <p className="text-[11px] font-normal text-slate-500">Sama persis dengan Kas & Bank di Neraca.</p>
-                      </div>
-                      <span className="font-mono text-sm sm:text-base">{formatRupiah(reports.lak.saldoKasAkhir)}</span>
-                    </div>
-                  </div>
+                  {renderReportSignatures()}
                 </div>
               </div>
             )}
 
             {/* TAB: 5. CaLK */}
-            {activeTab === "calk" && (
+            {activeTab === "calk" && reports && (
               <div className="max-w-4xl mx-auto space-y-4">
-                {renderReportYearFilter("CaLK")}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-8 space-y-6">
-                  <div className="text-center border-b border-slate-200 pb-5">
-                    <div className="text-[11px] sm:text-xs uppercase font-extrabold tracking-widest text-[#6777ef]">
-                      Standar Kepmendesa PDTT No. 136 Tahun 2022
-                    </div>
-                    <h2 className="text-lg sm:text-xl font-black text-slate-900 mt-1">
-                      CATATAN ATAS LAPORAN KEUANGAN (CaLK)
-                    </h2>
-                    <p className="text-xs text-slate-500 font-medium">Tahun Anggaran {selectedYear}</p>
-                  </div>
+                {renderReportYearFilter("CaLK", "calk-print-area")}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-6" id="calk-print-area">
+                  {renderReportKop("CATATAN ATAS LAPORAN KEUANGAN (CaLK)", "Standar Kepmendesa PDTT No. 136 Tahun 2022 & SAK EMKM")}
 
                   <div className="space-y-6 text-xs text-slate-700 leading-relaxed">
                     <div>
                       <h3 className="font-bold text-sm text-slate-900 mb-2">1. INFORMASI UMUM ENTITAS</h3>
                       <p>
-                        {settings.bumdes_name || "BUM Desa Barokah"} didirikan berdasarkan Peraturan Desa Nomor 02 Tahun 2021 sesuai amanat Undang-Undang No. 6 Tahun 2014 tentang Desa serta Peraturan Pemerintah No. 11 Tahun 2021 tentang Badan Usaha Milik Desa. BUM Desa ini beralamat di Desa Balongbesuk, Kabupaten Jombang, Jawa Timur.
+                        {settings.bumdes_name || "BUMDesa \"BAROKAH\""} didirikan berdasarkan Peraturan Desa Nomor 02 Tahun 2021 sesuai amanat Undang-Undang No. 6 Tahun 2014 tentang Desa serta Peraturan Pemerintah No. 11 Tahun 2021 tentang Badan Usaha Milik Desa. BUM Desa ini beralamat di {settings.bumdes_address || `Desa ${settings.village_name || "Balongbesuk"}, Kec. ${settings.subdistrict_name || "Diwek"}, Kab. ${settings.regency_name || "Jombang"}`}.
                       </p>
                     </div>
 
@@ -1947,85 +2916,514 @@ export default function StislaApp() {
                       </p>
                       <ul className="list-disc pl-5 space-y-1">
                         <li><strong>Dasar Penyusunan:</strong> Berdasarkan konsep biaya historis dan asas akrual untuk laba rugi serta asas kas untuk laporan arus kas.</li>
-                        <li><strong>Kas dan Setara Kas:</strong> Mencakup uang tunai di kasir dan simpanan di rekening bank yang likuid tanpa batasan penarikan.</li>
+                        <li><strong>Kas dan Setara Kas:</strong> Mencakup uang tunai di bendahara dan simpanan pada rekening perbankan resmi yang likuid tanpa batasan penarikan.</li>
+                        <li><strong>Piutang Usaha:</strong> Dinyatakan sebesar nilai tagihan bruto yang belum diterima dari mitra/pelanggan per akhir periode pelaporan.</li>
                         <li><strong>Aset Tetap & Penyusutan:</strong> Dinyatakan sebesar harga perolehan dikurangi akumulasi penyusutan menggunakan metode garis lurus (*straight-line method*).</li>
                       </ul>
                     </div>
 
                     <div>
-                      <h3 className="font-bold text-sm text-slate-900 mb-2">3. RINCIAN POS KAS & SETARA KAS</h3>
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <div className="flex justify-between py-1 border-b border-slate-200">
-                          <span>Kas Tunai di Bendahara</span>
-                          <span className="font-mono font-bold">{formatRupiah(totalKas)}</span>
+                      <h3 className="font-bold text-sm text-slate-900 mb-3">3. RINCIAN POS-POS LAPORAN POSISI KEUANGAN (NERACA)</h3>
+                      
+                      {/* A. ASET LANCAR */}
+                      <div className="mb-4">
+                        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wide mb-2 bg-slate-50 p-2 rounded">
+                          A. Aset Lancar (Kas, Piutang, Persediaan)
+                        </h4>
+                        <div className="border border-slate-200 rounded-xl overflow-hidden">
+                          <table className="w-full text-xs">
+                            <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                              <tr>
+                                <th className="py-2 px-3 text-left">Komponen Aset Lancar</th>
+                                <th className="py-2 px-3 text-right">Nilai Tercatat (Rp)</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {reports.neraca.currentAssets.map((a: any, i: number) => (
+                                <tr key={i}>
+                                  <td className="py-2 px-3 text-slate-700">{a.name}</td>
+                                  <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(a.amount)}</td>
+                                </tr>
+                              ))}
+                              <tr className="bg-slate-50/70 font-bold">
+                                <td className="py-2 px-3 text-slate-900">Total Aset Lancar</td>
+                                <td className="py-2 px-3 text-right font-mono text-emerald-600 font-black">{formatRupiah(reports.neraca.totalCurrentAssets)}</td>
+                              </tr>
+                            </tbody>
+                          </table>
                         </div>
-                        <div className="flex justify-between py-1.5 font-bold text-slate-900">
-                          <span>Total Kas & Setara Kas</span>
-                          <span className="font-mono text-[#6777ef]">{formatRupiah(totalKas)}</span>
+                      </div>
+
+                      {/* B. ASET TETAP */}
+                      <div className="mb-4">
+                        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wide mb-2 bg-slate-50 p-2 rounded">
+                          B. Aset Tetap & Akumulasi Penyusutan
+                        </h4>
+                        <div className="border border-slate-200 rounded-xl overflow-hidden">
+                          <table className="w-full text-xs">
+                            <tbody className="divide-y divide-slate-100">
+                              <tr>
+                                <td className="py-2 px-3 text-slate-700">Nilai Perolehan Aset Tetap (Peralatan, Mesin, Gedung, Meubelair)</td>
+                                <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(reports.neraca.fixedAssets.peralatan)}</td>
+                              </tr>
+                              <tr>
+                                <td className="py-2 px-3 text-slate-700">Akumulasi Penyusutan Aset Tetap</td>
+                                <td className="py-2 px-3 text-right font-mono font-bold text-rose-600">({formatRupiah(reports.neraca.fixedAssets.akumulasiPenyusutan)})</td>
+                              </tr>
+                              <tr className="bg-slate-50/70 font-bold">
+                                <td className="py-2 px-3 text-slate-900">Nilai Buku Bersih Aset Tetap</td>
+                                <td className="py-2 px-3 text-right font-mono text-emerald-600 font-black">{formatRupiah(reports.neraca.fixedAssets.net)}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* C. KEWAJIBAN & EKUITAS */}
+                      <div className="mb-4">
+                        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wide mb-2 bg-slate-50 p-2 rounded">
+                          C. Kewajiban & Ekuitas Pemilik
+                        </h4>
+                        <div className="border border-slate-200 rounded-xl overflow-hidden">
+                          <table className="w-full text-xs">
+                            <tbody className="divide-y divide-slate-100">
+                              {reports.neraca.liabilities.map((l: any, i: number) => (
+                                <tr key={`l-${i}`}>
+                                  <td className="py-2 px-3 text-slate-700">{l.name}</td>
+                                  <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(l.amount)}</td>
+                                </tr>
+                              ))}
+                              <tr className="bg-slate-50/50 font-semibold text-slate-800">
+                                <td className="py-2 px-3">Total Kewajiban</td>
+                                <td className="py-2 px-3 text-right font-mono">{formatRupiah(reports.neraca.totalLiabilities)}</td>
+                              </tr>
+                              {reports.neraca.equity.map((e: any, i: number) => (
+                                <tr key={`e-${i}`}>
+                                  <td className="py-2 px-3 text-slate-700">{e.name}</td>
+                                  <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">{formatRupiah(e.amount)}</td>
+                                </tr>
+                              ))}
+                              <tr className="bg-slate-50 font-bold">
+                                <td className="py-2 px-3 text-slate-900">Total Ekuitas</td>
+                                <td className="py-2 px-3 text-right font-mono text-emerald-600 font-black">{formatRupiah(reports.neraca.totalEquity)}</td>
+                              </tr>
+                              <tr className="bg-emerald-50 text-emerald-800 font-black">
+                                <td className="py-2.5 px-3">TOTAL KEWAJIBAN & EKUITAS (SEIMBANG DENGAN TOTAL ASET)</td>
+                                <td className="py-2.5 px-3 text-right font-mono text-sm">{formatRupiah(reports.neraca.totalLiabilitiesAndEquity)}</td>
+                              </tr>
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <h3 className="font-bold text-sm text-slate-900 mb-2">4. PERTANGGUNGJAWABAN & PENGESAHAN</h3>
+                      <h3 className="font-bold text-sm text-slate-900 mb-2">4. KINERJA OPERASIONAL LABA RUGI</h3>
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
+                        <div className="flex justify-between py-1 border-b border-slate-200">
+                          <span>Total Pendapatan Usaha (Omzet)</span>
+                          <span className="font-mono font-bold text-emerald-600">{formatRupiah(reports.labaRugi.totalRevenue)}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-slate-200">
+                          <span>Total Beban Operasional & Usaha</span>
+                          <span className="font-mono font-bold text-rose-600">{formatRupiah(reports.labaRugi.totalExpense)}</span>
+                        </div>
+                        <div className="flex justify-between py-1.5 font-bold text-slate-900">
+                          <span>Sisa Hasil Usaha / Laba Bersih Tahun Berjalan (SHU)</span>
+                          <span className="font-mono text-[#6777ef] text-sm">{formatRupiah(reports.labaRugi.netProfit)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="font-bold text-sm text-slate-900 mb-2">5. PERTANGGUNGJAWABAN & PENGESAHAN</h3>
                       <p>
-                        Laporan Keuangan ini telah diperiksa dan disetujui dalam Musyawarah Desa (Musdes) Laporan Pertanggungjawaban (LPJ) BUM Desa Tahun Anggaran {selectedYear}.
+                        Laporan Keuangan ini telah disusun secara tertib, akuntabel, dan transparan berdasarkan bukti pembukuan yang sah, serta dipertanggungjawabkan dalam Musyawarah Desa (Musdes) Laporan Pertanggungjawaban (LPJ) BUM Desa Tahun Anggaran {selectedYear}.
                       </p>
                     </div>
                   </div>
+
+                  {renderReportSignatures(true)}
                 </div>
               </div>
             )}
 
-            {/* TAB: COA DINAMIS */}
-            {activeTab === "coa" && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-sm sm:text-base">Bagan Akun Standar (COA Dinamis)</h3>
-                      <p className="text-xs text-slate-500">
-                        Daftar 220 Akun Resmi Kepmendes 136. Anda dapat menambahkan rekening bank atau pos unit usaha baru dengan bantuan AI & rekomendasi kode otomatis.
-                      </p>
-                    </div>
+            {/* TAB: COA DINAMIS (DENGAN PAGINASI, FILTER & PENCARIAN) */}
+            {activeTab === "coa" && (() => {
+              const q = coaSearch.toLowerCase().trim()
+              const filteredCoa = coaList.filter((acc) => {
+                const matchesSearch =
+                  !q ||
+                  acc.code.toLowerCase().includes(q) ||
+                  acc.name.toLowerCase().includes(q)
+
+                let matchesCategory = true
+                if (coaCategoryFilter === "1") matchesCategory = acc.code.startsWith("1.")
+                else if (coaCategoryFilter === "2") matchesCategory = acc.code.startsWith("2.")
+                else if (coaCategoryFilter === "3") matchesCategory = acc.code.startsWith("3.")
+                else if (coaCategoryFilter === "4") matchesCategory = acc.code.startsWith("4.")
+                else if (coaCategoryFilter === "5-6-7")
+                  matchesCategory =
+                    acc.code.startsWith("5.") ||
+                    acc.code.startsWith("6.") ||
+                    acc.code.startsWith("7.")
+                else if (coaCategoryFilter !== "all") matchesCategory = acc.type === coaCategoryFilter
+
+                return matchesSearch && matchesCategory
+              })
+
+              const totalCoaPages = Math.max(1, Math.ceil(filteredCoa.length / coaPerPage))
+              const safeCoaPage = Math.min(Math.max(1, coaPage), totalCoaPages)
+              const coaStartIndex = (safeCoaPage - 1) * coaPerPage
+              const paginatedCoa = filteredCoa.slice(coaStartIndex, coaStartIndex + coaPerPage)
+
+              const assetCount = coaList.filter((a) => a.code.startsWith("1.")).length
+              const liabCount = coaList.filter((a) => a.code.startsWith("2.")).length
+              const eqCount = coaList.filter((a) => a.code.startsWith("3.")).length
+              const revCount = coaList.filter((a) => a.code.startsWith("4.")).length
+              const expCount = coaList.filter((a) => ["5.", "6.", "7."].some((p) => a.code.startsWith(p))).length
+
+              // Generator nomor halaman (contoh: 1, 2, ..., 5, 6, ..., 15)
+              const getPageNumbers = () => {
+                if (totalCoaPages <= 5) {
+                  return Array.from({ length: totalCoaPages }, (_, i) => i + 1)
+                }
+                const pages: (number | string)[] = [1]
+                if (safeCoaPage > 3) pages.push("...")
+                const start = Math.max(2, safeCoaPage - 1)
+                const end = Math.min(totalCoaPages - 1, safeCoaPage + 1)
+                for (let i = start; i <= end; i++) {
+                  if (!pages.includes(i)) pages.push(i)
+                }
+                if (safeCoaPage < totalCoaPages - 2) pages.push("...")
+                if (!pages.includes(totalCoaPages)) pages.push(totalCoaPages)
+                return pages
+              }
+
+              return (
+                <div className="space-y-6">
+                  {/* RINGKASAN METRIK KATEGORI COA */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <button
-                      onClick={() => setShowCoaModal(true)}
-                      className="bg-[#6777ef] hover:bg-[#5868e4] text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-xs w-full sm:w-auto justify-center"
+                      onClick={() => {
+                        setCoaCategoryFilter("all")
+                        setCoaPage(1)
+                      }}
+                      className={`p-3.5 rounded-2xl border text-left transition-all ${
+                        coaCategoryFilter === "all"
+                          ? "bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-indigo-500/20"
+                          : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
+                      }`}
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>Tambah Akun Baru (Dinamis)</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">Semua Akun</span>
+                      <div className="text-lg font-black mt-0.5">{coaList.length}</div>
+                      <p className="text-[10px] opacity-60 mt-0.5">Daftar Akun Lengkap</p>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setCoaCategoryFilter("1")
+                        setCoaPage(1)
+                      }}
+                      className={`p-3.5 rounded-2xl border text-left transition-all ${
+                        coaCategoryFilter === "1"
+                          ? "bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-500/20"
+                          : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">1. Aset (Aktiva)</span>
+                      <div className="text-lg font-black mt-0.5">{assetCount}</div>
+                      <p className="text-[10px] opacity-60 mt-0.5">Kas, Piutang & Aset Tetap</p>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setCoaCategoryFilter("2")
+                        setCoaPage(1)
+                      }}
+                      className={`p-3.5 rounded-2xl border text-left transition-all ${
+                        coaCategoryFilter === "2"
+                          ? "bg-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-500/20"
+                          : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">2. Kewajiban</span>
+                      <div className="text-lg font-black mt-0.5">{liabCount}</div>
+                      <p className="text-[10px] opacity-60 mt-0.5">Utang & Simpanan Anggota</p>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setCoaCategoryFilter("3")
+                        setCoaPage(1)
+                      }}
+                      className={`p-3.5 rounded-2xl border text-left transition-all ${
+                        coaCategoryFilter === "3"
+                          ? "bg-purple-600 text-white border-purple-600 shadow-md ring-2 ring-purple-500/20"
+                          : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">3. Ekuitas</span>
+                      <div className="text-lg font-black mt-0.5">{eqCount}</div>
+                      <p className="text-[10px] opacity-60 mt-0.5">Modal APBDes & Cadangan</p>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setCoaCategoryFilter("4")
+                        setCoaPage(1)
+                      }}
+                      className={`p-3.5 rounded-2xl border text-left transition-all col-span-2 sm:col-span-1 ${
+                        coaCategoryFilter === "4"
+                          ? "bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/20"
+                          : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">4. Pendapatan</span>
+                      <div className="text-lg font-black mt-0.5">{revCount}</div>
+                      <p className="text-[10px] opacity-60 mt-0.5">Omzet & Bagi Hasil Unit</p>
                     </button>
                   </div>
 
-                  <div className="mt-4 overflow-x-auto">
-                    <table className="w-full text-left text-xs min-w-[500px]">
-                      <thead className="bg-[#f8fafc] text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
-                        <tr>
-                          <th className="py-3 px-4">Kode Akun</th>
-                          <th className="py-3 px-4">Nama Akun</th>
-                          <th className="py-3 px-4">Kategori Akuntansi</th>
-                          <th className="py-3 px-4 text-center">Saldo Normal</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {coaList.map((acc) => (
-                          <tr key={acc.code} className="hover:bg-slate-50/70">
-                            <td className="py-2.5 px-4 font-mono font-bold text-[#6777ef]">{acc.code}</td>
-                            <td className="py-2.5 px-4 font-medium text-slate-800">{acc.name}</td>
-                            <td className="py-2.5 px-4">
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-                                {acc.type}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-4 text-center font-semibold text-slate-600">{acc.normal}</td>
+                  {/* KONTEN UTAMA TABEL DENGAN FILTER & SEARCH BAR */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-xs">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
+                          Bagan Akun Standar (COA Dinamis)
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-[#6777ef] border border-indigo-200">
+                            {filteredCoa.length} Akun
+                          </span>
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Bagan Akun Standar Kepmendesa No. 136/2022. Tersedia paginasi dan pencarian instan untuk kemudahan navigasi akun.
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => setShowCoaModal(true)}
+                        className="bg-[#6777ef] hover:bg-[#5868e4] text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-xs shrink-0 self-start md:self-auto cursor-pointer transition-all"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Tambah Akun Baru (Dinamis)</span>
+                      </button>
+                    </div>
+
+                    {/* TOOLBAR FILTER, SEARCH & PER-PAGE */}
+                    <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                      {/* Search Bar */}
+                      <div className="relative flex-1 max-w-md">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={coaSearch}
+                          onChange={(e) => {
+                            setCoaSearch(e.target.value)
+                            setCoaPage(1)
+                          }}
+                          placeholder="Cari kode atau nama akun (contoh: 1.1.01 atau Bank)..."
+                          className="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6777ef]/20 focus:border-[#6777ef] transition-all bg-slate-50/50"
+                        />
+                        {coaSearch && (
+                          <button
+                            onClick={() => {
+                              setCoaSearch("")
+                              setCoaPage(1)
+                            }}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                            title="Hapus pencarian"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {/* Filter Kategori Dropdown */}
+                        <div className="flex items-center gap-1.5">
+                          <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <select
+                            value={coaCategoryFilter}
+                            onChange={(e) => {
+                              setCoaCategoryFilter(e.target.value)
+                              setCoaPage(1)
+                            }}
+                            className="bg-slate-50 border border-slate-200 text-xs rounded-xl px-2.5 py-2 text-slate-700 font-medium focus:outline-none focus:border-[#6777ef]"
+                          >
+                            <option value="all">Semua Golongan Akun ({coaList.length})</option>
+                            <option value="1">1. Aset (Aktiva) ({assetCount})</option>
+                            <option value="2">2. Kewajiban (Utang) ({liabCount})</option>
+                            <option value="3">3. Ekuitas (Modal) ({eqCount})</option>
+                            <option value="4">4. Pendapatan Usaha ({revCount})</option>
+                            <option value="5-6-7">5, 6, 7. Beban-Beban ({expCount})</option>
+                          </select>
+                        </div>
+
+                        {/* Per-Page Selector */}
+                        <select
+                          value={coaPerPage}
+                          onChange={(e) => {
+                            setCoaPerPage(parseInt(e.target.value, 10))
+                            setCoaPage(1)
+                          }}
+                          className="bg-slate-50 border border-slate-200 text-xs rounded-xl px-2.5 py-2 text-slate-700 font-medium focus:outline-none focus:border-[#6777ef]"
+                          title="Jumlah baris per halaman"
+                        >
+                          <option value="15">15 / hal</option>
+                          <option value="25">25 / hal</option>
+                          <option value="50">50 / hal</option>
+                          <option value="100">100 / hal</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* TABEL DATA COA TERPAGINASI */}
+                    <div className="mt-4 border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                      <table className="w-full text-left text-xs min-w-[600px] border-collapse">
+                        <thead className="bg-slate-100/80 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-200 text-[11px]">
+                          <tr>
+                            <th className="py-2.5 px-3 border-r border-slate-200 w-12 text-center">No</th>
+                            <th className="py-2.5 px-4 border-r border-slate-200 w-36">Kode Akun</th>
+                            <th className="py-2.5 px-4 border-r border-slate-200">Nama Akun Standar (Kepmendes 136)</th>
+                            <th className="py-2.5 px-4 border-r border-slate-200 w-44 text-center">Kategori Akuntansi</th>
+                            <th className="py-2.5 px-4 text-center w-32">Saldo Normal</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {paginatedCoa.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="py-12 text-center text-slate-400">
+                                <Search className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                                <p className="font-semibold text-slate-600">Tidak ada akun yang sesuai dengan pencarian/filter.</p>
+                                <p className="text-xs text-slate-400 mt-1">Coba kata kunci lain atau pilih &ldquo;Semua Golongan Akun&rdquo;.</p>
+                              </td>
+                            </tr>
+                          ) : (
+                            paginatedCoa.map((acc, index) => {
+                              const rowNumber = coaStartIndex + index + 1
+                              const code = acc.code
+                              const isAsset = code.startsWith("1.")
+                              const isLiab = code.startsWith("2.")
+                              const isEquity = code.startsWith("3.")
+                              const isRev = code.startsWith("4.")
+                              const isExp = ["5.", "6.", "7."].some((p) => code.startsWith(p))
+
+                              return (
+                                <tr key={acc.code} className="hover:bg-indigo-50/40 transition-colors">
+                                  <td className="py-2.5 px-3 border-r border-slate-200 text-center font-mono text-slate-400">
+                                    {rowNumber}
+                                  </td>
+                                  <td className="py-2.5 px-4 border-r border-slate-200 font-mono font-bold text-[#6777ef] whitespace-nowrap">
+                                    {acc.code}
+                                  </td>
+                                  <td className="py-2.5 px-4 border-r border-slate-200 font-medium text-slate-800">
+                                    {acc.name}
+                                  </td>
+                                  <td className="py-2.5 px-4 border-r border-slate-200 text-center">
+                                    <span
+                                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border inline-block ${
+                                        isAsset
+                                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                                          : isLiab
+                                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                                          : isEquity
+                                          ? "bg-purple-50 text-purple-700 border-purple-200"
+                                          : isRev
+                                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                          : "bg-rose-50 text-rose-700 border-rose-200"
+                                      }`}
+                                    >
+                                      {acc.type}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-4 text-center">
+                                    <span
+                                      className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${
+                                        acc.normal?.toLowerCase() === "debit"
+                                          ? "bg-slate-100 text-slate-700 border border-slate-200"
+                                          : "bg-slate-100 text-slate-700 border border-slate-200"
+                                      }`}
+                                    >
+                                      {acc.normal}
+                                    </span>
+                                  </td>
+                                </tr>
+                              )
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* PAGINATION FOOTER CONTROLS */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+                      <div>
+                        Menampilkan{" "}
+                        <strong className="text-slate-900 font-mono">
+                          {filteredCoa.length > 0 ? coaStartIndex + 1 : 0}
+                        </strong>{" "}
+                        sampai{" "}
+                        <strong className="text-slate-900 font-mono">
+                          {Math.min(coaStartIndex + coaPerPage, filteredCoa.length)}
+                        </strong>{" "}
+                        dari{" "}
+                        <strong className="text-slate-900 font-mono">{filteredCoa.length}</strong> akun
+                        {filteredCoa.length !== coaList.length && (
+                          <span className="text-slate-400 italic ml-1">
+                            (difilter dari {coaList.length} total akun)
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Tombol Halaman */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setCoaPage((p) => Math.max(1, p - 1))}
+                          disabled={safeCoaPage <= 1}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1 font-medium"
+                          title="Halaman Sebelumnya"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Sebelumnya</span>
+                        </button>
+
+                        <div className="flex items-center gap-1 px-1">
+                          {getPageNumbers().map((num, i) =>
+                            typeof num === "number" ? (
+                              <button
+                                key={i}
+                                onClick={() => setCoaPage(num)}
+                                className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                                  safeCoaPage === num
+                                    ? "bg-[#6777ef] text-white shadow-xs"
+                                    : "text-slate-700 hover:bg-slate-100 border border-slate-200"
+                                }`}
+                              >
+                                {num}
+                              </button>
+                            ) : (
+                              <span key={i} className="px-1 text-slate-400 font-bold select-none">
+                                {num}
+                              </span>
+                            )
+                          )}
+                        </div>
+
+                        <button
+                          onClick={() => setCoaPage((p) => Math.min(totalCoaPages, p + 1))}
+                          disabled={safeCoaPage >= totalCoaPages}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1 font-medium"
+                          title="Halaman Selanjutnya"
+                        >
+                          <span className="hidden sm:inline">Selanjutnya</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
 
             {/* TAB: SETTINGS & GEMINI AI */}
             {activeTab === "settings" && currentUser?.role === "ADMIN" && (
@@ -2571,6 +3969,24 @@ export default function StislaApp() {
                 currentUser={currentUser}
                 onRefresh={() => loadData()}
               />
+            )}
+
+            {/* ===================== TAB-TAB KHUSUS BUKU & AUDIT INSPEKTORAT ===================== */}
+            {activeTab === "general-ledger" && (
+              <GeneralLedgerTab settings={settings} />
+            )}
+
+            {activeTab === "trial-balance" && (
+              <TrialBalanceTab settings={settings} />
+            )}
+
+            {activeTab === "sub-ledger" && (
+              <SubsidiaryLedgerTab settings={settings} />
+            )}
+
+            {/* TAB: EIS / KESEHATAN BUMDES */}
+            {activeTab === "eis" && (
+              <EisHealthTab settings={settings} />
             )}
           </main>
         </div>

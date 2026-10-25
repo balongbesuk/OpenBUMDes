@@ -500,12 +500,64 @@ export default function ClosingTab({
                 Proses ini akan menolkan akun nominal (Pendapatan & Beban), mentransfer laba bersih ke akun Ekuitas Laba Ditahan (3.1.03.01), serta mengunci pembukuan agar arsip LPJ resmi terjaga.
               </p>
 
-              {isCurrentlyLocked && (
-                <div className="mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <strong>Peringatan:</strong> Tahun <strong>{closingYear}</strong> saat ini sudah berstatus ditutup buku. Jika Anda menjalankannya kembali, Jurnal Penutup dan arsip snapshot akan diperbarui ulang.
+              {isCurrentlyLocked ? (
+                <div className="mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                    <div>
+                      <strong>Peringatan:</strong> Tahun <strong>{closingYear}</strong> saat ini sudah berstatus ditutup buku (Terkunci). Jika Anda menjalankannya kembali, Jurnal Penutup dan arsip snapshot akan diperbarui ulang.
+                    </div>
                   </div>
+                  {currentClosingRecord && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLpjClosing(currentClosingRecord)}
+                      className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-xs"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      <span>Cetak LPJ {closingYear}</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="mt-4 p-3.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <Info className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
+                    <div>
+                      Tahun <strong>{closingYear}</strong> belum ditutup. Anda dapat melihat pratinjau dokumen resmi LPJ sebelum melakukan tutup buku.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedLpjClosing({
+                        id: `draft-${closingYear}`,
+                        year: parseInt(closingYear, 10),
+                        closedAt: new Date().toISOString(),
+                        closedBy: closedBy || "Pengurus BUMDes",
+                        totalRevenue: totalRevLive,
+                        totalExpense: totalExpLive,
+                        netProfit: netProfitLive,
+                        padesPercent: shuRates.pades,
+                        padesAmount: calcShuNominal(shuRates.pades),
+                        cadanganPercent: shuRates.cadangan,
+                        cadanganAmount: calcShuNominal(shuRates.cadangan),
+                        pengurusPercent: shuRates.pengurus,
+                        pengurusAmount: calcShuNominal(shuRates.pengurus),
+                        sosialPercent: shuRates.sosial,
+                        sosialAmount: calcShuNominal(shuRates.sosial),
+                        pendidikanPercent: shuRates.pendidikan,
+                        pendidikanAmount: calcShuNominal(shuRates.pendidikan),
+                        snapshotData: JSON.stringify(reports),
+                        isLocked: false,
+                        notes: "Pratinjau Draft LPJ Sebelum Tutup Buku"
+                      })
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-[#6777ef] hover:bg-[#5868e4] text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-xs"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Pratinjau LPJ Draft {closingYear}</span>
+                  </button>
                 </div>
               )}
 

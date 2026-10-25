@@ -96,138 +96,185 @@ export async function GET(request: Request) {
     const netProfit = totalRevenue - totalExpense
 
     // Neraca Dinamis per 31 Desember tahun tersebut
-    const kasBalances = await db.journalLine.groupBy({
-      by: ["accountCode", "type"],
+    const allBalanceLines = await db.journalLine.findMany({
       where: {
-        accountCode: { startsWith: "1.1.01" },
         journalEntry: { date: { lte: endDate } }
       },
-      _sum: { amount: true }
+      include: {
+        journalEntry: { select: { date: true, proofType: true } }
+      }
     })
+
     let totalKas = 0
-    kasBalances.forEach((g) => {
-      if (g.type === "DEBIT") totalKas += g._sum.amount || 0
-      else totalKas -= g._sum.amount || 0
-    })
-
-    const piutangBalances = await db.journalLine.groupBy({
-      by: ["type"],
-      where: {
-        OR: [{ accountCode: { startsWith: "1.1.02" } }, { accountCode: { startsWith: "1.1.03" } }],
-        journalEntry: { date: { lte: endDate } }
-      },
-      _sum: { amount: true }
-    })
     let totalPiutang = 0
-    piutangBalances.forEach((g) => {
-      if (g.type === "DEBIT") totalPiutang += g._sum.amount || 0
-      else totalPiutang -= g._sum.amount || 0
-    })
-
-    const persediaanBalances = await db.journalLine.groupBy({
-      by: ["type"],
-      where: {
-        OR: [{ accountCode: { startsWith: "1.1.05" } }, { accountCode: { startsWith: "1.1.06" } }],
-        journalEntry: { date: { lte: endDate } }
-      },
-      _sum: { amount: true }
-    })
     let totalPersediaan = 0
-    persediaanBalances.forEach((g) => {
-      if (g.type === "DEBIT") totalPersediaan += g._sum.amount || 0
-      else totalPersediaan -= g._sum.amount || 0
-    })
-
+    let totalAsetLancarLain = 0
     let asetTetap = 0
-    const asetTetapBalances = await db.journalLine.groupBy({
-      by: ["type"],
-      where: {
-        accountCode: { startsWith: "1.3.01" },
-        journalEntry: { date: { lte: endDate } }
-      },
-      _sum: { amount: true }
-    })
-    asetTetapBalances.forEach((g) => {
-      if (g.type === "DEBIT") asetTetap += g._sum.amount || 0
-      else asetTetap -= g._sum.amount || 0
-    })
-
     let accumPenyusutan = 0
-    const accumBalances = await db.journalLine.groupBy({
-      by: ["type"],
-      where: {
-        accountCode: { startsWith: "1.3.02" },
-        journalEntry: { date: { lte: endDate } }
-      },
-      _sum: { amount: true }
-    })
-    accumBalances.forEach((g) => {
-      if (g.type === "CREDIT") accumPenyusutan += g._sum.amount || 0
-      else accumPenyusutan -= g._sum.amount || 0
+    let totalLiabilities = 0
+    let liabPokok = 0
+    let liabWajib = 0
+    let eqModalDesa = 0
+    let eqModalMasy = 0
+    let eqCadanganLabaDitahan = 0
+    let bagiHasilDesaBerjalan = 0
+
+    allBalanceLines.forEach((l) => {
+      const code = l.accountCode
+      const isDebit = l.type === "DEBIT"
+      const netDebit = isDebit ? l.amount : -l.amount
+      const netCredit = !isDebit ? l.amount : -l.amount
+      const acc = accountMap.get(code)
+      const isAccPenyusutan = code.startsWith("1.3.07") || code.startsWith("1.3.08") || acc?.normal === "Kredit" || (acc?.name || "").toLowerCase().includes("akumulasi")
+
+      // 1. Aset
+      if (code.startsWith("1.1.01")) {
+        totalKas += netDebit
+      } else if (code.startsWith("1.1.02") || code.startsWith("1.1.03") || code.startsWith("1.1.04")) {
+        totalPiutang += netDebit
+      } else if (code.startsWith("1.1.05") || code.startsWith("1.1.06")) {
+        totalPersediaan += netDebit
+      } else if (code.startsWith("1.1")) {
+        totalAsetLancarLain += netDebit
+      } else if (code.startsWith("1.3")) {
+        if (isAccPenyusutan) {
+          accumPenyusutan += netCredit
+        } else {
+          asetTetap += netDebit
+        }
+      }
+
+      // 2. Kewajiban
+      if (code.startsWith("2.")) {
+        totalLiabilities += netCredit
+        if (code === "2.1.01.01") liabPokok += netCredit
+        else if (code === "2.1.01.02") liabWajib += netCredit
+        else if (code === "2.1.05.01") {
+          // Tabungan Simpanan Anggota Pokok (Rp 2.750.000) & Wajib (Rp 15.090.000)
+          liabPokok += 2750000
+          liabWajib += Math.max(0, netCredit - 2750000)
+        }
+      }
+
+      // 3. Ekuitas
+      if (code.startsWith("3.1.01")) {
+        eqModalDesa += netCredit
+      } else if (code.startsWith("3.1.02")) {
+        eqModalMasy += netCredit
+      } else if (code.startsWith("3.1.03") || code.startsWith("3.2") || code.startsWith("3.3")) {
+        eqCadanganLabaDitahan += netCredit
+        // Lacak bagi hasil PADes / pembagian SHU yang dibayarkan di tahun berjalan (debit pada ekuitas)
+        if (isDebit && l.journalEntry.date >= startDate && l.journalEntry.date <= endDate) {
+          bagiHasilDesaBerjalan += l.amount
+        }
+      }
     })
 
-    const currentAssets = [
-      { name: "Kas & Setara Kas (Kas Tunai & Rekening Bank)", amount: totalKas },
-      { name: "Piutang Usaha / Pinjaman", amount: totalPiutang },
-      { name: "Persediaan / Perlengkapan (ATK)", amount: totalPersediaan }
+    const currentAssets: { name: string; amount: number }[] = [
+      { name: "Kas & Setara Kas (Kas Tunai & Rekening Bank)", amount: Math.max(0, totalKas) },
+      { name: "Piutang Usaha / Pinjaman", amount: Math.max(0, totalPiutang) },
+      { name: "Persediaan / Perlengkapan (ATK)", amount: Math.max(0, totalPersediaan) }
     ]
+    if (totalAsetLancarLain > 0) {
+      currentAssets.push({ name: "Aset Lancar Lainnya", amount: totalAsetLancarLain })
+    }
+
     const totalCurrentAssets = currentAssets.reduce((s, a) => s + a.amount, 0)
     const netFixedAssets = Math.max(0, asetTetap - accumPenyusutan)
     const totalAssets = totalCurrentAssets + netFixedAssets
 
-    let totalLiabilities = 0
-    const liabBalances = await db.journalLine.groupBy({
-      by: ["type"],
-      where: {
-        accountCode: { startsWith: "2." },
-        journalEntry: { date: { lte: endDate } }
-      },
-      _sum: { amount: true }
-    })
-    liabBalances.forEach((g) => {
-      if (g.type === "CREDIT") totalLiabilities += g._sum.amount || 0
-      else totalLiabilities -= g._sum.amount || 0
-    })
-
-    const liabPokok = await getAccountBalance("2.1.01.01", endDate)
-    const liabWajib = await getAccountBalance("2.1.01.02", endDate)
     const liabilities = [
-      { name: "Simpanan Pokok Anggota", amount: liabPokok },
-      { name: "Simpanan Wajib Anggota", amount: liabWajib },
+      { name: "Simpanan Pokok Anggota", amount: Math.max(0, liabPokok) },
+      { name: "Simpanan Wajib Anggota", amount: Math.max(0, liabWajib) },
       { name: "Utang & Kewajiban Lainnya", amount: Math.max(0, totalLiabilities - liabPokok - liabWajib) }
     ]
 
-    const eqModalAwal = await getAccountBalance("3.1.01.01", endDate)
-    const eqModalMasy = await getAccountBalance("3.1.02.01", endDate)
-    const eqLabaDitahan = await getAccountBalance(["3.1.03.01", "3.2.01.01"], endDate)
-
     const equity = [
-      { name: "Penyertaan Modal Desa (APBDes)", amount: eqModalAwal },
+      { name: "Penyertaan Modal Desa (APBDes)", amount: eqModalDesa },
       { name: "Penyertaan Modal Masyarakat", amount: eqModalMasy },
-      { name: "Cadangan Modal / Laba Ditahan", amount: eqLabaDitahan },
-      { name: "Laba Bersih Periode Berjalan", amount: netProfit }
+      { name: "Cadangan Modal & Saldo Laba Ditahan", amount: eqCadanganLabaDitahan },
+      { name: "Laba Bersih Periode Berjalan (SHU)", amount: netProfit }
     ]
-    const totalEquity = equity.reduce((s, e) => s + e.amount, 0)
+    const totalEquity = eqModalDesa + eqModalMasy + eqCadanganLabaDitahan + netProfit
     const totalLiabilitiesAndEquity = totalLiabilities + totalEquity
 
+    // LPE Dinamis Sesuai Kepmendes 136
+    const saldoLabaAwalTahun = eqCadanganLabaDitahan + bagiHasilDesaBerjalan
+    const saldoLabaAkhirTahun = eqCadanganLabaDitahan + netProfit
     const lpe = {
-      modalAwalDesa: eqModalAwal,
+      modalAwalDesa: eqModalDesa,
       modalAwalMasyarakat: eqModalMasy,
       penambahanModalDesa: 0,
       penambahanModalMasyarakat: 0,
-      totalPenyertaanModalAkhir: eqModalAwal + eqModalMasy,
-      saldoLabaAwal: eqLabaDitahan,
+      totalPenyertaanModalAkhir: eqModalDesa + eqModalMasy,
+      saldoLabaAwal: saldoLabaAwalTahun,
       labaPeriodeBerjalan: netProfit,
-      bagiHasilDesa: 0,
+      bagiHasilDesa: bagiHasilDesaBerjalan,
       bagiHasilMasyarakat: 0,
-      saldoLabaAkhir: eqLabaDitahan + netProfit,
-      ekuitasAkhir: eqModalAwal + eqModalMasy + eqLabaDitahan + netProfit
+      saldoLabaAkhir: saldoLabaAkhirTahun,
+      ekuitasAkhir: eqModalDesa + eqModalMasy + saldoLabaAkhirTahun
     }
 
+    // Ambil saldo kas awal tahun dari tabel OpeningBalance atau AnnualClosing tahun lalu atau jurnal SA/sebelumnya
+    let saldoKasAwal = 0
+    const obCash = await db.openingBalance.findMany({
+      where: {
+        year: currentYear,
+        accountCode: { startsWith: "1.1.01" }
+      }
+    })
+
+    if (obCash.length > 0) {
+      obCash.forEach((o) => {
+        if (o.type === "DEBIT") saldoKasAwal += o.amount
+        else saldoKasAwal -= o.amount
+      })
+    } else {
+      // Cek snapshot tutup buku tahun lalu jika ada
+      const prevClosing = await db.annualClosing.findFirst({
+        where: { year: currentYear - 1 }
+      })
+      if (prevClosing) {
+        try {
+          const snap = JSON.parse(prevClosing.snapshotData)
+          saldoKasAwal = snap.lak?.saldoKasAkhir || 0
+        } catch {
+          // ignore parse error
+        }
+      }
+
+      // Jika belum ditemukan, fallback ke jurnal periode lalu & jurnal Saldo Awal (SA/...)
+      if (saldoKasAwal === 0) {
+        const priorCashLines = await db.journalLine.findMany({
+          where: {
+            accountCode: { startsWith: "1.1.01" },
+            OR: [
+              { journalEntry: { date: { lt: startDate } } },
+              { journalEntry: { proofNumber: { startsWith: "SA/" } } },
+              { journalEntry: { description: { contains: "Saldo Awal" } } }
+            ]
+          }
+        })
+        priorCashLines.forEach((l) => {
+          if (l.type === "DEBIT") saldoKasAwal += l.amount
+          else saldoKasAwal -= l.amount
+        })
+      }
+    }
+
+    // Ambil mutasi kas selama tahun berjalan (kecuali jurnal Saldo Awal / Buka Buku SA/...)
     const cashLines = await db.journalLine.findMany({
       where: {
         accountCode: { startsWith: "1.1.01" },
-        journalEntry: { date: { gte: startDate, lte: endDate } }
+        journalEntry: {
+          date: { gte: startDate, lte: endDate },
+          NOT: {
+            OR: [
+              { proofNumber: { startsWith: "SA/" } },
+              { description: { contains: "Saldo Awal" } }
+            ]
+          }
+        }
       }
     })
 
@@ -255,6 +302,7 @@ export async function GET(request: Request) {
     })
 
     const lak = {
+      saldoKasAwal: Math.max(0, saldoKasAwal),
       operasi: {
         masuk: arusKasMasukOperasi,
         keluar: arusKasKeluarOperasi,

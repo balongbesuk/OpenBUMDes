@@ -22,12 +22,14 @@
 - [Perbandingan dengan Excel Konvensional](#-keunggulan-dibandingkan-excel-manual)
 - [Fitur Utama](#-fitur-fitur-utama)
   - [1. Dashboard Eksekutif & Indeks Kesehatan](#1--dashboard-eksekutif--indeks-kesehatan-keuangan)
-  - [2. Buku Kas Umum & Jurnal Otomatis](#2--buku-kas-umum-bku--pencatatan-jurnal-otomatis)
-  - [3. 5 Laporan Keuangan Kepmendes 136/2022](#3--5-laporan-keuangan-standar-kepmendes-1362022)
-  - [4. Tutup Buku & Buka Saldo Otomatis](#4--tutup-buku--buka-buku-tahunan)
-  - [5. Master Bagan Akun Standar (COA Dinamis)](#5--bagan-akun-standar-coa-dinamis)
-  - [6. Asisten Jurnal Otomatis (Gemini AI & NLP)](#6--asisten-pintar-pencatatan-transaksi-google-gemini-ai--nlp)
-  - [7. Administrasi, Pejabat & Pemeliharaan](#7--keamanan-pengaturan-instansi--pemeliharaan)
+  - [2. Buku Kas Umum & Jurnal Otomatis (Full Grid Audit)](#2--buku-kas-umum-bku--pencatatan-jurnal-otomatis-full-grid-audit)
+  - [3. 5 Laporan Keuangan Standar SAK EMKM & Kepmendes 136/2022](#3--5-laporan-keuangan-standar-sak-emkm--kepmendes-1362022)
+  - [4. Tutup & Buka Buku & Cetak Dokumen Resmi LPJ Musdes (8 Halaman A4 Presisi)](#4--tutup--buka-buku--cetak-dokumen-resmi-lpj-musdes-8-halaman-a4-presisi)
+  - [5. Modul Audit Pemeriksaan Inspektorat](#5--modul-audit-pemeriksaan-inspektorat)
+  - [6. EIS (Executive Information System) Tingkat Kesehatan Keuangan](#6--eis-executive-information-system-tingkat-kesehatan-keuangan)
+  - [7. Master Bagan Akun Standar (COA Dinamis & Paginasi)](#7--master-bagan-akun-standar-coa-dinamis--paginasi)
+  - [8. Asisten Pintar Pencatatan Transaksi (Gemini AI & NLP)](#8--asisten-pintar-pencatatan-transaksi-google-gemini-ai--nlp)
+  - [9. Administrasi, Pejabat & Pemeliharaan](#9--keamanan-pengaturan-instansi--pemeliharaan)
 - [Tech Stack & Arsitektur](#-tech-stack--arsitektur)
 - [Panduan Instalasi & Menjalankan](#-panduan-instalasi--menjalankan)
 - [Akun Pengguna Bawaan](#-akun-pengguna-bawaan-default-credentials)
@@ -76,49 +78,73 @@ Dengan OpenBUMDes, pengurus BUMDes, bendahara, dan pemerintah desa tidak lagi di
 
 ---
 
-### 2. 📖 Buku Kas Umum (BKU) & Pencatatan Jurnal Otomatis
+### 2. 📖 Buku Kas Umum (BKU) & Pencatatan Jurnal Otomatis (Full Grid Audit)
 * **Pencatatan Ganda Otomatis (*Double-Entry Ledger*):** Setiap pencatatan kas otomatis menjurnal akun lawan yang sesuai standar akuntansi.
-* **Klasifikasi Bukti Kas:** Mendukung Bukti Kas Masuk (BKM), Bukti Kas Keluar (BKK), dan Mutasi Antar Kas/Bank.
+* **Klasifikasi Bukti Kas:** Mendukung Bukti Kas Masuk (BKM), Bukti Kas Keluar (BKK), dan Bukti Memorial (BM/SA).
+* **Tampilan Tabel Full Grid Audit:** Format tabel bergaris formal standar akuntansi audit dengan baris ringkasan total mutasi seimbang.
 * **Penyaringan Fleksibel:** Filter transaksi berdasarkan Bulan, Tahun Buku, Jenis Bukti Kas, dan Status Bukti Fisik (Sudah TTD / Belum TTD).
-* **Pencarian Cepat:** Pencarian cerdas berdasarkan nomor bukti, deskripsi transaksi, atau pihak rekanan/pembayar.
-* **Cetak Kwitansi Resmi:** Format cetak Kwitansi/Bukti Kas standar dengan nomor otomatis, terbilang rupiah, dan tanda tangan lengkap.
-* **Edit Rekanan Langsung (*Inline Editing*):** Memperbarui nama penerima/penyetor langsung pada tabel BKU tanpa membuka modal.
+* **Pencarian Cepat:** Pencarian cerdas berdasarkan nomor bukti, uraian transaksi, akun, atau pihak rekanan.
+* **Cetak Kwitansi Resmi:** Format cetak Kwitansi/Bukti Kas standar dengan nomor otomatis, terbilang rupiah, dan tanda tangan 4 pihak.
+* **Edit Rekanan Langsung (*Inline Editing*):** Memperbarui nama rekanan langsung pada tabel BKU tanpa membuka modal.
 * **Ekspor Excel 1 Tahun Penuh (Multi-Sheet):** Sekali klik untuk mengunduh rekapitulasi BKU 1 tahun fiskal lengkap dalam format multi-sheet (Januari s.d. Desember + Rekapitulasi Tahunan).
 
 ---
 
-### 3. 📑 5 Laporan Keuangan Standar Kepmendes 136/2022
+### 3. 📑 5 Laporan Keuangan Standar SAK EMKM & Kepmendes 136/2022
 Seluruh laporan dihasilkan secara otomatis dan *real-time*:
-1. **Laporan Laba Rugi Komprehensif:** Menyajikan Pendapatan Usaha, Beban Pokok Penjualan/Produksi, Beban Operasional, Pendapatan/Beban Lain-Lain, hingga Laba Bersih (SHU) Tahun Berjalan.
-2. **Laporan Posisi Keuangan (Neraca SAK EMKM):** Menyajikan Aset Lancar, Aset Tetap Bersih, Kewajiban Jangka Pendek, serta Ekuitas BUMDes yang selalu seimbang (*balanced*).
-3. **Laporan Perubahan Ekuitas (LPE):** Rincian mutasi modal awal APBDes, penyertaan modal tambahan, cadangan umum, laba ditahan, dan ekuitas akhir periode.
-4. **Laporan Arus Kas (LAK Metode Langsung):** Mengelompokkan arus kas masuk dan keluar ke dalam 3 aktivitas utama: **Aktivitas Operasi**, **Aktivitas Investasi**, dan **Aktivitas Pendanaan**.
-5. **Catatan atas Laporan Keuangan (CaLK):** Gambaran umum BUMDes, dasar penyusunan & kepatuhan SAK EMKM, serta penjelasan rincian pos-pos akun.
-* **Cetak LPJ Terpadu:** Cetak laporan pertanggungjawaban komprehensif ke format dokumen siap ditandatangani.
+1. **Laporan Laba Rugi Komprehensif:** Tabel formal Full Grid menyajikan Pendapatan Usaha, Beban Pokok Penjualan/Produksi, Beban Operasional, Pendapatan/Beban Non-Usaha, hingga SHU Bersih Tahun Berjalan.
+2. **Laporan Posisi Keuangan (Neraca SAK EMKM):** Tabel 2 kolom berdampingan menyajikan Aset Lancar vs Kewajiban & Ekuitas yang selalu seimbang 100% (*balanced*).
+3. **Laporan Perubahan Ekuitas (LPE):** Rincian mutasi modal awal APBDes, cadangan modal, saldo laba ditahan, penyetoran PADes, dan ekuitas akhir periode.
+4. **Laporan Arus Kas (LAK Metode Langsung):** Mengelompokkan arus kas masuk dan keluar ke dalam 3 aktivitas utama (**Operasi**, **Investasi**, **Pendanaan**), dengan saldo kas awal 1 Jan terhubung otomatis ke tutup buku/saldo buka buku awal tahun.
+5. **Catatan atas Laporan Keuangan (CaLK):** Pengungkapan lengkap gambaran umum, kebijakan akuntansi, rincian aset lancar, aset tetap & akumulasi penyusutan, kewajiban, ekuitas, dan kinerja usaha.
 
 ---
 
-### 4. 🔒 Tutup Buku & Buka Buku Tahunan
-* **Otomasi Akhir Tahun:** Menutup akun pendapatan dan beban ke akun Saldo Laba Ditahan per 31 Desember.
-* **Buka Saldo Awal Otomatis:** Membawa saldo neraca akhir tahun menjadi saldo awal (*Opening Balance*) tahun berikutnya secara presisi.
-* **Buka Kembali Buku (*Reopen Period*):** Administrator dapat membuka kembali pembukuan tahun yang telah ditutup jika terdapat perbaikan transaksi yang sah.
+### 4. 🔒 Tutup & Buka Buku & Cetak Dokumen Resmi LPJ Musdes (8 Halaman A4 Presisi)
+* **Otomasi Akhir Tahun:** Menutup akun pendapatan dan beban ke akun Ekuitas Saldo Laba Ditahan (3.1.03.01) per 31 Desember.
+* **Buka Saldo Awal Otomatis (Rollover 1 Januari):** Membawa saldo neraca akhir tahun menjadi saldo awal (*Opening Balance*) tahun berikutnya secara presisi dan otomatis terkoneksi ke Buku Kas, Buku Besar, dan Laporan Arus Kas.
+* **Dokumen Resmi LPJ Musdes 8 Halaman A4 Siap Cetak & Ekspor PDF**:
+  * **Halaman 1 (Cover A4 Presisi)**: Bingkai ganda formal (*double border*) berukuran pas A4 (`272mm`) dengan logo BUMDes, identitas instansi desa/kecamatan/kabupaten, dan banner pengesahan Musdes.
+  * **Halaman 2**: Laporan Laba Rugi Komprehensif Standar Kepmendes 136/2022.
+  * **Halaman 3**: Rencana & Realisasi Alokasi SHU Musdes (PADes, Cadangan Modal, Pengurus, Sosial, Pendidikan).
+  * **Halaman 4**: Laporan Posisi Keuangan (Neraca SAK EMKM) tabel berdampingan dengan badge status 100% Seimbang.
+  * **Halaman 5**: Laporan Perubahan Ekuitas (LPE).
+  * **Halaman 6**: Laporan Arus Kas (LAK Metode Langsung) dengan saldo kas awal dan saldo kas akhir terverifikasi.
+  * **Halaman 7**: Catatan atas Laporan Keuangan (CaLK) komprehensif.
+  * **Halaman 8**: Lembar Pengesahan Resmi Keputusan Musdes lengkap dengan Kop Surat BUMDes resmi, Logo, dan 4 Pilar Tanda Tangan SPJ (Bendahara, Direktur Utama, Ketua Badan Pengawas, Kepala Desa selaku Penasihat).
+* **Kop Surat Tahan-Banting**: Tata letak kop surat dan badge `Kepmendes PDTT 136/2022` terkunci dengan rapi pada hasil cetak PDF agar 100% identik dengan tampilan pratinjau.
 
 ---
 
-### 5. 🗂️ Master Bagan Akun Standar (COA Dinamis)
-* **Master COA Kepmendes 136:** Dilengkapi lebih dari 130 akun standar resmi (Aset, Kewajiban, Ekuitas, Pendapatan, Beban).
+### 5. 🔍 Modul Audit Pemeriksaan Inspektorat
+* **Buku Besar Umum (General Ledger)**: Filter akun COA, rekonsiliasi otomatis saldo awal periode dari tabel `OpeningBalance`, rincian mutasi debit/kredit operasional, lawan akun, saldo berjalan, dan tombol Cetak Dokumen Pemeriksaan A4.
+* **Neraca Saldo (Trial Balance)**: Kertas kerja verifikasi akuntansi dengan badge status *100% Seimbang (Total Debit = Total Kredit)* dan fitur Cetak Resmi.
+* **Buku Pembantu Piutang & Utang (Subsidiary Ledger)**: Kartu kontrol transaksi per pelanggan/debitur dan kreditur/vendor desa dengan fitur Cetak Kartu Pengawasan.
+
+---
+
+### 6. 🩺 EIS (Executive Information System) Tingkat Kesehatan Keuangan
+* **8 Indikator Keuangan Resmi:** Menilai rasio keuangan standar PPAK BUMDes Ver 4.5 & Kemendesa: ROE, ROI, Cash Ratio, Current Ratio, Collection Period, Perputaran Persediaan, Total Asset Turnover (TATO), dan Rasio Modal Sendiri terhadap Total Aset.
+* **Transparansi Perhitungan:** Menampilkan formula akuntansi, angka dasar pembilang/penyebut, perolehan skor (Total 100 Poin), dan predikat tingkat kesehatan (**SEHAT**, **KURANG SEHAT**, atau **TIDAK SEHAT**).
+* **Cetak Lembar Evaluasi Eksekutif A4:** Dilengkapi tanda tangan Direktur Utama dan Penasihat (Kepala Desa).
+
+---
+
+### 7. 🗂️ Master Bagan Akun Standar (COA Dinamis & Paginasi)
+* **Master COA Kepmendes 136:** Dilengkapi lebih dari 220 akun standar resmi 5 level kodefikasi (Aset, Kewajiban, Ekuitas, Pendapatan, Beban).
+* **Paginasi Interaktif:** Pengaturan tampilan 15, 25, 50, dan 100 baris per halaman untuk kenyamanan penelusuran.
 * **Tambah Akun Kustom:** Kemudahan menambah sub-akun bank lokal (misal: *Bank Jatim*, *Bank Jombang*, *Bank Jateng*) atau unit usaha spesifik desa.
 * **Proteksi Integritas Akun:** Akun yang telah memiliki riwayat transaksi diproteksi dan tidak dapat terhapus.
 
 ---
 
-### 6. 🤖 Asisten Pintar Pencatatan Transaksi (Google Gemini AI & NLP)
+### 8. 🤖 Asisten Pintar Pencatatan Transaksi (Google Gemini AI & NLP)
 * **Natural Language Transaction Parser:** Operator cukup mengetik catatan transaksi dalam bahasa santai sehari-hari (misal: *"Terima sewa lapak rest area 500rb tunai"* atau *"Beli bensin motor dinas 50rb"*), sistem secara otomatis mengonversinya menjadi pasangan jurnal debit-kredit standar Kepmendes 136/2022, klasifikasi BKM/BKK, dan pos Arus Kas.
 * **Mode Offline Cerdas:** Fitur AI opsional; jika tanpa internet atau API Key, aplikasi tetap berjalan 100% penuh secara offline dengan mesin aturan NLP bawaan (0ms latency, hemat kuota).
 
 ---
 
-### 7. 🛡️ Keamanan, Pengaturan Instansi & Pemeliharaan
+### 9. 🛡️ Keamanan, Pengaturan Instansi & Pemeliharaan
 * **Identitas Lembaga:** Konfigurasi Nama BUMDes, Nama Desa, Kecamatan, Kabupaten, Alamat Kantor, dan unggah Logo Resmi.
 * **Legalitas Pejabat Penandatangan:** Konfigurasi Nama dan NIP untuk **Direktur BUMDes**, **Bendahara**, **Penasihat (Kepala Desa)**, dan **Pengawas (Ketua BPD)**.
 * **Manajemen Pengguna Multi-Role:** Pembagian hak akses antara Administrator (pengaturan & audit) dan Operator (kasir & pencatatan transaksi).
