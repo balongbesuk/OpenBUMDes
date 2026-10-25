@@ -15,6 +15,8 @@
   <a href="https://aistudio.google.com/"><img src="https://img.shields.io/badge/AI-Google%20Gemini-orange?style=flat-square" alt="Google Gemini"></a>
 </p>
 
+<img width="1464" height="817" alt="image" src="https://github.com/user-attachments/assets/cd2b4de9-1dd6-45c8-aed8-e805cc5ed1c7" />
+
 ---
 
 ## 📌 Daftar Isi
