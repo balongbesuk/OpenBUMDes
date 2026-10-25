@@ -29,7 +29,7 @@
     "recharts": "^2.13.0",
     "tailwind-merge": "^2.5.4",
     "xlsx": "^0.18.5",
-    "zod": "^4.4.3"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
