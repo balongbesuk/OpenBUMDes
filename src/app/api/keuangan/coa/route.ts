@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getUserSession } from "@/lib/auth"
-import { logActivity } from "@/lib/audit"
 
 // GET: List all Chart of Accounts (COA) with optional filtering/search
 export async function GET(request: Request) {
@@ -94,7 +93,6 @@ export async function POST(request: Request) {
       data: {
         category: templateCategory,
         name: name.trim(),
-        unitUsaha: "UMUM",
         targetAccount: code.trim(),
         cashAccount: defaultCashAcc,
         cashFlowGroup,
@@ -102,7 +100,6 @@ export async function POST(request: Request) {
       }
     })
 
-    await logActivity("CREATE_COA_ACCOUNT", `Menambahkan akun COA baru: ${code} - ${name} (${type})`, session)
 
     return NextResponse.json({ success: true, data: created })
   } catch (error: any) {
@@ -150,7 +147,6 @@ export async function DELETE(request: Request) {
       where: { targetAccount: code }
     })
 
-    await logActivity("DELETE_COA_ACCOUNT", `Menghapus akun COA: ${code}`, session)
 
     return NextResponse.json({ success: true, message: `Akun ${code} berhasil dihapus.` })
   } catch (error: any) {
