@@ -1,6 +1,27 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getUserSession } from "@/lib/auth"
+import path from "path"
+import fs from "fs"
+
+let standardCoaCache: Map<string, string> | null = null
+function getStandardCoaMap() {
+  if (!standardCoaCache) {
+    try {
+      const coaPath = path.join(process.cwd(), "prisma", "coa_kemendes_136.json")
+      if (fs.existsSync(coaPath)) {
+        const raw = fs.readFileSync(coaPath, "utf-8")
+        const list: { code: string; name: string }[] = JSON.parse(raw)
+        standardCoaCache = new Map(list.map(item => [item.code, item.name]))
+      } else {
+        standardCoaCache = new Map()
+      }
+    } catch {
+      standardCoaCache = new Map()
+    }
+  }
+  return standardCoaCache
+}
 
 // GET: List all Chart of Accounts (COA) with optional filtering/search
 export async function GET(request: Request) {
@@ -25,7 +46,33 @@ export async function GET(request: Request) {
       orderBy: { code: "asc" }
     })
 
-    return NextResponse.json({ success: true, data: accounts })
+    const standardMap = getStandardCoaMap()
+    const enriched = accounts.map((acc) => {
+      const isStandard = standardMap.has(acc.code)
+      const originalName = standardMap.get(acc.code)
+      const isCustomized = isStandard && originalName !== acc.name
+      return {
+        ...acc,
+        isStandard,
+        isCustomized,
+        originalName: isStandard ? originalName : null
+      }
+    })
+
+const STANDARD_GROUPS = [
+  { prefix: "1.1.01", name: "Kas dan Setara Kas", type: "ASSET", normal: "Debit" },
+  { prefix: "1.1.02", name: "Piutang Usaha", type: "ASSET", normal: "Debit" },
+  { prefix: "1.1.03", name: "Persediaan", type: "ASSET", normal: "Debit" },
+  { prefix: "1.2.01", name: "Aset Tetap Berwujud", type: "ASSET", normal: "Debit" },
+  { prefix: "2.1.01", name: "Kewajiban Jangka Pendek", type: "LIABILITY", normal: "Credit" },
+  { prefix: "3.1.01", name: "Ekuitas / Modal BUMDes", type: "EQUITY", normal: "Credit" },
+  { prefix: "4.1.01", name: "Pendapatan Usaha Utama", type: "REVENUE", normal: "Credit" },
+  { prefix: "4.1.02", name: "Pendapatan Jasa & Sewa", type: "REVENUE", normal: "Credit" },
+  { prefix: "6.1.01", name: "Beban Operasional SDM", type: "EXPENSE", normal: "Debit" },
+  { prefix: "6.1.04", name: "Beban Operasional Lainnya", type: "EXPENSE", normal: "Debit" }
+]
+
+    return NextResponse.json({ success: true, data: enriched, groups: STANDARD_GROUPS })
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || "Gagal mengambil daftar akun COA" },
@@ -156,3 +203,61 @@ export async function DELETE(request: Request) {
     )
   }
 }
+
+// PUT: Update/customize existing COA account (custom name, type, normal balance)
+export async function PUT(request: Request) {
+  try {
+    const session = await getUserSession()
+    if (!session || (session.role !== "ADMIN" && session.role !== "BENDAHARA")) {
+      return NextResponse.json({ success: false, error: "Akses ditolak" }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { code, name, normal, type } = body
+
+    if (!code || !name) {
+      return NextResponse.json(
+        { success: false, error: "Kode Akun dan Nama Akun wajib diisi" },
+        { status: 400 }
+      )
+    }
+
+    const existing = await db.ledgerAccount.findUnique({
+      where: { code: code.trim() }
+    })
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, error: `Akun ${code} tidak ditemukan` },
+        { status: 404 }
+      )
+    }
+
+    const updateData: any = {
+      name: name.trim()
+    }
+    if (normal) updateData.normal = normal
+    if (type) updateData.type = type
+
+    const updated = await db.ledgerAccount.update({
+      where: { code: code.trim() },
+      data: updateData
+    })
+
+    // Also update any associated transaction templates
+    await db.transactionTemplate.updateMany({
+      where: { targetAccount: code.trim() },
+      data: {
+        name: name.trim(),
+        description: `Transaksi ${name.trim()}`
+      }
+    })
+
+    return NextResponse.json({ success: true, data: updated })
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message || "Gagal memperbarui akun COA" },
+      { status: 500 }
+    )
+  }
+}
+

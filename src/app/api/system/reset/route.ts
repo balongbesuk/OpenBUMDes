@@ -23,11 +23,27 @@ export async function POST(request: Request) {
     }
 
     // Bersihkan seluruh data transaksi kas, jurnal harian, dan arsip penutupan
+    // Catatan: Akun Bagan Akun (COA) dan kustomisasi pengguna sengaja TIDAK dihapus.
     await db.$transaction(async (tx) => {
       await tx.journalLine.deleteMany()
       await tx.journalEntry.deleteMany()
       await tx.annualClosing.deleteMany()
       await tx.openingBalance.deleteMany()
+
+      // Safeguard: Jika karena alasan apa pun tabel ledgerAccount kosong, otomatis isi kembali dengan COA standar Kemendes 136
+      const count = await tx.ledgerAccount.count()
+      if (count === 0) {
+        const path = await import("path")
+        const fs = await import("fs")
+        const coaPath = path.join(process.cwd(), "prisma", "coa_kemendes_136.json")
+        if (fs.existsSync(coaPath)) {
+          const raw = fs.readFileSync(coaPath, "utf-8")
+          const coaList: { code: string; name: string; type: string; normal: string }[] = JSON.parse(raw)
+          await tx.ledgerAccount.createMany({
+            data: coaList
+          })
+        }
+      }
     })
 
     return NextResponse.json({

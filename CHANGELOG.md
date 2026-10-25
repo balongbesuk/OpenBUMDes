@@ -22,6 +22,14 @@ All notable changes to OpenBUMDes are documented in this file.
   * Menghilangkan batas pemotongan teks (`max-w-[130px]`) yang sebelumnya memotong nama menjadi "Kepala / Direktur BU...". Nama pengguna kini tampil utuh dan proporsional.
   * Memperbarui visual avatar dengan gradien modern (`indigo-purple`) dan indikator status aktif (*green online dot*).
   * Menambahkan kartu menu dropdown interaktif: menampilkan kartu identitas profil lengkap, username (@admin), hak akses sesi, pintasan navigasi cepat (Pengaturan Instansi & AI, Kelola Akun & Database, Buku Kas), serta tombol Keluar (Logout) yang aman dan elegan dengan deteksi klik luar (*click outside*).
+* **Pelindung Bagan Akun (COA) Permanen & Kustomisasi Fleksibel Akun Pengguna**:
+  * **Jaminan Akun COA Tidak Terhapus saat Mengosongkan Database**: Proses pengosongan aplikasi di `/api/system/reset` secara sengaja mempertahankan seluruh Master Bagan Akun (`ledgerAccount`) dan akun kustom pengguna. Dilengkapi safeguard otomatis: jika tabel akun pernah kosong, sistem akan otomatis melakukan *auto-seed* dari master resmi `coa_kemendes_136.json`.
+  * **Fitur Sesuaikan / Kustomisasi Akun (Edit Akun COA)**: Pengguna kini dapat menyesuaikan nama akun standar (misalnya: mengganti "Kas di Bank BNI" menjadi "Kas di Bank BNI Unit Balongbesuk" atau bank lokal lainnya) melalui tombol Aksi Edit (`✏️`). Perubahan nama akun secara otomatis tersinkronisasi ke seluruh buku jurnal dan template formulir transaksi.
+  * **Indikator Status Akun Transparan**: Tabel COA dilengkapi kolom Status dengan badge visual:
+    * `Standar`: Akun resmi bawaan sistem Kepmendesa No. 136/2022.
+    * `Disesuaikan`: Akun standar yang telah disesuaikan namanya oleh pengguna, dilengkapi informasi nama bawaan aslinya di bawah nama akun.
+    * `Kustom`: Akun dinamis tambahan baru buatan pengguna (dapat dihapus dengan aman jika belum memiliki riwayat jurnal).
+  * **Fitur Pulihkan COA Bawaan Sistem**: Menambahkan tombol `Pulihkan COA Bawaan Sistem` (`/api/keuangan/coa/reset-default`) untuk mengembalikan seluruh nama akun standar ke nama resmi Kepmendes 136/2022 kapan saja tanpa menghapus akun-akun kustom pengguna.
 * **Penanganan Status Database Kosong pada Modul EIS (Kesehatan Keuangan)**:
   * Memperbaiki kalkulasi API `/api/eis` agar memverifikasi keberadaan data transaksi dan saldo awal pembukuan sebelum menghitung rasio.
   * Ketika database dalam kondisi kosong (setelah dikosongkan/reset), sistem secara otomatis menetapkan predikat **BELUM ADA DATA (NIHIL)** dengan skor 0 poin dan menampilkan kartu panduan input saldo awal / transaksi, mencegah munculnya kalkulasi skor semu saat data masih nihil.

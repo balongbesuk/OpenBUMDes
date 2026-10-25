@@ -51,6 +51,7 @@ import {
 import { formatRupiah } from "@/lib/utils"
 import KwitansiModal from "@/components/KwitansiModal"
 import AddCoaModal from "@/components/AddCoaModal"
+import EditCoaModal from "@/components/EditCoaModal"
 import ClosingTab from "@/components/ClosingTab"
 import LoginModal from "@/components/LoginModal"
 import SystemMaintenanceTab from "@/components/SystemMaintenanceTab"
@@ -190,6 +191,8 @@ export default function StislaApp() {
   const [coaCategoryFilter, setCoaCategoryFilter] = useState("all")
   const [coaPage, setCoaPage] = useState(1)
   const [coaPerPage, setCoaPerPage] = useState(15)
+  const [editingCoa, setEditingCoa] = useState<any | null>(null)
+  const [resettingCoa, setResettingCoa] = useState(false)
 
   // Buku Kas & Jurnal Search & Pagination States
   const [cashBookSearch, setCashBookSearch] = useState("")
@@ -247,6 +250,55 @@ export default function StislaApp() {
     )
   }
 
+  // Restore baseline Kemendesa 136 COA accounts
+  const handleResetDefaultCoa = async () => {
+    if (!confirm("Apakah Anda yakin ingin memulihkan seluruh nama akun standar Kepmendesa No. 136/2022 ke nama bawaan sistem?\n\nCatatan: Akun kustom tambahan yang Anda buat sendiri tetap aman dan tidak akan terhapus.")) {
+      return
+    }
+    setResettingCoa(true)
+    try {
+      const res = await fetch("/api/keuangan/coa/reset-default", {
+        method: "POST"
+      })
+      const json = await res.json()
+      if (json.success) {
+        alert(json.message || "Bagan Akun standar berhasil dipulihkan.")
+        loadData()
+      } else {
+        alert(json.error || "Gagal memulihkan bagan akun standar.")
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message)
+    } finally {
+      setResettingCoa(false)
+    }
+  }
+
+  // Delete custom user account
+  const handleDeleteCoa = async (acc: any) => {
+    if (acc.isStandard) {
+      alert("Akun standar Kepmendesa No. 136/2022 tidak dapat dihapus karena merupakan bagan akun acuan wajib sistem. Anda dapat menyesuaikan namanya menggunakan tombol Edit.")
+      return
+    }
+    if (!confirm(`Hapus akun kustom "${acc.code} - ${acc.name}" secara permanen?`)) {
+      return
+    }
+    try {
+      const res = await fetch(`/api/keuangan/coa?code=${encodeURIComponent(acc.code)}`, {
+        method: "DELETE"
+      })
+      const json = await res.json()
+      if (json.success) {
+        alert(json.message || "Akun berhasil dihapus.")
+        loadData()
+      } else {
+        alert(json.error || "Gagal menghapus akun.")
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message)
+    }
+  }
+
   // Load Data
   const loadData = async (targetYear = selectedYear) => {
     setLoading(true)
@@ -272,7 +324,8 @@ export default function StislaApp() {
           setLogoPreview(resSet.data.bumdes_logo)
         }
       }
-      if (resGroups.success && resGroups.data?.groups) setStandardGroups(resGroups.data.groups)
+      if (resCoa.groups) setStandardGroups(resCoa.groups)
+      else if (resGroups.success && resGroups.data?.groups) setStandardGroups(resGroups.data.groups)
       if (resAiStatus && resAiStatus.success) setAiStatus(resAiStatus)
       if (resClosing && resClosing.success) setClosingList(resClosing.data)
     } catch (e) {
@@ -296,6 +349,7 @@ export default function StislaApp() {
       .catch(() => setCurrentUser(null))
       .finally(() => setAuthLoading(false))
 
+    loadData()
   }, [selectedMonth, selectedYear, proofTypeFilter])
 
   useEffect(() => {
@@ -3318,13 +3372,28 @@ export default function StislaApp() {
                         </p>
                       </div>
 
-                      <button
-                        onClick={() => setShowCoaModal(true)}
-                        className="bg-[#6777ef] hover:bg-[#5868e4] text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-xs shrink-0 self-start md:self-auto cursor-pointer transition-all"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Tambah Akun Baru (Dinamis)</span>
-                      </button>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {(currentUser?.role === "ADMIN" || currentUser?.role === "BENDAHARA") && (
+                          <button
+                            type="button"
+                            onClick={handleResetDefaultCoa}
+                            disabled={resettingCoa}
+                            className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-2xs shrink-0 cursor-pointer transition-all disabled:opacity-50"
+                            title="Pulihkan seluruh nama akun standar Kepmendesa 136 ke bawaan sistem tanpa menghapus akun kustom pengguna"
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${resettingCoa ? "animate-spin" : ""}`} />
+                            <span>Pulihkan COA Bawaan Sistem</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setShowCoaModal(true)}
+                          className="bg-[#6777ef] hover:bg-[#5868e4] text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer transition-all"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Tambah Akun Baru (Dinamis)</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* TOOLBAR FILTER, SEARCH & PER-PAGE */}
@@ -3401,16 +3470,18 @@ export default function StislaApp() {
                         <thead className="bg-slate-100/80 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-200 text-[11px]">
                           <tr>
                             <th className="py-2.5 px-3 border-r border-slate-200 w-12 text-center">No</th>
-                            <th className="py-2.5 px-4 border-r border-slate-200 w-36">Kode Akun</th>
-                            <th className="py-2.5 px-4 border-r border-slate-200">Nama Akun Standar (Kepmendes 136)</th>
+                            <th className="py-2.5 px-4 border-r border-slate-200 w-32">Kode Akun</th>
+                            <th className="py-2.5 px-3 border-r border-slate-200 w-28 text-center">Status</th>
+                            <th className="py-2.5 px-4 border-r border-slate-200">Nama Akun</th>
                             <th className="py-2.5 px-4 border-r border-slate-200 w-44 text-center">Kategori Akuntansi</th>
-                            <th className="py-2.5 px-4 text-center w-32">Saldo Normal</th>
+                            <th className="py-2.5 px-4 border-r border-slate-200 text-center w-28">Saldo Normal</th>
+                            <th className="py-2.5 px-3 text-center w-24">Aksi</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {paginatedCoa.length === 0 ? (
                             <tr>
-                              <td colSpan={5} className="py-12 text-center text-slate-400">
+                              <td colSpan={7} className="py-12 text-center text-slate-400">
                                 <Search className="w-8 h-8 mx-auto text-slate-300 mb-2" />
                                 <p className="font-semibold text-slate-600">Tidak ada akun yang sesuai dengan pencarian/filter.</p>
                                 <p className="text-xs text-slate-400 mt-1">Coba kata kunci lain atau pilih &ldquo;Semua Golongan Akun&rdquo;.</p>
@@ -3434,8 +3505,29 @@ export default function StislaApp() {
                                   <td className="py-2.5 px-4 border-r border-slate-200 font-mono font-bold text-[#6777ef] whitespace-nowrap">
                                     {acc.code}
                                   </td>
-                                  <td className="py-2.5 px-4 border-r border-slate-200 font-medium text-slate-800">
-                                    {acc.name}
+                                  <td className="py-2.5 px-3 border-r border-slate-200 text-center whitespace-nowrap">
+                                    {acc.isCustomized ? (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 inline-block" title="Nama akun standar yang telah disesuaikan oleh pengguna">
+                                        Disesuaikan
+                                      </span>
+                                    ) : acc.isStandard ? (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 inline-block" title="Akun standar bawaan Kepmendesa 136">
+                                        Standar
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 inline-block" title="Akun kustom tambahan pengguna">
+                                        Kustom
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="py-2.5 px-4 border-r border-slate-200 text-slate-800">
+                                    <div className="font-semibold">{acc.name}</div>
+                                    {acc.isCustomized && acc.originalName && (
+                                      <div className="text-[10px] text-slate-400 mt-0.5 italic flex items-center gap-1">
+                                        <span>Bawaan:</span>
+                                        <span className="font-mono text-slate-500">{acc.originalName}</span>
+                                      </div>
+                                    )}
                                   </td>
                                   <td className="py-2.5 px-4 border-r border-slate-200 text-center">
                                     <span
@@ -3454,7 +3546,7 @@ export default function StislaApp() {
                                       {acc.type}
                                     </span>
                                   </td>
-                                  <td className="py-2.5 px-4 text-center">
+                                  <td className="py-2.5 px-4 border-r border-slate-200 text-center">
                                     <span
                                       className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${
                                         acc.normal?.toLowerCase() === "debit"
@@ -3464,6 +3556,30 @@ export default function StislaApp() {
                                     >
                                       {acc.normal}
                                     </span>
+                                  </td>
+                                  <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                                    <div className="flex items-center justify-center gap-1">
+                                      {(currentUser?.role === "ADMIN" || currentUser?.role === "BENDAHARA") && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setEditingCoa(acc)}
+                                          className="p-1.5 rounded-lg text-slate-500 hover:text-amber-700 hover:bg-amber-50 border border-transparent hover:border-amber-200 transition-colors"
+                                          title="Sesuaikan nama akun"
+                                        >
+                                          <Pencil className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                      {!acc.isStandard && (currentUser?.role === "ADMIN" || currentUser?.role === "BENDAHARA") && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteCoa(acc)}
+                                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors"
+                                          title="Hapus akun kustom pengguna"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
                                   </td>
                                 </tr>
                               )
@@ -4148,6 +4264,18 @@ export default function StislaApp() {
         onSuccess={loadData}
         coaList={coaList}
         standardGroups={standardGroups}
+      />
+
+      {/* ===================== EDIT / CUSTOMIZE COA MODAL ===================== */}
+      <EditCoaModal
+        isOpen={!!editingCoa}
+        onClose={() => setEditingCoa(null)}
+        onSuccess={() => {
+          setEditingCoa(null)
+          loadData()
+        }}
+        account={editingCoa}
+        isStandard={editingCoa?.isStandard}
       />
 
       {/* ===================== MODAL KONFIRMASI HAPUS TRANSAKSI (ADMIN ONLY) ===================== */}

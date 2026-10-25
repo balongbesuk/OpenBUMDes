@@ -1,1 +1,1 @@
-export { GET, POST, DELETE } from "@/app/api/keuangan/coa/route"
+export { GET, POST, DELETE, PUT } from "@/app/api/keuangan/coa/route"
