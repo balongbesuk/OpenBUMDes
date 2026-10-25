@@ -9,7 +9,7 @@
 [![Prisma ORM](https://img.shields.io/badge/Prisma-5.21-2D3748?style=flat-square&logo=prisma)](https://www.prisma.io/)
 [![SQLite](https://img.shields.io/badge/SQLite-WAL%20Mode-003B57?style=flat-square&logo=sqlite)](https://www.sqlite.org/)
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-AI%20Assisted-8E75B2?style=flat-square&logo=google)](https://ai.google.dev/)
-[![License](https://img.shields.io/badge/License-MIT-emerald?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat-square)](LICENSE)
 
 **OpenBUMDes** adalah platform aplikasi web akuntansi dan manajemen operasional open-source yang dirancang khusus untuk Badan Usaha Milik Desa (BUMDes / BUMDes Bersama) di seluruh Indonesia. Dikembangkan mengacu penuh pada format pelaporan keuangan dan bagan akun standar **Kepmendesa PDTT No. 136 Tahun 2022** serta **Standar Akuntansi Keuangan Entitas Mikro, Kecil, dan Menengah (SAK EMKM)**.
 
@@ -210,8 +210,8 @@ Kontribusi dari seluruh pengembang, pegiat desa, dan akademisi sangat kami sambu
 ---
 
 ## 📄 Lisensi
-
-Proyek ini dilisensikan di bawah lisensi **MIT**. Silakan gunakan, kembangkan, dan manfaatkan secara bebas demi kemajuan ekonomi desa di seluruh nusantara.
+ 
+Proyek ini dilisensikan di bawah lisensi **GNU General Public License v3.0 (GPL-3.0)**. Silakan gunakan, kembangkan, dan manfaatkan secara bebas demi transparansi dan kemajuan ekonomi desa di seluruh nusantara.
 
 ---
 Dikembangkan bersama untuk kemandirian ekonomi desa di Indonesia 🇮🇩
