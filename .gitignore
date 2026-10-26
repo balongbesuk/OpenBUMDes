@@ -39,6 +39,7 @@ next-env.d.ts
 # OS files
 .DS_Store
 Thumbs.db
+*.zip
 
 # project references and documents
 /SPJ BUMDES INTI 2025/
