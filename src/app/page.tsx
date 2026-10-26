@@ -4105,24 +4105,21 @@ export default function StislaApp() {
                         </label>
                         <select
                           name="gemini_model"
-                          defaultValue={settings.gemini_model && !settings.gemini_model.startsWith("gemini-3") ? settings.gemini_model : "gemini-2.5-flash"}
+                          defaultValue={settings.gemini_model || "gemini-3.5-flash-lite"}
                           className="w-full p-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:border-[#6777ef]"
                         >
+                          <option value="gemini-3.5-flash-lite">
+                            ⚡ Gemini 3.5 Flash-Lite (Super Cepat ~1-2 detik, Paling Direkomendasikan)
+                          </option>
+                          <option value="gemini-3.8-flash">
+                            🧠 Gemini 3.8 Flash (High Intelligence - Cerdas & Cepat)
+                          </option>
                           <option value="gemini-2.5-flash">
-                            ⚡ Gemini 2.5 Flash (Rekomendasi Resmi Google - Super Cepat ~1-2 dtk)
-                          </option>
-                          <option value="gemini-1.5-flash">
-                            🚀 Gemini 1.5 Flash (Stabil & Sangat Cepat)
-                          </option>
-                          <option value="gemini-2.0-flash">
-                            ⚡ Gemini 2.0 Flash (Next-Gen Fast)
-                          </option>
-                          <option value="gemini-2.5-pro">
-                            💎 Gemini 2.5 Pro (Model Kualitas Maksimal untuk Analisis Rumit)
+                            🚀 Gemini 2.5 Flash (Model Alternatif Stabil)
                           </option>
                         </select>
                         <p className="text-[11px] text-slate-400 mt-1">
-                          Model Flash sangat disarankan untuk operasional desa karena memiliki latensi tercepat (~1-2 detik) dan kuota gratis harian yang besar di Google AI Studio.
+                          Model Flash-Lite sangat disarankan karena memiliki respons instan (~1-2 detik) dan hemat token harian.
                         </p>
                       </div>
                     )}

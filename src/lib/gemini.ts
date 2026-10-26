@@ -242,25 +242,31 @@ KEMBALIKAN OUTPUT HANYA BERUPA JSON VALID DENGAN FORMAT BERIKUT:
 }`
 
   const modelSetting = await db.setting.findUnique({ where: { key: "gemini_model" } })
-  let chosenModel = modelSetting?.value?.trim() || "gemini-2.5-flash"
-  if (chosenModel.startsWith("gemini-3")) {
-    chosenModel = "gemini-2.5-flash"
-  }
+  const chosenModel = modelSetting?.value?.trim() || "gemini-3.5-flash-lite"
 
   const ai = new GoogleGenAI({ apiKey })
-  const candidateModels = [chosenModel, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"].filter(
+  const candidateModels = [chosenModel, "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash"].filter(
     (v, i, a) => a.indexOf(v) === i
   )
 
   for (const model of candidateModels) {
     try {
+      const config: any = {
+        systemInstruction,
+        responseMimeType: "application/json"
+      }
+
+      // Model Gemini 3.8 memiliki fitur 'Thinking/Reasoning'. Batasi ke level 'low' agar tidak berpikir berlarut-larut (1-2 detik)
+      if (model.includes("3.8")) {
+        config.thinkingConfig = {
+          thinkingLevel: "low"
+        }
+      }
+
       const response = await ai.models.generateContent({
         model,
         contents: userText,
-        config: {
-          systemInstruction,
-          responseMimeType: "application/json"
-        }
+        config
       })
 
       const text = response.text
