@@ -4105,24 +4105,24 @@ export default function StislaApp() {
                         </label>
                         <select
                           name="gemini_model"
-                          defaultValue={settings.gemini_model || "gemini-3.5-flash-lite"}
+                          defaultValue={settings.gemini_model && !settings.gemini_model.startsWith("gemini-3") ? settings.gemini_model : "gemini-2.5-flash"}
                           className="w-full p-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:border-[#6777ef]"
                         >
-                          <option value="gemini-3.5-flash-lite">
-                            ⚡ Gemini 3.5 Flash Lite (Rekomendasi - Super Cepat ~2 dtk, Paling Hemat Kuota)
+                          <option value="gemini-2.5-flash">
+                            ⚡ Gemini 2.5 Flash (Rekomendasi Resmi Google - Super Cepat ~1-2 dtk)
                           </option>
-                          <option value="gemini-3.5-flash">
-                            🚀 Gemini 3.5 Flash (Seimbang - Cepat & Cerdas untuk Kalimat Panjang)
+                          <option value="gemini-1.5-flash">
+                            🚀 Gemini 1.5 Flash (Stabil & Sangat Cepat)
                           </option>
-                          <option value="gemini-3.8-flash">
-                            🧠 Gemini 3.8 Flash (Penalaran Lanjutan - Advanced Reasoning Multi-Pos)
+                          <option value="gemini-2.0-flash">
+                            ⚡ Gemini 2.0 Flash (Next-Gen Fast)
                           </option>
                           <option value="gemini-2.5-pro">
                             💎 Gemini 2.5 Pro (Model Kualitas Maksimal untuk Analisis Rumit)
                           </option>
                         </select>
                         <p className="text-[11px] text-slate-400 mt-1">
-                          Model Flash Lite sangat disarankan untuk operasional desa karena memiliki latensi tercepat dan menghemat pemakaian kuota token harian.
+                          Model Flash sangat disarankan untuk operasional desa karena memiliki latensi tercepat (~1-2 detik) dan kuota gratis harian yang besar di Google AI Studio.
                         </p>
                       </div>
                     )}

@@ -242,10 +242,13 @@ KEMBALIKAN OUTPUT HANYA BERUPA JSON VALID DENGAN FORMAT BERIKUT:
 }`
 
   const modelSetting = await db.setting.findUnique({ where: { key: "gemini_model" } })
-  const chosenModel = modelSetting?.value?.trim() || "gemini-3.5-flash-lite"
+  let chosenModel = modelSetting?.value?.trim() || "gemini-2.5-flash"
+  if (chosenModel.startsWith("gemini-3")) {
+    chosenModel = "gemini-2.5-flash"
+  }
 
   const ai = new GoogleGenAI({ apiKey })
-  const candidateModels = [chosenModel, "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash"].filter(
+  const candidateModels = [chosenModel, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"].filter(
     (v, i, a) => a.indexOf(v) === i
   )
 

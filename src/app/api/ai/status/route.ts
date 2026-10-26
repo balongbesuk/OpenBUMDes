@@ -8,7 +8,10 @@ export async function GET() {
     const apiKey = keySetting?.value?.trim() || process.env.GEMINI_API_KEY
 
     const modelSetting = await db.setting.findUnique({ where: { key: "gemini_model" } })
-    const selectedModel = modelSetting?.value?.trim() || "gemini-3.5-flash-lite"
+    let selectedModel = modelSetting?.value?.trim() || "gemini-2.5-flash"
+    if (selectedModel.startsWith("gemini-3")) {
+      selectedModel = "gemini-2.5-flash"
+    }
 
     if (!apiKey) {
       return NextResponse.json({
