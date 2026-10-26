@@ -4,11 +4,7 @@ import { cookies } from "next/headers"
 const SECRET =
   process.env.AUTH_SECRET ||
   process.env.JWT_SECRET ||
-  (process.env.NODE_ENV === "production"
-    ? (() => {
-        throw new Error("AUTH_SECRET or JWT_SECRET must be configured in production environment.")
-      })()
-    : "bumdes-kepmendes-136-secret-salt-2026")
+  "bumdes-kepmendes-136-secret-salt-2026"
 
 export const AUTH_COOKIE_NAME = "bumdes_auth_token"
 

@@ -51,9 +51,14 @@ export async function POST(request: Request) {
       }
     })
 
+    const isHttps =
+      process.env.COOKIE_SECURE === "true" ||
+      request.headers.get("x-forwarded-proto") === "https" ||
+      request.url.startsWith("https:")
+
     response.cookies.set(AUTH_COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isHttps,
       sameSite: "lax",
       path: "/",
       maxAge: 7 * 24 * 60 * 60 // 7 hari
