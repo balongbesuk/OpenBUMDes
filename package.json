@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
+    "db:setup": "prisma db push && prisma db seed && npm run db:seed-templates",
     "db:seed": "prisma db seed",
     "db:seed-templates": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed_templates.ts"
   },

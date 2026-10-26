@@ -33,10 +33,11 @@
   - [8. Asisten Pintar Pencatatan Transaksi (Gemini AI & NLP)](#8--asisten-pintar-pencatatan-transaksi-google-gemini-ai--nlp)
   - [9. Administrasi, Pejabat & Pemeliharaan](#9--keamanan-pengaturan-instansi--pemeliharaan)
 - [Tech Stack & Arsitektur](#-tech-stack--arsitektur)
-- [Panduan Instalasi & Menjalankan](#-panduan-instalasi--menjalankan)
+- [Panduan Instalasi (Lokal PC & VPS)](#-panduan-instalasi)
+  - [1. Instalasi di Komputer Lokal (PC / Laptop)](#1--instalasi-di-komputer-lokal-pc--laptop)
+  - [2. Instalasi di VPS / Server Produksi](#2--instalasi-di-vps--server-produksi-ubuntudebian)
 - [Akun Pengguna Bawaan](#-akun-pengguna-bawaan-default-credentials)
 - [Panduan Setup Awal Instansi](#-langkah-awal-penggunaan-setup-instansi)
-- [Deploy ke Server Produksi](#-panduan-build--deploy-ke-server-produksi)
 - [Struktur Direktori](#-struktur-direktori-proyek)
 - [Kontribusi & Lisensi](#-lisensi)
 
@@ -168,75 +169,70 @@ Seluruh laporan dihasilkan secara otomatis dan *real-time*:
 
 ---
 
-## 🚀 Panduan Instalasi & Menjalankan
+## 🚀 Panduan Instalasi
 
-Ikuti panduan langkah demi langkah berikut untuk memasang OpenBUMDes di komputer lokal atau server Anda.
+OpenBUMDes menggunakan basis data bawaan **SQLite (WAL mode)**, sehingga **tidak memerlukan instalasi server database eksternal (MySQL/PostgreSQL)**.
 
-### Prasyarat Perangkat Lunak
-Pastikan perangkat Anda telah terpasang:
-* **Node.js** versi **18.18.0** atau **20.x** ke atas ([Unduh Node.js](https://nodejs.org/))
+### Prasyarat Dasar
+* **Node.js** versi **18.18.0** atau **20.x ke atas** ([Unduh Node.js](https://nodejs.org/))
 * **Git** ([Unduh Git](https://git-scm.com/))
-* **npm** (bawaan Node.js)
 
 ---
 
-### Langkah 1: Kloning Repositori
-Buka terminal (Command Prompt / PowerShell / Git Bash / Terminal Linux):
+### 💻 1. Instalasi di Komputer Lokal (PC / Laptop)
+
+Jalankan perintah berikut di terminal (PowerShell, Command Prompt, atau Terminal Linux/macOS):
+
 ```bash
+# 1. Kloning repositori & masuk ke folder
 git clone https://github.com/balongbesuk/OpenBUMDes.git
 cd OpenBUMDes
-```
 
----
-
-### Langkah 2: Pasang Dependensi
-Pasang seluruh pustaka yang dibutuhkan:
-```bash
+# 2. Pasang dependensi
 npm install
-```
 
----
+# 3. Setup database & muat data awal (COA Standar Kepmendes 136 & akun default)
+npm run db:setup
 
-### Langkah 3: Konfigurasi File Lingkungan (Opsional)
-Aplikasi sudah memiliki kunci rahasia default untuk mode pengembangan lokal. Jika Anda ingin mengatur kunci khusus, salin `.env.example` menjadi `.env.local`:
-
-* **Di Windows (PowerShell):**
-  ```powershell
-  copy .env.example .env.local
-  ```
-* **Di Linux / macOS:**
-  ```bash
-  cp .env.example .env.local
-  ```
-
----
-
-### Langkah 4: Inisialisasi Basis Data & Bagan Akun
-Jalankan sinkronisasi skema basis data SQLite:
-```bash
-npx prisma db push
-```
-
-Jalankan proses *seeding* untuk memuat Bagan Akun Standar (COA) Kepmendes 136/2022 serta akun login default:
-```bash
-npx prisma db seed
-```
-
-*(Direkomendasikan)* Muat template transaksi kas harian BUMDes:
-```bash
-npm run db:seed-templates
-```
-
----
-
-### Langkah 5: Jalankan Server Aplikasi
-Jalankan server pengembangan:
-```bash
+# 4. Jalankan aplikasi
 npm run dev
 ```
 
-Buka peramban (browser) dan akses:  
-👉 **http://localhost:3000**
+Buka peramban (browser) dan akses: 👉 **http://localhost:3000**
+
+> [!NOTE]
+> Perintah `npm run db:setup` otomatis menjalankan migrasi skema database SQLite, seeder Bagan Akun Standar (COA), dan template transaksi kas.
+
+---
+
+### 🌐 2. Instalasi di VPS / Server Produksi (Ubuntu/Debian)
+
+OpenBUMDes sangat ringan dan hemat sumber daya (dapat berjalan lancar di VPS RAM 1 GB):
+
+```bash
+# 1. Kloning repositori & masuk ke folder
+git clone https://github.com/balongbesuk/OpenBUMDes.git /var/www/openbumdes
+cd /var/www/openbumdes
+
+# 2. Pasang dependensi & atur environment
+npm install
+cp .env.example .env.local
+# (Opsional: edit .env.local untuk mengganti JWT_SECRET)
+
+# 3. Inisialisasi basis data
+npm run db:setup
+
+# 4. Build aplikasi untuk mode produksi
+npm run build
+
+# 5. Jalankan di background dengan PM2 (Auto-restart)
+npm install -g pm2
+pm2 start npm --name "openbumdes" -- run start
+pm2 save
+pm2 startup
+```
+
+Aplikasi siap diakses di port `3000` (atau sambungkan ke domain desa via reverse proxy Nginx).
 
 ---
 
@@ -262,36 +258,6 @@ Sistem menyediakan 2 akun login bawaan (juga tersedia tombol **Akses Cepat** pad
    * Masukkan **Saldo Awal Kas / Bank** pada awal tahun buku jika BUMDes telah memiliki saldo berjalan sebelumnya.
 4. Masuk ke tab **Buku Kas & Jurnal**:
    * Mulai catat transaksi penerimaan (BKM) atau pengeluaran (BKK) secara tertib!
-
----
-
-## 📦 Panduan Build & Deploy ke Server Produksi
-
-OpenBUMDes sangat ringan dan dapat dijalankan di VPS (Ubuntu/Debian) berbiaya rendah dengan spesifikasi RAM 1 GB:
-
-```bash
-# 1. Pastikan dependensi terpasang
-npm install
-
-# 2. Build aplikasi untuk produksi
-npm run build
-
-# 3. Jalankan aplikasi dalam mode produksi
-npm run start
-```
-
-### Menjalankan di Background dengan PM2:
-```bash
-# Pasang PM2 secara global
-npm install -g pm2
-
-# Jalankan server OpenBUMDes
-pm2 start npm --name "openbumdes" -- run start
-
-# Simpan autostart saat server restart
-pm2 save
-pm2 startup
-```
 
 ---
 
