@@ -89,9 +89,9 @@ export function parseTransactionOffline(userText: string, accounts: any[] = []) 
     cashAccount = bankAcc ? bankAcc.code : "1.1.01.02"
   }
 
-  let targetAccount = proofType === "BKM" ? "4.1.04.01" : "5.1.02.01"
+  let targetAccount = proofType === "BKM" ? "4.1.04.01" : "6.1.02.99"
   let cashFlowGroup = "Aktivitas Operasi"
-  let unitName = "Umum"
+  let unitName = "Operasional Kantor"
 
   if (isPADesPayout) {
     // Penyerahan bagian laba / PADes ke Kas Desa (Akun Ekuitas / Saldo Laba Ditahan)
@@ -112,8 +112,11 @@ export function parseTransactionOffline(userText: string, accounts: any[] = []) 
   } else if (lower.includes("jasa") || lower.includes("wisata") || lower.includes("sampah") || lower.includes("parkir")) {
     targetAccount = "4.1.03.01"
     unitName = "Jasa & Layanan"
-  } else if (lower.includes("atk") || lower.includes("kertas") || lower.includes("kantor") || lower.includes("konsumsi")) {
-    targetAccount = "5.1.02.01"
+  } else if (lower.includes("konsumsi") || lower.includes("makan") || lower.includes("snack") || lower.includes("rapat") || lower.includes("bakso") || lower.includes("nasi") || lower.includes("kue")) {
+    targetAccount = "6.1.02.03" // Beban Konsumsi Rapat (Standar Kepmendes 136)
+    unitName = "Operasional Kantor"
+  } else if (lower.includes("atk") || lower.includes("kertas") || lower.includes("alat tulis") || lower.includes("cetak") || lower.includes("fotocopy")) {
+    targetAccount = "6.1.02.01" // Beban Alat Tulis Kantor
     unitName = "Operasional Kantor"
   } else if (lower.includes("listrik") || lower.includes("wifi") || lower.includes("internet") || lower.includes("air") || lower.includes("pln")) {
     targetAccount = "6.1.04.01"
