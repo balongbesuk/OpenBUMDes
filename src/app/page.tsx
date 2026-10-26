@@ -1666,16 +1666,46 @@ export default function StislaApp() {
                         </div>
                       </div>
 
-                      <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-3">
-                        <div className="text-[11px] font-bold text-slate-500 mb-1.5">Jurnal Berpasangan:</div>
-                        {aiResult.lines?.map((line: any, idx: number) => (
-                          <div key={idx} className="flex justify-between text-xs py-1">
-                            <span className={line.type === "CREDIT" ? "pl-3 text-slate-600" : "font-semibold text-slate-800"}>
-                              {line.accountCode} - {line.type}
-                            </span>
-                            <span className="font-mono font-bold">{formatRupiah(line.amount)}</span>
-                          </div>
-                        ))}
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-3 space-y-2">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                          <span>Kode & Nama Akun Jurnal (COA)</span>
+                          <span>Posisi & Nominal</span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {aiResult.lines?.map((line: any, idx: number) => {
+                            const accName = getAccountName(line.accountCode)
+                            const isCredit = line.type === "CREDIT"
+                            return (
+                              <div
+                                key={idx}
+                                className={`flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg ${
+                                  isCredit ? "bg-white/70 pl-6 border border-slate-200/80" : "bg-white border border-slate-200"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 overflow-hidden min-w-0 pr-2">
+                                  <span className="font-mono font-bold text-[11px] bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded border border-slate-200 shrink-0">
+                                    {line.accountCode}
+                                  </span>
+                                  <span className={`truncate ${isCredit ? "font-medium text-slate-700" : "font-bold text-slate-900"}`}>
+                                    {accName || "Akun Standar"}
+                                  </span>
+                                  <span
+                                    className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                                      isCredit
+                                        ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                        : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                    }`}
+                                  >
+                                    {isCredit ? "KREDIT" : "DEBIT"}
+                                  </span>
+                                </div>
+                                <span className={`font-mono font-bold shrink-0 ${isCredit ? "text-rose-600" : "text-emerald-700"}`}>
+                                  {formatRupiah(line.amount)}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
 
                       <div className="flex justify-end gap-2">
