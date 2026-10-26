@@ -84,14 +84,19 @@ export default function KwitansiModal({
         method: "POST",
         body: formData
       })
-      const json = await res.json()
+      let json: any = null
+      try {
+        json = await res.json()
+      } catch {
+        throw new Error(`Server merespons status ${res.status}: ${res.statusText || "Gagal memproses unggahan"}`)
+      }
 
-      if (json.success) {
+      if (res.ok && json?.success) {
         setAttachmentUrl(json.attachmentUrl)
         if (onUploadedSigned) onUploadedSigned(json.attachmentUrl)
         alert("Foto bukti kwitansi ber-TTD berhasil diunggah!")
       } else {
-        alert("Gagal mengunggah bukti: " + json.error)
+        alert("Gagal mengunggah bukti: " + (json?.error || "Terjadi kesalahan pada server."))
       }
     } catch (err: any) {
       alert("Error upload: " + err.message)
