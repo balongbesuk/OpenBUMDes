@@ -219,7 +219,7 @@ npm install
 cp .env.example .env.local
 # (Opsional: edit .env.local untuk mengganti JWT_SECRET)
 
-# 3. Inisialisasi basis data
+# 3. Inisialisasi basis data (hanya untuk instalasi pertama)
 npm run db:setup
 
 # 4. Build aplikasi untuk mode produksi
@@ -233,6 +233,13 @@ pm2 startup
 ```
 
 Aplikasi siap diakses di port `3000` (atau sambungkan ke domain desa via reverse proxy Nginx).
+
+> [!TIP]
+> **Cara Update Versi di VPS (di kemudian hari):**  
+> Anda **tidak perlu** menjalankan `db:setup` lagi agar data pembukuan yang ada tidak terganggu. Cukup jalankan:
+> ```bash
+> git pull && npm install && npm run build && pm2 restart openbumdes
+> ```
 
 ---
 
