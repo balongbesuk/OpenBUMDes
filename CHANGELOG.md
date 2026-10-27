@@ -2,6 +2,31 @@
 
 All notable changes to OpenBUMDes are documented in this file.
 
+## [1.3.0] - 2026-10-27
+
+### Added - Buku Pembantu Persediaan, Register Aset Tetap & Indikator Rekonsiliasi Otomatis
+
+* **Buku Pembantu Persediaan & Kartu Stok (`InventoryTab.tsx` & `/api/inventory`)**:
+  * **Master SKU & Valuasi Persediaan**: Model data `InventoryItem` dan `InventoryMovement` mendukung pencatatan saldo awal, batas minimum stok (*reorder warning*), dan kode akun neraca (Akun `1.1.04.01`).
+  * **Metode Biaya Rata-Rata Bergerak (*Moving Average*)**: Perhitungan otomatis nilai perolehan rata-rata per unit dan total nilai persediaan akhir setiap terjadi mutasi masuk (*IN*), keluar (*OUT*), atau penyesuaian (*ADJUST*).
+  * **Kartu Stok & Riwayat Mutasi Lengkap**: Pratinjau riwayat pergerakan stok per SKU dengan format kartu stok resmi dan verifikasi sisa kuantiti.
+  * **Cetak Lembar Rekapitulasi Persediaan Standar**: Lembar cetak formal bertaraf audit lengkap dengan Kop BUMDes resmi, tabel bergaris (*full grid*), dan kolom pengesahan bertanda tangan Direktur & Pengelola Barang/Bendahara.
+  * **Indikator Kontrol Rekonsiliasi Otomatis**: Banner visual otomatis yang membandingkan total fisik gudang di Buku Pembantu terhadap saldo pembukuan Akun `1.1.04` di Buku Besar/Neraca untuk mendeteksi selisih *stock opname*.
+
+* **Daftar Register & Jadwal Penyusutan Aset Tetap (`FixedAssetsTab.tsx` & `/api/assets`)**:
+  * **Inventarisasi & Registrasi Barang Modal**: Model data `FixedAsset` mencatat nomor registrasi, nama unit aset, kategori (Peralatan & Mesin, Kendaraan, Gedung, Mebel, dll.), tanggal perolehan, harga beli, nilai residu/sisa, lokasi, dan kondisi fisik (Baik / Rusak Ringan / Rusak Berat).
+  * **Penyusutan Metode Garis Lurus (*Straight-Line Depreciation*)**: Perhitungan amortisasi otomatis berbasis umur ekonomis (tahun), beban depresiasi per bulan/tahun, akumulasi penyusutan hingga tanggal pelaporan, dan sisa nilai buku bersih.
+  * **Cetak Register Aset & Jadwal Amortisasi**: Format dokumen cetak resmi ber-Kop BUMDes untuk lampiran LPJ Musdes dengan tanda tangan pengesahan Direktur dan Pengurus Barang/Bendahara.
+  * **Indikator Kontrol Rekonsiliasi Neraca Ganda**: Banner visual otomatis yang memverifikasi keselarasan dua akun neraca sekaligus:
+    * Harga Perolehan Register vs Saldo Buku Besar Akun `1.2.01` (Aset Tetap).
+    * Akumulasi Penyusutan Register vs Saldo Buku Besar Akun `1.2.02` (Akumulasi Penyusutan Aset Tetap).
+
+* **Penyempurnaan Antarmuka, Dialog Sistem & Ekspor Excel**:
+  * **Komponen Dialog Kustom (`AppDialog`)**: Menggantikan seluruh popup bawaan browser (`window.alert`, `window.confirm`) menjadi modal modern terpadu bernuansa premium.
+  * **Opsi Durasi Sesi ("Ingat Sesi Masuk")**: Menambahkan opsi perpanjangan sesi masuk hingga 30 hari pada portal login vs sesi reguler 1 hari.
+  * **Pencetakan Dokumen Lintas Elemen (`safePrintElement`)**: Optimalisasi fungsi cetak dokumen yang polymorfik mendukung elemen DOM langsung maupun selektor ID elemen cetak.
+  * **Tombol Cepat Ekspor Excel 1 Tahun Penuh**: Menambahkan tombol langsung unduh seluruh transaksi kas & jurnal 1 tahun penuh ke format `.xlsx` pada panel Buku Kas.
+
 ## [1.2.0] - 2026-10-27
 
 ### Security, Financial Audit & Lean Engine Optimization
