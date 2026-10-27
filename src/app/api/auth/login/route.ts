@@ -2,10 +2,14 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { comparePassword, createToken, AUTH_COOKIE_NAME } from "@/lib/auth"
 
+// In-memory rate limiter per IP / username: max 5 failed attempts in 5 minutes
+const failedAttempts = new Map<string, { count: number; lockedUntil: number }>()
+
 export async function POST(request: Request) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local"
     const body = await request.json()
-    const { username, password } = body
+    const { username, password, rememberMe = true } = body
 
     if (!username || !password) {
       return NextResponse.json(
@@ -14,11 +18,40 @@ export async function POST(request: Request) {
       )
     }
 
+    const cleanUsername = username.trim().toLowerCase()
+    const rateLimitKey = `${ip}:${cleanUsername}`
+    const now = Date.now()
+    const attemptRecord = failedAttempts.get(rateLimitKey)
+
+    // Check if locked out
+    if (attemptRecord && attemptRecord.lockedUntil > now) {
+      const waitSeconds = Math.ceil((attemptRecord.lockedUntil - now) / 1000)
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Terlalu banyak percobaan masuk yang gagal. Silakan tunggu ${waitSeconds} detik sebelum mencoba kembali.`
+        },
+        { status: 429 }
+      )
+    }
+
     const user = await db.user.findUnique({
-      where: { username: username.trim().toLowerCase() }
+      where: { username: cleanUsername }
     })
 
+    const recordFailedAttempt = async () => {
+      // Artificial delay (300ms) to mitigate rapid automated attacks
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      const current = failedAttempts.get(rateLimitKey) || { count: 0, lockedUntil: 0 }
+      current.count += 1
+      if (current.count >= 5) {
+        current.lockedUntil = Date.now() + 60 * 1000 // Lock for 60 seconds
+      }
+      failedAttempts.set(rateLimitKey, current)
+    }
+
     if (!user) {
+      await recordFailedAttempt()
       return NextResponse.json(
         { success: false, error: "Username atau password salah." },
         { status: 401 }
@@ -27,11 +60,15 @@ export async function POST(request: Request) {
 
     const isValid = comparePassword(password, user.passwordHash)
     if (!isValid) {
+      await recordFailedAttempt()
       return NextResponse.json(
         { success: false, error: "Username atau password salah." },
         { status: 401 }
       )
     }
+
+    // Login successful: reset failed attempt counter
+    failedAttempts.delete(rateLimitKey)
 
     const token = createToken({
       id: user.id,
@@ -56,12 +93,15 @@ export async function POST(request: Request) {
       request.headers.get("x-forwarded-proto") === "https" ||
       request.url.startsWith("https:")
 
+    // 7 hari jika Ingat Sesi Masuk dicentang, 1 hari jika tidak dicentang
+    const cookieMaxAge = rememberMe ? 7 * 24 * 60 * 60 : 24 * 60 * 60
+
     response.cookies.set(AUTH_COOKIE_NAME, token, {
       httpOnly: true,
       secure: isHttps,
       sameSite: "lax",
       path: "/",
-      maxAge: 7 * 24 * 60 * 60 // 7 hari
+      maxAge: cookieMaxAge
     })
 
     return response

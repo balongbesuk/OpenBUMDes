@@ -57,7 +57,7 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username.trim(), password: password.trim() })
+        body: JSON.stringify({ username: username.trim(), password: password.trim(), rememberMe })
       })
       const data = await res.json()
       if (data.success && data.user) {
@@ -207,7 +207,7 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
               <span>Kepatuhan Standar Akuntansi EMKM & Kepmendesa 136</span>
             </div>
             <div className="font-mono text-slate-500">
-              Versi 1.1.0 • Edisi Desa 2026
+              Versi 1.2.0 • Edisi Desa 2026
             </div>
           </div>
         </div>
@@ -253,11 +253,12 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
                   <input
                     type="text"
                     required
+                    disabled={loading}
                     autoComplete="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Masukkan username"
-                    className="w-full pl-10 pr-4 py-3 sm:py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#6777ef] focus:ring-3 focus:ring-[#6777ef]/15 transition-all font-medium"
+                    className="w-full pl-10 pr-4 py-3 sm:py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#6777ef] focus:ring-3 focus:ring-[#6777ef]/15 transition-all font-medium disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -274,16 +275,18 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
                   <input
                     type={showPassword ? "text" : "password"}
                     required
+                    disabled={loading}
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Masukkan kata sandi"
-                    className="w-full pl-10 pr-11 py-3 sm:py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#6777ef] focus:ring-3 focus:ring-[#6777ef]/15 transition-all font-medium"
+                    className="w-full pl-10 pr-11 py-3 sm:py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#6777ef] focus:ring-3 focus:ring-[#6777ef]/15 transition-all font-medium disabled:opacity-50"
                   />
                   <button
                     type="button"
+                    disabled={loading}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1.5 rounded-lg transition-colors cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
                     title={showPassword ? "Sembunyikan sandi" : "Tampilkan sandi"}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -296,18 +299,21 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
                 <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600">
                   <input
                     type="checkbox"
+                    disabled={loading}
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-[#6777ef] focus:ring-[#6777ef]"
+                    className="w-4 h-4 rounded border-slate-300 text-[#6777ef] focus:ring-[#6777ef] disabled:opacity-50"
                   />
                   <span className="font-medium">Ingat sesi masuk</span>
                 </label>
-                <span
-                  className="text-slate-400 hover:text-slate-600 cursor-help flex items-center gap-1 font-medium"
+                <button
+                  type="button"
+                  onClick={() => alert("Lupa Kata Sandi:\n\nSilakan hubungi Administrator Sistem BUMDes atau Kepala Desa untuk mengatur ulang (reset) kata sandi akun Anda melalui menu Kelola Akun Pengguna.")}
+                  className="text-slate-400 hover:text-slate-600 cursor-pointer flex items-center gap-1 font-medium bg-transparent border-none p-0"
                   title="Hubungi Administrator BUMDes atau Kepala Desa jika lupa kata sandi."
                 >
                   <HelpCircle className="w-3.5 h-3.5" /> Bantuan
-                </span>
+                </button>
               </div>
 
               {/* Submit CTA Button */}
