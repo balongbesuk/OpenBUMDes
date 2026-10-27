@@ -16,6 +16,7 @@ import {
   HelpCircle,
   RefreshCw
 } from "lucide-react"
+import { showAppAlert } from "@/components/ui/AppDialog"
 
 interface LoginModalProps {
   onSuccess: (user: { id: string; username: string; name: string; role: string }) => void
@@ -308,7 +309,14 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
                 </label>
                 <button
                   type="button"
-                  onClick={() => alert("Lupa Kata Sandi:\n\nSilakan hubungi Administrator Sistem BUMDes atau Kepala Desa untuk mengatur ulang (reset) kata sandi akun Anda melalui menu Kelola Akun Pengguna.")}
+                  onClick={() => showAppAlert(
+                    "Silakan hubungi Administrator Sistem BUMDes atau Kepala Desa untuk mengatur ulang (reset) kata sandi akun Anda melalui menu Kelola Akun Pengguna.",
+                    {
+                      title: "Bantuan & Lupa Kata Sandi",
+                      type: "info",
+                      buttonText: "Saya Mengerti"
+                    }
+                  )}
                   className="text-slate-400 hover:text-slate-600 cursor-pointer flex items-center gap-1 font-medium bg-transparent border-none p-0"
                   title="Hubungi Administrator BUMDes atau Kepala Desa jika lupa kata sandi."
                 >

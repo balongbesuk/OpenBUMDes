@@ -61,6 +61,7 @@ import GeneralLedgerTab from "@/components/GeneralLedgerTab"
 import TrialBalanceTab from "@/components/TrialBalanceTab"
 import SubsidiaryLedgerTab from "@/components/SubsidiaryLedgerTab"
 import EisHealthTab from "@/components/EisHealthTab"
+import { showAppAlert, showAppConfirm, showAppToast } from "@/components/ui/AppDialog"
 
 export default function StislaApp() {
   const [activeTab, setActiveTab] = useState<string>("dashboard")
@@ -115,11 +116,17 @@ export default function StislaApp() {
     const file = e.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith("image/")) {
-      alert("Mohon pilih file gambar yang valid (PNG, JPG, WEBP, atau SVG).")
+      showAppAlert("Mohon pilih file gambar yang valid (PNG, JPG, WEBP, atau SVG).", {
+        title: "Format Berkas Tidak Sesuai",
+        type: "warning"
+      })
       return
     }
     if (file.size > 3 * 1024 * 1024) {
-      alert("Ukuran file gambar maksimal 3MB.")
+      showAppAlert("Ukuran file gambar maksimal 3MB.", {
+        title: "Ukuran Berkas Terlalu Besar",
+        type: "warning"
+      })
       return
     }
 
@@ -240,7 +247,7 @@ export default function StislaApp() {
     })
     const data = await res.json()
     if (!res.ok || !data.success) {
-      alert(data.error || "Gagal memperbarui nama pihak")
+      showAppAlert(data.error || "Gagal memperbarui nama pihak", { type: "error" })
       throw new Error(data.error || "Gagal memperbarui nama pihak")
     }
     setEntries((prev) =>
@@ -252,9 +259,16 @@ export default function StislaApp() {
 
   // Restore baseline Kemendesa 136 COA accounts
   const handleResetDefaultCoa = async () => {
-    if (!confirm("Apakah Anda yakin ingin memulihkan seluruh nama akun standar Kepmendesa No. 136/2022 ke nama bawaan sistem?\n\nCatatan: Akun kustom tambahan yang Anda buat sendiri tetap aman dan tidak akan terhapus.")) {
-      return
-    }
+    const confirmed = await showAppConfirm(
+      "Apakah Anda yakin ingin memulihkan seluruh nama akun standar Kepmendesa No. 136/2022 ke nama bawaan sistem?\n\nCatatan: Akun kustom tambahan yang Anda buat sendiri tetap aman dan tidak akan terhapus.",
+      {
+        title: "Pulihkan Bagan Akun Standar",
+        type: "warning",
+        confirmText: "Ya, Pulihkan Standar"
+      }
+    )
+    if (!confirmed) return
+
     setResettingCoa(true)
     try {
       const res = await fetch("/api/keuangan/coa/reset-default", {
@@ -262,13 +276,13 @@ export default function StislaApp() {
       })
       const json = await res.json()
       if (json.success) {
-        alert(json.message || "Bagan Akun standar berhasil dipulihkan.")
+        showAppToast(json.message || "Bagan Akun standar berhasil dipulihkan.", "success")
         loadData()
       } else {
-        alert(json.error || "Gagal memulihkan bagan akun standar.")
+        showAppAlert(json.error || "Gagal memulihkan bagan akun standar.", { type: "error" })
       }
     } catch (e: any) {
-      alert("Error: " + e.message)
+      showAppAlert("Error: " + e.message, { type: "error" })
     } finally {
       setResettingCoa(false)
     }
@@ -277,25 +291,39 @@ export default function StislaApp() {
   // Delete custom user account
   const handleDeleteCoa = async (acc: any) => {
     if (acc.isStandard) {
-      alert("Akun standar Kepmendesa No. 136/2022 tidak dapat dihapus karena merupakan bagan akun acuan wajib sistem. Anda dapat menyesuaikan namanya menggunakan tombol Edit.")
+      showAppAlert(
+        "Akun standar Kepmendesa No. 136/2022 tidak dapat dihapus karena merupakan bagan akun acuan wajib sistem. Anda dapat menyesuaikan namanya menggunakan tombol Edit.",
+        {
+          title: "Akun Standar Dilindungi",
+          type: "warning"
+        }
+      )
       return
     }
-    if (!confirm(`Hapus akun kustom "${acc.code} - ${acc.name}" secara permanen?`)) {
-      return
-    }
+
+    const confirmed = await showAppConfirm(
+      `Hapus akun kustom "${acc.code} - ${acc.name}" secara permanen?`,
+      {
+        title: "Hapus Akun Kustom",
+        type: "danger",
+        confirmText: "Ya, Hapus Akun"
+      }
+    )
+    if (!confirmed) return
+
     try {
       const res = await fetch(`/api/keuangan/coa?code=${encodeURIComponent(acc.code)}`, {
         method: "DELETE"
       })
       const json = await res.json()
       if (json.success) {
-        alert(json.message || "Akun berhasil dihapus.")
+        showAppToast(json.message || "Akun berhasil dihapus.", "success")
         loadData()
       } else {
-        alert(json.error || "Gagal menghapus akun.")
+        showAppAlert(json.error || "Gagal menghapus akun.", { type: "error" })
       }
     } catch (e: any) {
-      alert("Error: " + e.message)
+      showAppAlert("Error: " + e.message, { type: "error" })
     }
   }
 
@@ -369,7 +397,10 @@ export default function StislaApp() {
 
   const handleNavClick = (tab: string) => {
     if (tab === "closing" && currentUser?.role !== "ADMIN") {
-      alert("Akses Terbatas: Menu Tutup & Buka Buku hanya dapat diakses oleh akun Administrator.")
+      showAppAlert("Akses Terbatas: Menu Tutup & Buka Buku hanya dapat diakses oleh akun Administrator.", {
+        title: "Akses Dibatasi",
+        type: "warning"
+      })
       return
     }
     setActiveTab(tab)
@@ -422,15 +453,15 @@ export default function StislaApp() {
       })
       const json = await res.json()
       if (json.success) {
-        alert("Transaksi berhasil dicatat ke Buku Kas & Jurnal!")
+        showAppToast("Transaksi berhasil dicatat ke Buku Kas & Jurnal!", "success")
         setAiPrompt("")
         setAiResult(null)
         loadData()
       } else {
-        alert("Gagal menyimpan: " + json.error)
+        showAppAlert("Gagal menyimpan: " + json.error, { type: "error" })
       }
     } catch (e: any) {
-      alert("Error: " + e.message)
+      showAppAlert("Error: " + e.message, { type: "error" })
     }
   }
 
@@ -3797,13 +3828,13 @@ export default function StislaApp() {
                       })
                       const json = await res.json()
                       if (json.success) {
-                        alert("Pengaturan BUMDes berhasil disimpan!")
+                        showAppToast("Pengaturan BUMDes berhasil disimpan!", "success")
                         loadData()
                       } else {
-                        alert("Gagal menyimpan: " + (json.error || "Terjadi kesalahan."))
+                        showAppAlert("Gagal menyimpan: " + (json.error || "Terjadi kesalahan."), { type: "error" })
                       }
                     } catch (err: any) {
-                      alert("Error: " + err.message)
+                      showAppAlert("Error: " + err.message, { type: "error" })
                     }
                   }}
                   className="space-y-6 text-xs"
@@ -4251,7 +4282,7 @@ export default function StislaApp() {
         isOpen={showManualModal}
         onClose={() => setShowManualModal(false)}
         onSuccess={() => {
-          alert("Transaksi berhasil dicatat ke Buku Kas & Jurnal!")
+          showAppToast("Transaksi berhasil dicatat ke Buku Kas & Jurnal!", "success")
           loadData()
         }}
         coaList={coaList}

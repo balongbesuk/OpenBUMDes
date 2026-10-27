@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   description: "Aplikasi manajemen Badan Usaha Milik Desa (BUMDES) dan otomasi Laporan Pertanggungjawaban (LPJ)",
 }
 
+import AppDialogProvider from "@/components/ui/AppDialog"
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -20,7 +22,9 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${fontSans.variable} scroll-smooth`}>
       <body className="font-sans antialiased min-h-screen bg-background text-foreground">
-        {children}
+        <AppDialogProvider>
+          {children}
+        </AppDialogProvider>
       </body>
     </html>
   )

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react"
 import { X, Loader2, Search, Sparkles, HelpCircle } from "lucide-react"
+import { showAppAlert } from "@/components/ui/AppDialog"
 
 interface ManualTransactionModalProps {
   isOpen: boolean
@@ -92,7 +93,10 @@ export function ManualTransactionModal({
     e.preventDefault()
     const amt = parseFloat(form.amount)
     if (isNaN(amt) || amt <= 0) {
-      alert("Nominal transaksi harus lebih dari 0")
+      showAppAlert("Nominal transaksi harus lebih dari 0", {
+        title: "Nominal Tidak Valid",
+        type: "warning"
+      })
       return
     }
 
@@ -127,11 +131,11 @@ export function ManualTransactionModal({
         onClose()
       } else {
         setError(json.error || "Gagal menyimpan transaksi")
-        alert("Gagal menyimpan: " + (json.error || "Terjadi kesalahan"))
+        showAppAlert("Gagal menyimpan: " + (json.error || "Terjadi kesalahan"), { type: "error" })
       }
     } catch (err: any) {
       setError(err.message || "Terjadi kesalahan koneksi")
-      alert("Error: " + err.message)
+      showAppAlert("Error: " + err.message, { type: "error" })
     } finally {
       setLoading(false)
     }

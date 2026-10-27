@@ -3,6 +3,7 @@
 import React, { useRef, useState } from "react"
 import { Printer, X, Download, CheckCircle, ShieldCheck, Upload, RefreshCw, Eye, Camera } from "lucide-react"
 import { formatRupiah, terbilang } from "@/lib/utils"
+import { showAppAlert, showAppToast } from "@/components/ui/AppDialog"
 
 export interface KwitansiModalProps {
   entry: any | null
@@ -94,12 +95,12 @@ export default function KwitansiModal({
       if (res.ok && json?.success) {
         setAttachmentUrl(json.attachmentUrl)
         if (onUploadedSigned) onUploadedSigned(json.attachmentUrl)
-        alert("Foto bukti kwitansi ber-TTD berhasil diunggah!")
+        showAppToast("Foto bukti kwitansi ber-TTD berhasil diunggah!", "success")
       } else {
-        alert("Gagal mengunggah bukti: " + (json?.error || "Terjadi kesalahan pada server."))
+        showAppAlert("Gagal mengunggah bukti: " + (json?.error || "Terjadi kesalahan pada server."), { type: "error" })
       }
     } catch (err: any) {
-      alert("Error upload: " + err.message)
+      showAppAlert("Error upload: " + err.message, { type: "error" })
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""

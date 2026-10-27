@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react"
 import { Sparkles, X, Zap, CheckCircle2, AlertCircle, RefreshCw, Plus } from "lucide-react"
+import { showAppAlert } from "@/components/ui/AppDialog"
 
 interface AddCoaModalProps {
   isOpen: boolean
@@ -87,7 +88,10 @@ export default function AddCoaModal({
   // Handle AI Recommendation Request
   const handleAiRecommend = async () => {
     if (!query.trim()) {
-      alert("Ketik usulan nama akun atau tujuan pembukuan terlebih dahulu.")
+      showAppAlert("Ketik usulan nama akun atau tujuan pembukuan terlebih dahulu.", {
+        title: "Perlu Masukan Akun",
+        type: "warning"
+      })
       return
     }
     setAiLoading(true)
@@ -118,10 +122,10 @@ export default function AddCoaModal({
           normal: rec.normal
         })
       } else {
-        alert(json.error || "Gagal mendapatkan rekomendasi.")
+        showAppAlert(json.error || "Gagal mendapatkan rekomendasi.", { type: "error" })
       }
     } catch (e: any) {
-      alert("Error: " + e.message)
+      showAppAlert("Error: " + e.message, { type: "error" })
     } finally {
       setAiLoading(false)
     }
@@ -131,12 +135,18 @@ export default function AddCoaModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (hasLetters || !isValidFormat) {
-      alert("Kode akun wajib berupa angka dan titik sesuai format Kepmendes 136 (contoh: 1.1.01.07). Tidak boleh menggunakan huruf.")
+      showAppAlert("Kode akun wajib berupa angka dan titik sesuai format Kepmendes 136 (contoh: 1.1.01.07). Tidak boleh menggunakan huruf.", {
+        title: "Format Kode Tidak Sesuai",
+        type: "warning"
+      })
       return
     }
 
     if (isDuplicate) {
-      alert(`Kode akun ${form.code} sudah digunakan oleh "${duplicateAccount?.name}".`)
+      showAppAlert(`Kode akun ${form.code} sudah digunakan oleh "${duplicateAccount?.name}".`, {
+        title: "Kode Akun Duplikat",
+        type: "warning"
+      })
       return
     }
 
@@ -161,10 +171,10 @@ export default function AddCoaModal({
         onSuccess()
         onClose()
       } else {
-        alert("Gagal menyimpan akun: " + json.error)
+        showAppAlert("Gagal menyimpan akun: " + json.error, { type: "error" })
       }
     } catch (e: any) {
-      alert("Error: " + e.message)
+      showAppAlert("Error: " + e.message, { type: "error" })
     } finally {
       setSaving(false)
     }

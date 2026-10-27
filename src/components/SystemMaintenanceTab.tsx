@@ -17,6 +17,7 @@ import {
   Lock,
   UserCheck
 } from "lucide-react"
+import { showAppAlert, showAppConfirm } from "@/components/ui/AppDialog"
 
 interface SystemMaintenanceTabProps {
   currentUser: { id: string; username: string; name: string; role: string } | null
@@ -99,12 +100,20 @@ export default function SystemMaintenanceTab({ currentUser, onRefresh }: SystemM
   // Handle Delete User
   const handleDeleteUser = async (user: any) => {
     if (user.id === currentUser?.id) {
-      alert("Anda tidak dapat menghapus akun Anda sendiri saat sedang masuk.")
+      showAppAlert("Anda tidak dapat menghapus akun Anda sendiri saat sedang masuk.", {
+        title: "Akses Ditolak",
+        type: "warning"
+      })
       return
     }
 
     const confirmMsg = `Hapus akun ${user.role === "ADMIN" ? "Administrator" : "Operator"} "${user.name}" (@${user.username})?\n\nTindakan ini permanen dan tidak dapat dibatalkan.`
-    if (!window.confirm(confirmMsg)) return
+    const confirmed = await showAppConfirm(confirmMsg, {
+      title: "Hapus Akun Pengguna",
+      type: "danger",
+      confirmText: "Ya, Hapus Akun"
+    })
+    if (!confirmed) return
 
     setDeletingUserId(user.id)
     setStatusMsg(null)
@@ -149,9 +158,15 @@ export default function SystemMaintenanceTab({ currentUser, onRefresh }: SystemM
       return
     }
 
-    if (!confirm(`Apakah Anda yakin ingin memulihkan database dari "${restoreFile.name}"? Data aktif saat ini akan digantikan seluruhnya.`)) {
-      return
-    }
+    const confirmed = await showAppConfirm(
+      `Apakah Anda yakin ingin memulihkan database dari "${restoreFile.name}"? Data aktif saat ini akan digantikan seluruhnya.`,
+      {
+        title: "Konfirmasi Pemulihan Database",
+        type: "danger",
+        confirmText: "Ya, Pulihkan Database"
+      }
+    )
+    if (!confirmed) return
 
     setRestoreLoading(true)
     setStatusMsg(null)
