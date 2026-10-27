@@ -200,7 +200,7 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
           </select>
 
           <button
-            onClick={() => safePrintElement("printable-assets-report")}
+            onClick={() => safePrintElement("printable-assets-report", `Daftar Register & Amortisasi Aset Tetap TA ${selectedYear} - ${bumdesName}`)}
             className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
           >
             <Printer className="w-4 h-4 text-slate-500" />

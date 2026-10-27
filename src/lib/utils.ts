@@ -87,14 +87,23 @@ export function terbilang(amount: number): string {
  * without using document.write or raw innerHTML interpolation (eliminates CodeQL js/xss-through-dom).
  */
 export function safePrintElement(
-  element: HTMLElement | null,
-  documentTitle: string,
+  elementOrId: HTMLElement | string | null,
+  documentTitle: string = "Dokumen Cetak BUMDes",
   options?: {
     customPageMargin?: string
     includeTailwindScript?: boolean
     baseHref?: string
   }
 ) {
+  if (!elementOrId) return
+
+  let element: HTMLElement | null = null
+  if (typeof elementOrId === "string") {
+    element = document.getElementById(elementOrId) || (document.querySelector(elementOrId) as HTMLElement | null)
+  } else {
+    element = elementOrId
+  }
+
   if (!element) return
 
   const printWindow = window.open("", "_blank")

@@ -239,7 +239,7 @@ export default function InventoryTab({ settings = {} }: InventoryTabProps) {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => safePrintElement("printable-inventory-report")}
+            onClick={() => safePrintElement("printable-inventory-report", `Rekapitulasi Persediaan & Kartu Stok - ${bumdesName}`)}
             className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
           >
             <Printer className="w-4 h-4 text-slate-500" />
@@ -697,7 +697,7 @@ export default function InventoryTab({ settings = {} }: InventoryTabProps) {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => safePrintElement("printable-stock-card")}
+                  onClick={() => safePrintElement("printable-stock-card", `Kartu Stok - ${activeItem.code} ${activeItem.name}`)}
                   className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1 cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" /> Cetak Kartu
