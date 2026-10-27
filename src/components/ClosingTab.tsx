@@ -68,6 +68,7 @@ export default function ClosingTab({
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
   // --- State AI Pra-Audit & Kesehatan Keuangan ---
+  const isAiConfigured = Boolean(settings?.gemini_api_key && settings.gemini_api_key.trim().length > 0)
   const [auditLoading, setAuditLoading] = useState(false)
   const [auditData, setAuditData] = useState<any>(null)
   const [auditError, setAuditError] = useState<string | null>(null)
@@ -639,10 +640,12 @@ export default function ClosingTab({
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-slate-900">
-                        Asisten AI: Pra-Audit & Analisis Musdes ({closingYear})
+                        {isAiConfigured ? "Asisten AI: Pra-Audit & Analisis Musdes" : "Asisten Cerdas: Pra-Audit & Analisis Musdes"} ({closingYear})
                       </h4>
                       <p className="text-[11px] text-slate-500">
-                        Deteksi anomali pembukuan sebelum tutup buku dan susun ringkasan pidato LPJ Musdes.
+                        {isAiConfigured
+                          ? "Deteksi anomali pembukuan sebelum tutup buku dan susun ringkasan pidato LPJ Musdes via Gemini AI."
+                          : "Deteksi anomali pembukuan sebelum tutup buku dan susun ringkasan naskah LPJ Musdes (Mode Otomatis Cerdas)."}
                       </p>
                     </div>
                   </div>
@@ -662,7 +665,7 @@ export default function ClosingTab({
                       ) : (
                         <>
                           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Pra-Audit AI</span>
+                          <span>{isAiConfigured ? "Pra-Audit AI" : "Pra-Audit Otomatis"}</span>
                         </>
                       )}
                     </button>
@@ -681,12 +684,28 @@ export default function ClosingTab({
                       ) : (
                         <>
                           <FileText className="w-3.5 h-3.5 text-amber-300" />
-                          <span>Narasi Musdes AI</span>
+                          <span>{isAiConfigured ? "Narasi Musdes AI" : "Ringkasan Musdes"}</span>
                         </>
                       )}
                     </button>
                   </div>
                 </div>
+
+                {!isAiConfigured && (
+                  <div className="mt-2.5 px-3 py-2 rounded-xl bg-amber-50/90 border border-amber-200/80 text-[11px] text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-amber-700">Mode Cerdas Bawaan Aktif:</span>
+                      <span>Pra-Audit dan Ringkasan Musdes berjalan offline tanpa butuh token.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateTab("settings")}
+                      className="text-indigo-600 font-bold hover:underline shrink-0 text-left sm:text-right"
+                    >
+                      Aktifkan Gemini AI di Pengaturan &rarr;
+                    </button>
+                  </div>
+                )}
 
                 {auditError && (
                   <div className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">

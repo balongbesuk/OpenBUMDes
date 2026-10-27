@@ -414,6 +414,27 @@ export default function StislaApp() {
     }
   }
 
+  // Panduan Aktivasi Gemini AI untuk Scan Nota
+  const handleScanNotaClick = (e: React.MouseEvent) => {
+    if (!isAiConfigured) {
+      e.preventDefault()
+      showAppConfirm(
+        "Fitur Scan Foto Nota membutuhkan Google Gemini AI aktif (tersedia Kuota Gratis harian dari Google AI Studio).\n\nApakah Anda ingin membuka menu Pengaturan BUMDes sekarang untuk memasukkan API Key?",
+        {
+          title: "Aktivasi Google Gemini AI",
+          confirmText: "Buka Pengaturan",
+          cancelText: "Nanti Saja",
+          type: "info"
+        }
+      ).then((confirmed) => {
+        if (confirmed) {
+          setActiveTab("settings")
+          window.scrollTo({ top: 0, behavior: "smooth" })
+        }
+      })
+    }
+  }
+
   // Upload & Scan Foto Nota (Multimodal Vision)
   const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -1690,20 +1711,23 @@ export default function StislaApp() {
 
                     {/* Tombol Scan / Foto Nota (Multimodal Vision) */}
                     <label
-                      htmlFor="receipt-scan-input"
+                      htmlFor={isAiConfigured ? "receipt-scan-input" : undefined}
+                      onClick={handleScanNotaClick}
                       className="bg-emerald-800/60 hover:bg-emerald-800 text-emerald-100 font-semibold px-3.5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm border border-emerald-400/30 transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer shadow-xs active:scale-95"
-                      title="Ambil foto atau upload nota/kuitansi"
+                      title={isAiConfigured ? "Ambil foto atau upload nota/kuitansi" : "Klik untuk melihat panduan aktivasi Google Gemini AI"}
                     >
                       <Camera className="w-4 h-4 text-amber-300" />
                       <span>{receiptImage ? "Ganti Foto" : "Scan Nota"}</span>
-                      <input
-                        id="receipt-scan-input"
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        className="hidden"
-                        onChange={handleReceiptUpload}
-                      />
+                      {isAiConfigured && (
+                        <input
+                          id="receipt-scan-input"
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={handleReceiptUpload}
+                        />
+                      )}
                     </label>
 
                     <button
