@@ -27,7 +27,7 @@
   - [2. Buku Kas Umum & Jurnal Otomatis (Full Grid Audit)](#2--buku-kas-umum-bku--pencatatan-jurnal-otomatis-full-grid-audit)
   - [3. 5 Laporan Keuangan Standar SAK EMKM & Kepmendes 136/2022](#3--5-laporan-keuangan-standar-sak-emkm--kepmendes-1362022)
   - [4. Tutup & Buka Buku & Cetak Dokumen Resmi LPJ Musdes (8 Halaman A4 Presisi)](#4--tutup--buka-buku--cetak-dokumen-resmi-lpj-musdes-8-halaman-a4-presisi)
-  - [5. Modul Audit Pemeriksaan Inspektorat](#5--modul-audit-pemeriksaan-inspektorat)
+  - [5. Modul Audit Pemeriksaan Inspektorat & Buku Pembantu](#5--modul-audit-pemeriksaan-inspektorat--buku-pembantu)
   - [6. EIS (Executive Information System) Tingkat Kesehatan Keuangan](#6--eis-executive-information-system-tingkat-kesehatan-keuangan)
   - [7. Master Bagan Akun Standar (COA Dinamis & Paginasi)](#7--master-bagan-akun-standar-coa-dinamis--paginasi)
   - [8. Asisten Pintar Pencatatan Transaksi (Gemini AI & NLP)](#8--asisten-pintar-pencatatan-transaksi-google-gemini-ai--nlp)
@@ -119,10 +119,13 @@ Seluruh laporan dihasilkan secara otomatis dan *real-time*:
 
 ---
 
-### 5. 🔍 Modul Audit Pemeriksaan Inspektorat
+### 5. 🔍 Modul Audit Pemeriksaan Inspektorat & Buku Pembantu
 * **Buku Besar Umum (General Ledger)**: Filter akun COA, rekonsiliasi otomatis saldo awal periode dari tabel `OpeningBalance`, rincian mutasi debit/kredit operasional, lawan akun, saldo berjalan, dan tombol Cetak Dokumen Pemeriksaan A4.
 * **Neraca Saldo (Trial Balance)**: Kertas kerja verifikasi akuntansi dengan badge status *100% Seimbang (Total Debit = Total Kredit)* dan fitur Cetak Resmi.
 * **Buku Pembantu Piutang & Utang (Subsidiary Ledger)**: Kartu kontrol transaksi per pelanggan/debitur dan kreditur/vendor desa dengan fitur Cetak Kartu Pengawasan.
+* **Buku Pembantu Persediaan & Kartu Stok (Inventory Ledger)**: Master SKU persediaan barang dagang, kartu stok mutasi (Masuk, Keluar, Penyesuaian/Opname), kalkulasi otomatis biaya rata-rata bergerak (*Moving Average Cost*), batas minimum stok, dan lembar Cetak Rekapitulasi Stok resmi.
+* **Daftar Register & Jadwal Penyusutan Aset Tetap**: Inventarisasi barang modal BUMDes, perhitungan otomatis amortisasi metode garis lurus (*Straight-Line Depreciation*), beban depresiasi berjalan, nilai buku bersih, dan lembar Cetak Register Aset resmi.
+* **Indikator Kontrol Rekonsiliasi Neraca Otomatis**: Banner audit visual interaktif di tab Persediaan dan Aset Tetap yang memverifikasi kesesuaian fisik buku pembantu secara *real-time* dengan saldo Buku Besar di Neraca (Akun `1.1.04` Persediaan, Akun `1.2.01` Aset Tetap, dan Akun `1.2.02` Akumulasi Penyusutan).
 
 ---
 
@@ -236,10 +239,17 @@ Aplikasi siap diakses di port `3000` (atau sambungkan ke domain desa via reverse
 
 > [!TIP]
 > **Cara Update Versi di VPS (di kemudian hari):**  
-> Anda **tidak perlu** menjalankan `db:setup` lagi agar data pembukuan yang ada tidak terganggu. Cukup jalankan:
-> ```bash
-> git pull && npm install && npm run build && pm2 restart openbumdes
-> ```
+> Anda **tidak perlu** menjalankan `db:setup` lagi agar data pembukuan yang ada tidak terganggu.
+> 
+> * **Opsi Standar (Jika VPS RAM $\ge$ 2 GB):**
+>   ```bash
+>   git pull && npm install && npx prisma db push && npm run build && pm2 restart openbumdes
+>   ```
+> * **Opsi Cepat & Aman (Untuk VPS Hemat RAM 512 MB – 1 GB):**  
+>   Kompilasi di PC lokal agar VPS tidak kehabisan memori (*out of memory / killed*):
+>   1. Di PC: `npm run build` lalu kompres: `tar -czf next-build.tar.gz .next`
+>   2. Kirim ke VPS: `scp next-build.tar.gz user@IP_VPS:/var/www/openbumdes/`
+>   3. Di VPS: `git pull && npm install && npx prisma db push && tar -xzf next-build.tar.gz && rm next-build.tar.gz && pm2 restart openbumdes`
 
 ---
 
@@ -287,6 +297,8 @@ OpenBUMDes/
 │   │   └── robots.ts           # Konfigurasi crawler robots.txt
 │   ├── components/             # Komponen UI modal & tab (BKU, Kwitansi, COA, Closing, Maintenance, dll.)
 │   └── lib/                    # Logika bisnis akuntansi (Double-Entry Ledger, Gemini AI, Auth, DB)
+├── tests/
+│   └── self-check.mjs          # Pengujian otomatis rumus akuntansi & keamanan token
 ├── CHANGELOG.md                # Catatan riwayat versi rilis
 ├── LICENSE                     # Lisensi GNU General Public License v3.0
 ├── package.json                # Dependensi dan script npm
