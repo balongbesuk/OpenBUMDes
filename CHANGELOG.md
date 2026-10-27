@@ -2,6 +2,34 @@
 
 All notable changes to OpenBUMDes are documented in this file.
 
+## [1.4.0] - 2026-10-28
+
+### Added & Optimized - Gemini AI Vision, Pra-Audit LPJ, Executive Summary Musdes & Structured Output
+
+* **Pemindaian Foto Nota / Kuitansi Fisik (Multimodal Vision)**:
+  * **Tombol Kamera & Unggah Nota (`[ 📸 Scan Nota ]`)**: Ditempatkan strategis pada kartu Asisten Buku Kas dengan dukungan otomatis kamera belakang HP (`capture="environment"`) maupun unggah berkas gambar dari laptop.
+  * **Ekstraksi Otomatis Gambar Nota (`/api/ai/parse`)**: Mengirim foto berkas via `inlineData` base64 ke Google Gemini Vision untuk mendeteksi tanggal transaksi, nama toko/rekanan, daftar item belanja, dan total nominal, serta menyusun jurnal berpasangan otomatis standar Kepmendesa 136/2022.
+  * **Panduan Edukatif Aktivasi (Opsi B)**: Jika fitur diklik saat API Key belum diisi, sistem menampilkan dialog konfirmasi yang menjelaskan bahwa kuota harian Gemini tersedia 100% gratis dari Google AI Studio dan menyediakan tombol navigasi instan langsung ke menu Pengaturan.
+
+* **Optimasi Akurasi AI & Pembelajaran Cerdas Dinamis**:
+  * **Structured Outputs (`responseSchema`)**: Memanfaatkan parameter skema ketat `@google/genai` `Type.OBJECT` untuk menjamin output JSON selalu 100% valid dan bertipe data tepat tanpa risiko kegagalan parsing.
+  * **Pembelajaran Riil dari Jurnal Desa (*Dynamic Few-Shot Learning*)**: Sistem backend otomatis mengambil 5 transaksi riil terakhir yang tersimpan di database desa (`db.journalEntry`) untuk disuntikkan ke instruksi AI, sehingga Gemini otomatis menyesuaikan diri dengan kebiasaan dan pos akun khas desa setempat.
+  * **Penyaringan Otomatis Bagan Akun (*Smart Filtered COA*)**: Otomatis menyaring keluar akun-akun penyesuaian non-kas akhir tahun (akumulasi penyusutan, amortisasi, ikhtisar laba rugi, utang jangka panjang) dan memprioritaskan akun-akun favorit desa di urutan teratas, memangkas konsumsi token hingga 50% dan mempercepat waktu tunggu respons AI.
+
+* **Generator Narasi & Analisis LPJ Musyawarah Desa (Executive Summary)**:
+  * **Endpoint Khusus & Widget UI (`/api/ai/lpj-narrative` & `ClosingTab.tsx`)**: Menghasilkan naskah narasi formal 2 paragraf yang santun, profesional, dan mudah dipahami warga/BPD mengenai capaian omset, efisiensi beban, laba bersih/SHU, dan rekomendasi tahun depan.
+  * **Integrasi Lembar Cetak LPJ 8 Halaman (`LpjPrintModal.tsx`)**: Narasi resmi disematkan langsung pada Halaman 7 (CaLK) sub-bab *5. Ringkasan Eksekutif Kinerja & Evaluasi Usaha (Musdes)*.
+  * **Tombol Salin Narasi Cepat**: Memudahkan Direktur BUMDes menyalin naskah pidato/sambutan Musdes ke clipboard hanya dalam 1 klik.
+  * **Generator Cadangan Offline**: Tetap dapat menghasilkan narasi terstruktur berbasis data riil pembukuan meskipun tanpa koneksi internet atau tanpa API Key.
+
+* **Pemeriksa Kesehatan Keuangan & Deteksi Anomali Pembukuan (Pra-Audit LPJ)**:
+  * **Mesin Pra-Audit Akuntansi Mandiri (`/api/ai/health-audit` & `ClosingTab.tsx`)**: Berjalan 100% lokal di database desa untuk mendeteksi potensi temuan sebelum pembukuan resmi ditutup dan dikunci.
+  * **Indikator Kesehatan Finansial (Skor 0-100)**: Menampilkan badge status visual (🟢 *SEHAT*, 🟡 *PERHATIAN*, 🔴 *WASPADA*) dengan 3 metrik kunci: Rasio BOPO (%), Margin Laba Bersih (%), dan Posisi Kas & Bank Akhir.
+  * **Deteksi Masalah Otomatis**: Memeriksa saldo kas negatif, transaksi dengan uraian terlalu ambigu, dan memvalidasi integritas 100% keseimbangan Debit vs Kredit di seluruh jurnal.
+
+* **Penyederhanaan Dokumentasi & Perampingan Repositori**:
+  * **Perampingan `README.md`**: Memangkas 114 baris dokumentasi redundan (daftar isi manual yang sudah digantikan tombol outline bawaan GitHub dan rincian bab berulang) tanpa mengurangi informasi teknis, regulasi, maupun panduan instalasi VPS.
+
 ## [1.3.0] - 2026-10-27
 
 ### Added - Buku Pembantu Persediaan, Register Aset Tetap & Indikator Rekonsiliasi Otomatis
