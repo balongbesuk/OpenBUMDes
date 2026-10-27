@@ -104,6 +104,29 @@ async function runSelfChecks() {
     : { lte: endDate }
   assert.deepStrictEqual(condition, { gte: startDate, lte: endDate }, "Balance query must start at Jan 1st when SA entry exists")
 
+  // 7. Straight-line asset depreciation check
+  const cost = 120000000
+  const salvage = 0
+  const usefulLife = 4
+  const annualDepr = (cost - salvage) / usefulLife
+  const monthlyDepr = annualDepr / 12
+  assert.strictEqual(annualDepr, 30000000, "Annual depreciation should be 30M")
+  assert.strictEqual(monthlyDepr, 2500000, "Monthly depreciation should be 2.5M")
+
+  // 8. Inventory average cost & valuation check
+  let stockQty = 10
+  let stockValue = 10 * 100000 // 1,000,000
+  // Buy 10 @ 120,000
+  stockQty += 10
+  stockValue += 10 * 120000 // 2,200,000
+  const avgUnitCost = stockValue / stockQty
+  assert.strictEqual(avgUnitCost, 110000, "Moving average cost should be 110,000")
+  // Sell 5 units
+  stockQty -= 5
+  stockValue -= 5 * avgUnitCost
+  assert.strictEqual(stockQty, 15, "Remaining stock should be 15")
+  assert.strictEqual(stockValue, 1650000, "Ending inventory value should be 1,650,000")
+
   console.log("✔ All OpenBUMDes self-checks passed successfully!")
 }
 

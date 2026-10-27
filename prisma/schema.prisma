@@ -104,3 +104,54 @@ model OpeningBalance {
 
   @@unique([year, accountCode])
 }
+
+model InventoryItem {
+  id          String              @id @default(uuid())
+  code        String              @unique
+  name        String
+  unit        String              @default("Pcs")
+  category    String?             @default("Barang Dagangan")
+  initialQty  Float               @default(0)
+  initialCost Float               @default(0)
+  currentQty  Float               @default(0)
+  minStock    Float               @default(5)
+  accountCode String              @default("1.1.04.01")
+  notes       String?
+  createdAt   DateTime            @default(now())
+  movements   InventoryMovement[]
+}
+
+model InventoryMovement {
+  id             String        @id @default(uuid())
+  itemId         String
+  item           InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  date           DateTime      @default(now())
+  type           String        // "IN", "OUT", "ADJUST"
+  qty            Float
+  costPerUnit    Float         @default(0)
+  totalCost      Float         @default(0)
+  referenceProof String?
+  description    String
+  createdAt      DateTime      @default(now())
+
+  @@index([itemId])
+  @@index([date])
+}
+
+model FixedAsset {
+  id               String   @id @default(uuid())
+  code             String   @unique
+  name             String
+  category         String   @default("Peralatan & Mesin")
+  acquisitionDate  DateTime
+  acquisitionCost  Float
+  usefulLifeYears  Int      @default(4)
+  salvageValue     Float    @default(0)
+  assetAccountCode String   @default("1.2.01.01")
+  deprAccountCode  String   @default("1.2.02.01")
+  expAccountCode   String   @default("6.1.05.01")
+  location         String?  @default("Kantor BUMDes")
+  condition        String   @default("BAIK")
+  notes            String?
+  createdAt        DateTime @default(now())
+}

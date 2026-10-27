@@ -45,8 +45,8 @@ import {
   Trash2,
   Pencil,
   Check,
-  FileSpreadsheet,
-  Download
+  Download,
+  Package
 } from "lucide-react"
 import { formatRupiah, safePrintElement } from "@/lib/utils"
 import KwitansiModal from "@/components/KwitansiModal"
@@ -60,6 +60,8 @@ import { ManualTransactionModal } from "@/components/ManualTransactionModal"
 import GeneralLedgerTab from "@/components/GeneralLedgerTab"
 import TrialBalanceTab from "@/components/TrialBalanceTab"
 import SubsidiaryLedgerTab from "@/components/SubsidiaryLedgerTab"
+import InventoryTab from "@/components/InventoryTab"
+import FixedAssetsTab from "@/components/FixedAssetsTab"
 import EisHealthTab from "@/components/EisHealthTab"
 import { showAppAlert, showAppConfirm, showAppToast } from "@/components/ui/AppDialog"
 
@@ -965,6 +967,30 @@ export default function StislaApp() {
                   <Users className="w-4 h-4 shrink-0" />
                   <span className="text-left leading-tight">Buku Pembantu Piutang/Utang</span>
                 </button>
+
+                <button
+                  onClick={() => handleNavClick("inventory")}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left transition-all ${
+                    activeTab === "inventory"
+                      ? "bg-[#6777ef] text-white shadow-md shadow-indigo-200 font-semibold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                  }`}
+                >
+                  <Package className="w-4 h-4 shrink-0" />
+                  <span className="text-left leading-tight">Buku Pembantu Persediaan</span>
+                </button>
+
+                <button
+                  onClick={() => handleNavClick("fixed-assets")}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left transition-all ${
+                    activeTab === "fixed-assets"
+                      ? "bg-[#6777ef] text-white shadow-md shadow-indigo-200 font-semibold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                  }`}
+                >
+                  <Building2 className="w-4 h-4 shrink-0" />
+                  <span className="text-left leading-tight">Register & Penyusutan Aset</span>
+                </button>
               </div>
             </div>
 
@@ -1078,6 +1104,10 @@ export default function StislaApp() {
                     ? "Catatan (CaLK)"
                     : activeTab === "coa"
                     ? "Bagan Akun (COA Dinamis)"
+                    : activeTab === "inventory"
+                    ? "Buku Pembantu Persediaan & Kartu Stok"
+                    : activeTab === "fixed-assets"
+                    ? "Register & Penyusutan Aset Tetap"
                     : activeTab === "maintenance"
                     ? "Backup & Pemeliharaan Sistem"
                     : "Pengaturan & AI"}
@@ -4251,6 +4281,14 @@ export default function StislaApp() {
 
             {activeTab === "sub-ledger" && (
               <SubsidiaryLedgerTab settings={settings} />
+            )}
+
+            {activeTab === "inventory" && (
+              <InventoryTab settings={settings} />
+            )}
+
+            {activeTab === "fixed-assets" && (
+              <FixedAssetsTab settings={settings} />
             )}
 
             {/* TAB: EIS / KESEHATAN BUMDES */}
