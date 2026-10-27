@@ -12,6 +12,8 @@
 
 # production
 /build
+*.tar.gz
+*.zip
 
 # debug
 npm-debug.log*
