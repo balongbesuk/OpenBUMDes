@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai"
+import { GoogleGenAI, Type } from "@google/genai"
 import { db } from "./db"
 
 /**
@@ -186,6 +186,42 @@ export function parseTransactionOffline(userText: string, accounts: any[] = []) 
 }
 
 /**
+ * Filter Otomatis Bagan Akun (COA):
+ * 1. Menyingkirkan akun penyesuaian non-kas akhir tahun (akumulasi penyusutan, ikhtisar laba rugi, utang obligasi, dsb).
+ * 2. Mengurutkan akun yang terbukti aktif/sering digunakan di database desa ke posisi paling atas dengan label [Akun Favorit Desa].
+ */
+export function getSmartFilteredCOA(accounts: any[], activeAccountCodes: Set<string> = new Set()) {
+  return accounts
+    .filter(a => {
+      const name = a.name.toLowerCase()
+      // Saring keluar akun penyesuaian non-kas & kontra aset
+      if (
+        name.includes("akumulasi penyusutan") ||
+        name.includes("akumulasi amortisasi") ||
+        name.includes("ikhtisar laba rugi") ||
+        a.code.startsWith("1.3.02") ||
+        a.code.startsWith("1.4") ||
+        a.code.startsWith("1.9") ||
+        a.code.startsWith("2.2") ||
+        a.code.startsWith("3.4") ||
+        a.code.startsWith("3.8") ||
+        a.code.startsWith("3.9") ||
+        a.code.startsWith("6.2") ||
+        a.code.startsWith("6.3")
+      ) {
+        return false
+      }
+      return true
+    })
+    .sort((a, b) => {
+      const aActive = activeAccountCodes.has(a.code) ? 1 : 0
+      const bActive = activeAccountCodes.has(b.code) ? 1 : 0
+      if (bActive !== aActive) return bActive - aActive
+      return a.code.localeCompare(b.code)
+    })
+}
+
+/**
  * Parser Hybrid:
  * 1. Jika API Key ada -> Gunakan Gemini AI (Online).
  * 2. Jika API Key tidak ada atau error/kuota habis -> Otomatis beralih ke Rule-Based NLP (Offline).
@@ -203,15 +239,70 @@ export async function parseTransactionWithGemini(userText: string) {
     return parseTransactionOffline(userText, accounts)
   }
 
-  // Jika API Key tersedia, gunakan Google Gemini Generative AI
-  const coaContext = accounts
-    .map(a => `[${a.code}] ${a.name} (${a.type})`)
+  // 1. Ambil statistik akun yang pernah dipakai di database secara otomatis
+  let activeAccountCodes = new Set<string>()
+  try {
+    const usage = await db.journalLine.groupBy({
+      by: ["accountCode"],
+      _count: { accountCode: true },
+      orderBy: { _count: { accountCode: "desc" } },
+      take: 30
+    })
+    activeAccountCodes = new Set(usage.map(u => u.accountCode))
+  } catch (err) {
+    console.warn("Gagal mengambil statistik pemakaian akun:", err)
+  }
+
+  // 2. Ambil hingga 5 riwayat transaksi yang pernah dibuat di database sebagai pembelajaran (Few-Shot Dinamis)
+  let exampleContext = ""
+  try {
+    const recentEntries = await db.journalEntry.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      include: { lines: true }
+    })
+
+    if (recentEntries.length > 0) {
+      const formattedRecent = recentEntries
+        .filter(e => e.lines && e.lines.length > 0)
+        .map((e, idx) => {
+          const lineSummary = e.lines
+            .map(l => `${l.type} ${l.accountCode} (${l.amount})`)
+            .join(", ")
+          return `Contoh Riil ${idx + 1}: "${e.description}" -> Jenis: ${e.proofType}, Pihak: ${e.payeeOrPayer}, Jurnal: [${lineSummary}]`
+        })
+        .join("\n")
+      if (formattedRecent) {
+        exampleContext = `\n\nCONTOH RIIL JURNAL YANG PERNAH DIBUAT DI BUM DESA INI (PELAJARI POLA AKUN DAN GAYA INI):\n${formattedRecent}`
+      }
+    }
+  } catch (err) {
+    console.warn("Gagal mengambil riwayat transaksi untuk few-shot:", err)
+  }
+
+  // Jika belum ada riwayat transaksi di database, gunakan contoh standar Kepmendes 136
+  if (!exampleContext) {
+    exampleContext = `\n\nCONTOH STANDAR TRANSAKSI KEPMENDES 136:
+Contoh 1: "Beli kertas HVS dan spidol kantor 65rb bayar tunai" -> Jenis: BKK, Pihak: Toko ATK, DEBIT 6.1.02.01 (Beban ATK), KREDIT 1.1.01.01 (Kas Tunai)
+Contoh 2: "Terima sewa kios pasar dari Pak Budi 500rb tunai" -> Jenis: BKM, Pihak: Pak Budi, DEBIT 1.1.01.01 (Kas Tunai), KREDIT 4.1.04.02 (Pendapatan Sewa Kios)
+Contoh 3: "Bayar wifi dan listrik kantor 250rb transfer bank" -> Jenis: BKK, Pihak: Telkom/PLN, DEBIT 6.1.04.01 (Beban Listrik & Air), KREDIT 1.1.01.02 (Kas Bank)
+Contoh 4: "Setor PADes bagi hasil SHU ke kas desa 5jt" -> Jenis: BKK, Pihak: Pemerintah Desa, DEBIT 3.3.01.01 (Alokasi PADes), KREDIT 1.1.01.02 (Kas Bank)`
+  }
+
+  // 3. Filter otomatis COA: buang akun penyesuaian non-kas & prioritaskan akun aktif desa
+  const filteredAccounts = getSmartFilteredCOA(accounts, activeAccountCodes)
+  const coaContext = filteredAccounts
+    .map(a => {
+      const tag = activeAccountCodes.has(a.code) ? " [Akun Favorit Desa]" : ""
+      return `[${a.code}] ${a.name} (${a.type})${tag}`
+    })
     .join("\n")
 
   const systemInstruction = `Anda adalah akuntan ahli BUM Desa yang mengonversi catatan transaksi harian bahasa santai operator desa menjadi jurnal akuntansi standar Kepmendesa PDTT No. 136 Tahun 2022 (PPAK BUMDesa).
 
 DAFTAR BAGAN AKUN (COA) BUM DESA:
 ${coaContext}
+${exampleContext}
 
 ATURAN WAJIB:
 1. Tentukan jenis transaksi: Kas Masuk (BKM) atau Kas Keluar (BKK).
@@ -226,23 +317,7 @@ ATURAN WAJIB:
    - Jika Pemerintah Desa memberikan/menyetor dana ke BUMDes, itu adalah KAS MASUK (BKM) untuk "Penyertaan Modal Desa" (3.1.01.01), BUKAN PAD.
 6. Total nominal Debit dan Kredit harus selalu tepat dan seimbang.
 7. Ekstrak nama Penyetor (untuk BKM) atau Penerima (untuk BKK).
-8. Tentukan kelompok LAK (Laporan Arus Kas) yang sesuai (Operasi, Investasi, Pendanaan).
-
-KEMBALIKAN OUTPUT HANYA BERUPA JSON VALID DENGAN FORMAT BERIKUT:
-{
-  "proofType": "BKM" atau "BKK",
-  "description": "Keterangan transaksi ringkas dan jelas",
-  "payeeOrPayer": "Nama orang atau toko atau masyarakat",
-  "unitName": "Umum" atau nama pos (e.g. Sewa Gedung, Lapak, dll),
-  "totalAmount": 150000,
-  "cashAccount": "1.1.01.01",
-  "targetAccount": "kode_akun_lawan",
-  "cashFlowGroup": "Kelompok LAK",
-  "lines": [
-    { "accountCode": "kode_akun", "type": "DEBIT", "amount": 150000 },
-    { "accountCode": "kode_akun", "type": "CREDIT", "amount": 150000 }
-  ]
-}`
+8. Tentukan kelompok LAK (Laporan Arus Kas) yang sesuai (Aktivitas Operasi, Aktivitas Investasi, Aktivitas Pendanaan).`
 
   const modelSetting = await db.setting.findUnique({ where: { key: "gemini_model" } })
   const chosenModel = modelSetting?.value?.trim() || "gemini-3.5-flash-lite"
@@ -252,11 +327,76 @@ KEMBALIKAN OUTPUT HANYA BERUPA JSON VALID DENGAN FORMAT BERIKUT:
     (v, i, a) => a.indexOf(v) === i
   )
 
+  // Skema JSON terstruktur (Structured Output) untuk akurasi 100% tanpa halusinasi format
+  const transactionResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+      proofType: {
+        type: Type.STRING,
+        enum: ["BKM", "BKK"],
+        description: "BKM untuk Kas Masuk, BKK untuk Kas Keluar"
+      },
+      description: {
+        type: Type.STRING,
+        description: "Keterangan transaksi ringkas dan formal"
+      },
+      payeeOrPayer: {
+        type: Type.STRING,
+        description: "Nama pihak ketiga, penyetor, penerima, atau toko"
+      },
+      unitName: {
+        type: Type.STRING,
+        description: "Unit usaha yang bersangkutan"
+      },
+      totalAmount: {
+        type: Type.NUMBER,
+        description: "Total nominal transaksi dalam Rupiah"
+      },
+      cashAccount: {
+        type: Type.STRING,
+        description: "Kode akun kas/bank, default 1.1.01.01 (Kas Tunai)"
+      },
+      targetAccount: {
+        type: Type.STRING,
+        description: "Kode akun lawan transaksi sesuai COA"
+      },
+      cashFlowGroup: {
+        type: Type.STRING,
+        enum: ["Aktivitas Operasi", "Aktivitas Investasi", "Aktivitas Pendanaan"],
+        description: "Kelompok arus kas"
+      },
+      lines: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            accountCode: { type: Type.STRING },
+            type: { type: Type.STRING, enum: ["DEBIT", "CREDIT"] },
+            amount: { type: Type.NUMBER }
+          },
+          required: ["accountCode", "type", "amount"]
+        }
+      }
+    },
+    required: [
+      "proofType",
+      "description",
+      "payeeOrPayer",
+      "unitName",
+      "totalAmount",
+      "cashAccount",
+      "targetAccount",
+      "cashFlowGroup",
+      "lines"
+    ]
+  }
+
   for (const model of candidateModels) {
     try {
       const config: any = {
         systemInstruction,
-        responseMimeType: "application/json"
+        responseMimeType: "application/json",
+        responseSchema: transactionResponseSchema
       }
 
       // Model Gemini 3.8 memiliki fitur 'Thinking/Reasoning'. Batasi ke level 'low' agar tidak berpikir berlarut-larut (1-2 detik)
