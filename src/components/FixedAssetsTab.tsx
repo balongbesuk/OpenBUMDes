@@ -448,6 +448,10 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
         </div>
 
         {/* TABEL DATA ASET */}
+        <div className="sm:hidden px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10.5px] text-slate-500 font-medium flex items-center justify-between mb-2">
+          <span>Geser tabel untuk melihat rincian aset</span>
+          <span className="text-[#6777ef] font-bold">➔</span>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse border border-slate-300">
             <thead>

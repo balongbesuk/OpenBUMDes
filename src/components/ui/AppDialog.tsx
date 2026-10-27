@@ -249,7 +249,7 @@ export default function AppDialogProvider({ children }: { children: React.ReactN
 
       {/* Modern Toast Container */}
       {toasts.length > 0 && (
-        <div className="fixed bottom-5 right-5 z-[99998] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none p-2">
+        <div className="fixed bottom-4 sm:bottom-5 right-2 sm:right-5 left-2 sm:left-auto z-[99998] flex flex-col gap-2.5 max-w-sm w-auto pointer-events-none p-1 sm:p-2">
           {toasts.map((toast) => (
             <div
               key={toast.id}

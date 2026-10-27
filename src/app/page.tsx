@@ -563,8 +563,8 @@ export default function StislaApp() {
   // --- KOP RESMI LAPORAN KEUANGAN KEMENDES 136 ---
   const renderReportKop = (reportTitle: string, subtitle?: string) => (
     <div className="border-b-2 border-slate-800 pb-4 mb-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 print:flex-row print:items-center">
+        <div className="flex items-center gap-3 sm:gap-4">
           {(settings.bumdes_logo || logoPreview) ? (
             <img
               src={settings.bumdes_logo || logoPreview}
@@ -1176,7 +1176,7 @@ export default function StislaApp() {
 
                 {/* DROPDOWN POPOVER MENU */}
                 {showUserDropdown && (
-                  <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-slate-200/90 p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-xl border border-slate-200/90 p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                     {/* Header Profil Lengkap */}
                     <div className="p-3 bg-gradient-to-br from-slate-50 to-indigo-50/50 rounded-xl border border-slate-100 mb-1.5">
                       <div className="flex items-center gap-3">
@@ -1985,7 +1985,8 @@ export default function StislaApp() {
                               className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition cursor-pointer"
                             >
                               <FileSpreadsheet className="w-3.5 h-3.5" />
-                              <span>Unduh Excel (1 Thn)</span>
+                              <span className="hidden sm:inline">Unduh Excel (1 Thn)</span>
+                              <span className="sm:hidden">Excel</span>
                             </a>
 
                             <button
@@ -1993,7 +1994,8 @@ export default function StislaApp() {
                               className="bg-[#6777ef] hover:bg-[#5868e4] text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition cursor-pointer"
                             >
                               <Plus className="w-3.5 h-3.5" />
-                              <span>Catat Manual</span>
+                              <span className="hidden sm:inline">Catat Manual</span>
+                              <span className="sm:hidden">Catat</span>
                             </button>
                           </div>
                         </div>
@@ -2102,6 +2104,10 @@ export default function StislaApp() {
                         </div>
 
                         {/* TABEL FORMAL GRID: BUKU KAS & JURNAL */}
+                        <div className="sm:hidden px-3 py-1.5 bg-slate-50 border-b border-slate-200 text-[10.5px] text-slate-500 font-medium flex items-center justify-between">
+                          <span>Geser tabel untuk melihat rincian</span>
+                          <span className="text-[#6777ef] font-bold">➔</span>
+                        </div>
                         <div className="overflow-x-auto">
                           <table className="w-full text-xs text-left border-collapse border border-slate-300">
                             <thead>

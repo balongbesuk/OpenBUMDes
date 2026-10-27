@@ -212,34 +212,34 @@ export default function KwitansiModal({
           <div
             id="kwitansi-print-area"
             ref={printRef}
-            className={`border-2 ${borderColor} rounded-2xl p-6 bg-white shadow-sm print:rounded-none`}
+            className={`border-2 ${borderColor} rounded-2xl p-4 sm:p-6 bg-white shadow-sm print:rounded-none`}
           >
             {/* Header Form Kwitansi */}
-            <div className="flex items-start justify-between border-b-2 border-slate-800 pb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3 sm:gap-4 border-b-2 border-slate-800 pb-4 print:flex-row print:gap-0">
               <div className="flex items-center gap-3">
                 {settings.bumdes_logo && (
                   <img
                     src={settings.bumdes_logo}
                     alt="Logo BUMDes"
-                    className="w-14 h-14 object-contain shrink-0"
+                    className="w-12 h-12 sm:w-14 sm:h-14 object-contain shrink-0"
                   />
                 )}
                 <div>
-                  <h2 className="text-base font-black tracking-tight uppercase text-slate-900">
+                  <h2 className="text-sm sm:text-base font-black tracking-tight uppercase text-slate-900">
                     {settings.bumdes_name || "BUM DESA BAROKAH"}
                   </h2>
-                  <p className="text-xs text-slate-600 uppercase">
+                  <p className="text-[11px] sm:text-xs text-slate-600 uppercase">
                     DESA {settings.village_name || "BALONGBESUK"}, KEC. {settings.subdistrict_name || "DIWEK"}, KAB. {settings.regency_name || "JOMBANG"}
                   </p>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[9.5px] sm:text-[10px] text-slate-400">
                     Badan Hukum: Kemenkumham RI &bull; Standar Akuntansi Kepmendes 136/2022
                   </p>
                 </div>
               </div>
 
-              <div className="text-right">
+              <div className="text-left sm:text-right w-full sm:w-auto">
                 <div
-                  className={`inline-block px-4 py-1.5 rounded-lg font-black text-sm uppercase tracking-wider ${headerBg}`}
+                  className={`inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg font-black text-xs sm:text-sm uppercase tracking-wider ${headerBg}`}
                 >
                   {isMemorial
                     ? entry.proofNumber?.startsWith("SA/")

@@ -455,6 +455,10 @@ export default function InventoryTab({ settings = {} }: InventoryTabProps) {
         </div>
 
         {/* TABEL DATA PERSEDIAAN */}
+        <div className="sm:hidden px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10.5px] text-slate-500 font-medium flex items-center justify-between mb-2">
+          <span>Geser tabel untuk melihat rincian barang</span>
+          <span className="text-emerald-600 font-bold">➔</span>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse border border-slate-300">
             <thead>
