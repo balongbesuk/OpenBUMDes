@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import fs from "fs"
 import path from "path"
+import { db } from "@/lib/db"
 import { getUserSession } from "@/lib/auth"
 
 export async function GET() {
@@ -9,6 +10,11 @@ export async function GET() {
     if (!session || session.role !== "ADMIN") {
       return NextResponse.json({ success: false, error: "Hanya Admin yang dapat mengunduh backup database." }, { status: 403 })
     }
+
+    // Flush any pending WAL pages into main dev.db file before reading
+    try {
+      await db.$queryRawUnsafe("PRAGMA wal_checkpoint(TRUNCATE);")
+    } catch {}
 
     // Cari dev.db
     let dbPath = path.join(process.cwd(), "prisma", "dev.db")

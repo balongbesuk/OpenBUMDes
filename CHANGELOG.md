@@ -2,6 +2,30 @@
 
 All notable changes to OpenBUMDes are documented in this file.
 
+## [1.2.0] - 2026-10-27
+
+### Security, Financial Audit & Lean Engine Optimization
+
+* **Pengamanan Autentikasi & Proteksi Endpoint API**:
+  * **Wajib Sesi pada Endpoint Data**: Menambahkan validasi sesi pengguna (`getUserSession`) pada endpoint Buku Kas (`/api/cash-book`), Ekspor Excel (`/api/cash-book/export-excel`), Laporan Keuangan (`/api/reports`), EIS (`/api/eis`), Arsip Tutup Buku (`/api/closing`), AI Parser (`/api/ai/parse`), dan Buku Besar Audit (`general-ledger`, `subsidiary-ledger`, `trial-balance`).
+  * **Proteksi Kunci Rahasia AI**: Menyensor nilai `gemini_api_key` (`"********"`) pada respon `GET /api/settings` untuk pengunjung atau non-admin guna mencegah kebocoran kuota token.
+  * **Perlindungan Serangan Timing & Sesi**: Memperbarui verifikasi token di `src/lib/auth.ts` dengan `crypto.timingSafeEqual` dan mewajibkan env secret di mode produksi.
+  * **Perlindungan Administrator Terakhir**: Mencegah penurunan peran (*demotion*) satu-satunya akun Administrator menjadi Operator pada endpoint pembaruan pengguna.
+
+* **Integritas Akuntansi & Perbaikan Kalkulasi Multi-Tahun**:
+  * **Mesin Laporan Terpadu (`src/lib/reports.ts`)**: Mengonsolidasikan logika kalkulasi 4 laporan keuangan standar Kepmendes 136/2022 menjadi satu sumber kebenaran (*single source of truth*) yang dipakai bersama oleh modul laporan dinamis dan arsip penutupan tahun.
+  * **Pencegahan Double Counting Saldo Awal**: Menyelaraskan rentang waktu agregasi Neraca. Jika jurnal Buka Buku (`SA/{year}/01/0001`) tercatat, neraca menghitung mutasi dari 1 Januari tahun berjalan sehingga saldo tahun lalu tidak terhitung dua kali.
+  * **Penghapusan Nilai Hardcode**: Menghapus nilai konstan `2750000` pada kalkulasi liabilitas simpanan anggota dan menghitungnya riil dari akun pembukuan.
+  * **Transparansi Kas Defisit**: Menghapus pembungkus `Math.max(0, ...)` agar defisit kas tetap terlihat jujur dan persamaan akuntansi (Aset = Kewajiban + Ekuitas) terbukti seimbang.
+  * **Penyempurnaan Penomoran Bukti Transaksi**: Menghitung nomor urut bukti harian berbasis nilai numerik maksimum secara atomik di `src/lib/ledger.ts` guna mencegah benturan (*unique constraint collision*) pada transaksi bersamaan.
+  * **Validasi Transaksi Ketat**: Menolak baris jurnal bernilai $\le 0$ atau kode akun yang tidak terdaftar di master Bagan Akun (COA).
+  * **Keamanan SQLite Backup & Restore**: Menjalankan checkpoint WAL (`PRAGMA wal_checkpoint(TRUNCATE)`) sebelum backup dan membersihkan file sisa `-wal`/`-shm` saat pemulihan basis data.
+
+* **Optimalisasi Ramping (*Lean*) & Uji Otomatis**:
+  * **Pembersihan Kode Mati**: Menghapus komponen tidak terpakai (`CalkTab.tsx`, `ArusKasModalTab.tsx`, `api/keuangan/reports/route.ts`, dan `validation.ts`) menghemat lebih dari 1.000 baris kode redundan.
+  * **Pembersihan Dependensi**: Menghapus paket npm yang tidak terpakai (`jsonwebtoken`, `jose`, `zod`).
+  * **Suite Uji Mandiri (`tests/self-check.mjs`)**: Menambahkan skrip verifikasi otomatis terintegrasi ke `npm test` untuk memverifikasi keamanan token, hashing kata sandi, penomoran urut bukti, dan keseimbangan debit-kredit.
+
 ## [1.1.0] - 2026-10-25
 
 ### Added & Improved - LPJ Musdes A4, Rollover Saldo Awal, & Audit Grid

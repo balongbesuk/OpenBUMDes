@@ -4,9 +4,18 @@ import { getUserSession } from "@/lib/auth"
 
 export async function GET() {
   try {
+    const session = await getUserSession()
     const list = await db.setting.findMany()
     const map: Record<string, string> = {}
     list.forEach(s => { map[s.key] = s.value })
+
+    // Hide secret API key from non-admin visitors
+    if (!session || session.role !== "ADMIN") {
+      if (map.gemini_api_key) {
+        map.gemini_api_key = "********"
+      }
+    }
+
     return NextResponse.json({ success: true, data: map })
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })

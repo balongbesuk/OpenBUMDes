@@ -1,10 +1,11 @@
 import crypto from "crypto"
 import { cookies } from "next/headers"
 
-const SECRET =
-  process.env.AUTH_SECRET ||
-  process.env.JWT_SECRET ||
-  "bumdes-kepmendes-136-secret-salt-2026"
+const SECRET = process.env.AUTH_SECRET || process.env.JWT_SECRET || (
+  process.env.NODE_ENV === "production"
+    ? (() => { throw new Error("AUTH_SECRET or JWT_SECRET must be configured in production") })()
+    : "bumdes-kepmendes-136-secret-salt-2026"
+)
 
 export const AUTH_COOKIE_NAME = "bumdes_auth_token"
 
@@ -46,7 +47,9 @@ export function verifyToken(token: string): { id: string; username: string; name
     if (!token || !token.includes(".")) return null
     const [b64, sig] = token.split(".")
     const expectedSig = crypto.createHmac("sha256", SECRET).update(b64).digest("base64url")
-    if (sig !== expectedSig) return null
+    const sigBuf = Buffer.from(sig)
+    const expBuf = Buffer.from(expectedSig)
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) return null
 
     const data = JSON.parse(Buffer.from(b64, "base64url").toString("utf8"))
     if (data.exp && Date.now() > data.exp) return null

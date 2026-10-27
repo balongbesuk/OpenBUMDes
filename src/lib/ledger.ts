@@ -90,21 +90,20 @@ export async function postJournalEntry(
       const month = String(date.getMonth() + 1).padStart(2, "0")
       const prefix = `${proofType}/${year}/${month}/`
 
-      const latest = await tx.journalEntry.findFirst({
+      const matching = await tx.journalEntry.findMany({
         where: { proofNumber: { startsWith: prefix } },
-        orderBy: { proofNumber: "desc" },
         select: { proofNumber: true }
       })
 
-      let nextSeq = 1
-      if (latest?.proofNumber) {
-        const parts = latest.proofNumber.split("/")
-        const lastSeq = parseInt(parts[parts.length - 1], 10)
-        if (!isNaN(lastSeq)) {
-          nextSeq = lastSeq + 1
+      let maxSeq = 0
+      for (const m of matching) {
+        const parts = m.proofNumber.split("/")
+        const seq = parseInt(parts[parts.length - 1], 10)
+        if (!isNaN(seq) && seq > maxSeq) {
+          maxSeq = seq
         }
       }
-      proofNumber = `${prefix}${String(nextSeq).padStart(4, "0")}`
+      proofNumber = `${prefix}${String(maxSeq + 1).padStart(4, "0")}`
     }
 
     const entry = await tx.journalEntry.create({
@@ -121,19 +120,19 @@ export async function postJournalEntry(
       }
     })
 
-    const createdLines = []
-    for (const line of lines) {
-      const l = await tx.journalLine.create({
-        data: {
-          journalEntryId: entry.id,
-          accountCode: line.accountCode,
-          type: line.type,
-          amount: line.amount,
-          cashFlowGroup: line.cashFlowGroup || null
-        }
-      })
-      createdLines.push(l)
-    }
+    await tx.journalLine.createMany({
+      data: lines.map((line) => ({
+        journalEntryId: entry.id,
+        accountCode: line.accountCode,
+        type: line.type,
+        amount: line.amount,
+        cashFlowGroup: line.cashFlowGroup || null
+      }))
+    })
+
+    const createdLines = await tx.journalLine.findMany({
+      where: { journalEntryId: entry.id }
+    })
 
     return { entry, lines: createdLines }
   })

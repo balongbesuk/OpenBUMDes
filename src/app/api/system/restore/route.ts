@@ -39,6 +39,10 @@ export async function POST(request: Request) {
     // Disconnect Prisma Client sebelum menimpa berkas
     await db.$disconnect()
 
+    // Hapus berkas WAL & SHM lama jika ada agar tidak bentrok
+    try { if (fs.existsSync(dbPath + "-wal")) fs.unlinkSync(dbPath + "-wal") } catch {}
+    try { if (fs.existsSync(dbPath + "-shm")) fs.unlinkSync(dbPath + "-shm") } catch {}
+
     // Tulis berkas database baru
     fs.writeFileSync(dbPath, fileBuffer)
 

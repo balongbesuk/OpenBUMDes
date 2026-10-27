@@ -5,6 +5,14 @@ import { getUserSession } from "@/lib/auth"
 
 export async function GET(request: Request) {
   try {
+    const session = await getUserSession()
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Akses ditolak. Silakan login terlebih dahulu." },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const month = searchParams.get("month")
     const year = searchParams.get("year")
@@ -57,6 +65,28 @@ export async function POST(request: Request) {
     if (!proofType || !description || !payeeOrPayer || !lines || lines.length < 2) {
       return NextResponse.json(
         { success: false, error: "Mohon lengkapi jenis bukti, keterangan, pihak terkait, dan minimal 2 baris jurnal." },
+        { status: 400 }
+      )
+    }
+
+    for (const l of lines) {
+      const amt = Number(l.amount)
+      if (isNaN(amt) || amt <= 0) {
+        return NextResponse.json(
+          { success: false, error: "Nominal setiap baris jurnal harus berupa angka positif lebih dari 0." },
+          { status: 400 }
+        )
+      }
+    }
+
+    const uniqueCodes: string[] = Array.from(new Set(lines.map((l: any) => String(l.accountCode).trim())))
+    const existingAccounts = await db.ledgerAccount.findMany({
+      where: { code: { in: uniqueCodes } },
+      select: { code: true }
+    })
+    if (existingAccounts.length !== uniqueCodes.length) {
+      return NextResponse.json(
+        { success: false, error: "Terdapat kode akun yang tidak terdaftar dalam Bagan Akun (COA) resmi." },
         { status: 400 }
       )
     }

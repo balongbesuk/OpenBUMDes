@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
+import { getUserSession } from "@/lib/auth"
 
 export async function GET(request: Request) {
   try {
+    const session = await getUserSession()
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Akses ditolak" }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const yearParam = searchParams.get("year")
     const monthParam = searchParams.get("month")

@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
+import { getUserSession } from "@/lib/auth"
 import * as XLSX from "xlsx"
 
 export async function GET(request: Request) {
   try {
+    const session = await getUserSession()
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Akses ditolak. Silakan login terlebih dahulu." },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const yearParam = searchParams.get("year") || new Date().getFullYear().toString()
     const year = parseInt(yearParam, 10)
@@ -16,7 +25,7 @@ export async function GET(request: Request) {
     })
     const bumdesName = settingMap["bumdes_name"] || "BAROKAH"
     const villageName = settingMap["village_name"] || "Balongbesuk"
-    const districtName = settingMap["district_name"] || "Diwek"
+    const districtName = settingMap["subdistrict_name"] || settingMap["district_name"] || "Diwek"
     const regencyName = settingMap["regency_name"] || "Jombang"
 
     // 2. Fetch Chart of Accounts (COA)

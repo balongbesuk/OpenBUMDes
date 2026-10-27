@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server"
 import { parseTransactionWithGemini } from "@/lib/gemini"
+import { getUserSession } from "@/lib/auth"
 
 export async function POST(request: Request) {
   try {
+    const session = await getUserSession()
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Akses ditolak. Silakan login terlebih dahulu." }, { status: 401 })
+    }
+
     const body = await request.json()
     const prompt = (body.prompt || "").trim()
 

@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { GoogleGenAI } from "@google/genai"
+import { getUserSession } from "@/lib/auth"
 
 export async function POST(request: Request) {
   try {
+    const session = await getUserSession()
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Akses ditolak" }, { status: 401 })
+    }
+
     const body = await request.json()
     const query = (body.query || "").trim()
 

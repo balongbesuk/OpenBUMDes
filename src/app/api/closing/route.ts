@@ -2,9 +2,14 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { postJournalEntry } from "@/lib/ledger"
 import { getUserSession } from "@/lib/auth"
+import { calculateFinancialReports } from "@/lib/reports"
 
 // Helper function to build a full snapshot of 5 financial reports for a given year
 async function generateYearReportsSnapshot(year: number) {
+  return await calculateFinancialReports(year)
+}
+
+async function _legacySnapshot(year: number) {
   const endDate = new Date(`${year}-12-31T23:59:59.999Z`)
   const startDate = new Date(`${year}-01-01T00:00:00.000Z`)
 
@@ -333,6 +338,14 @@ async function generateYearReportsSnapshot(year: number) {
 // GET: Ambil status tutup buku semua tahun atau tahun spesifik
 export async function GET(request: Request) {
   try {
+    const session = await getUserSession()
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Akses ditolak. Silakan login terlebih dahulu." },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const yearParam = searchParams.get("year")
 

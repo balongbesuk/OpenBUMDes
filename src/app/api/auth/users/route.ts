@@ -50,9 +50,21 @@ export async function POST(request: Request) {
 
     if (id) {
       // Edit User
+      const newRole = role.toUpperCase()
+      const existingUser = await db.user.findUnique({ where: { id } })
+      if (existingUser?.role === "ADMIN" && newRole !== "ADMIN") {
+        const adminCount = await db.user.count({ where: { role: "ADMIN" } })
+        if (adminCount <= 1) {
+          return NextResponse.json(
+            { success: false, error: "Tidak dapat mengubah peran satu-satunya Administrator sistem." },
+            { status: 400 }
+          )
+        }
+      }
+
       const updateData: any = {
         name,
-        role: role.toUpperCase()
+        role: newRole
       }
       if (password && password.trim().length > 0) {
         updateData.passwordHash = hashPassword(password)
