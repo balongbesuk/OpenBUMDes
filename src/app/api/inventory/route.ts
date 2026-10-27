@@ -81,10 +81,34 @@ export async function GET(request: Request) {
       }
     })
 
+    // Agregasi Buku Besar untuk Akun Persediaan (1.1.04)
+    const invLines = await db.journalLine.findMany({
+      where: {
+        accountCode: { startsWith: "1.1.04" }
+      },
+      select: { type: true, amount: true }
+    })
+    let ledgerInventoryBalance = 0
+    invLines.forEach((l) => {
+      if (l.type === "DEBIT") ledgerInventoryBalance += l.amount
+      else ledgerInventoryBalance -= l.amount
+    })
+
+    const totalInventoryValue = formatted.reduce((acc, curr) => acc + curr.totalValue, 0)
+    const difference = totalInventoryValue - ledgerInventoryBalance
+
     const summary = {
       totalItems: formatted.length,
-      totalInventoryValue: formatted.reduce((acc, curr) => acc + curr.totalValue, 0),
-      lowStockCount: formatted.filter((i) => i.isLowStock).length
+      totalInventoryValue,
+      lowStockCount: formatted.filter((i) => i.isLowStock).length,
+      reconciliation: {
+        subsidiaryTotal: totalInventoryValue,
+        ledgerBalance: ledgerInventoryBalance,
+        difference,
+        isReconciled: Math.abs(difference) < 1,
+        accountCode: "1.1.04",
+        accountName: "Persediaan Barang Dagangan"
+      }
     }
 
     return NextResponse.json({

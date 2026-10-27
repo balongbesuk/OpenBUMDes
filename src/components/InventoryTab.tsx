@@ -289,6 +289,82 @@ export default function InventoryTab({ settings = {} }: InventoryTabProps) {
         </div>
       </div>
 
+      {/* AUDIT RECONCILIATION STATUS BANNER */}
+      {summary.reconciliation && (
+        <div
+          className={`p-4 rounded-2xl border transition-all ${
+            summary.reconciliation.isReconciled
+              ? "bg-emerald-50/80 border-emerald-200 text-emerald-900"
+              : "bg-amber-50/80 border-amber-200 text-amber-900"
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div
+                className={`p-2 rounded-xl shrink-0 ${
+                  summary.reconciliation.isReconciled
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-amber-100 text-amber-700"
+                }`}
+              >
+                {summary.reconciliation.isReconciled ? (
+                  <CheckCircle2 className="w-5 h-5" />
+                ) : (
+                  <AlertTriangle className="w-5 h-5" />
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-xs font-bold uppercase tracking-wider">
+                    Kontrol Audit & Rekonsiliasi Neraca (Akun {summary.reconciliation.accountCode})
+                  </h4>
+                  <span
+                    className={`text-[10px] font-black px-2 py-0.5 rounded-md ${
+                      summary.reconciliation.isReconciled
+                        ? "bg-emerald-200/80 text-emerald-800"
+                        : "bg-amber-200/80 text-amber-800"
+                    }`}
+                  >
+                    {summary.reconciliation.isReconciled ? "SINKRON 100% (COCOK)" : "TERDAPAT SELISIH"}
+                  </span>
+                </div>
+                <p className="text-xs mt-1 leading-relaxed">
+                  {summary.reconciliation.isReconciled ? (
+                    <>
+                      Nilai fisik gudang di Buku Pembantu Persediaan (
+                      <strong>{formatRupiah(summary.reconciliation.subsidiaryTotal)}</strong>) cocok sempurna
+                      dengan saldo pembukuan di Buku Besar Neraca (
+                      <strong>{formatRupiah(summary.reconciliation.ledgerBalance)}</strong>).
+                    </>
+                  ) : (
+                    <>
+                      Terdapat selisih sebesar{" "}
+                      <strong>{formatRupiah(Math.abs(summary.reconciliation.difference))}</strong> antara fisik gudang
+                      (<strong>{formatRupiah(summary.reconciliation.subsidiaryTotal)}</strong>) dan saldo Buku Besar (
+                      <strong>{formatRupiah(summary.reconciliation.ledgerBalance)}</strong>). Lakukan Stock Opname
+                      atau catat Jurnal Penyesuaian jika ada barang rusak/hilang.
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+              <div className="text-right">
+                <div className="text-[10px] text-slate-500 font-medium">Selisih Buku Besar:</div>
+                <div
+                  className={`text-xs font-mono font-bold ${
+                    summary.reconciliation.isReconciled ? "text-emerald-700" : "text-amber-700"
+                  }`}
+                >
+                  {formatRupiah(summary.reconciliation.difference)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toolbar & Filter Card */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-2 w-full sm:w-auto">

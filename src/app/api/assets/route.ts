@@ -85,12 +85,60 @@ export async function GET(request: Request) {
       }
     })
 
+    // Agregasi Buku Besar untuk Aset Tetap (1.2.01) dan Akumulasi Penyusutan (1.2.02)
+    const assetLines = await db.journalLine.findMany({
+      where: {
+        accountCode: { startsWith: "1.2.01" },
+        journalEntry: {
+          date: { lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999)) }
+        }
+      },
+      select: { type: true, amount: true }
+    })
+    let ledgerAssetCost = 0
+    assetLines.forEach((l) => {
+      if (l.type === "DEBIT") ledgerAssetCost += l.amount
+      else ledgerAssetCost -= l.amount
+    })
+
+    const deprLines = await db.journalLine.findMany({
+      where: {
+        accountCode: { startsWith: "1.2.02" },
+        journalEntry: {
+          date: { lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999)) }
+        }
+      },
+      select: { type: true, amount: true }
+    })
+    let ledgerDepr = 0
+    deprLines.forEach((l) => {
+      if (l.type === "CREDIT") ledgerDepr += l.amount
+      else ledgerDepr -= l.amount
+    })
+
+    const totalAcquisitionCost = formatted.reduce((acc, curr) => acc + curr.acquisitionCost, 0)
+    const totalAccumulatedDepreciation = formatted.reduce((acc, curr) => acc + curr.accumulatedDepreciation, 0)
+    const totalBookValue = formatted.reduce((acc, curr) => acc + curr.bookValue, 0)
+    const costDiff = totalAcquisitionCost - ledgerAssetCost
+    const deprDiff = totalAccumulatedDepreciation - ledgerDepr
+
     const summary = {
       totalAssetsCount: formatted.length,
-      totalAcquisitionCost: formatted.reduce((acc, curr) => acc + curr.acquisitionCost, 0),
-      totalAccumulatedDepreciation: formatted.reduce((acc, curr) => acc + curr.accumulatedDepreciation, 0),
-      totalBookValue: formatted.reduce((acc, curr) => acc + curr.bookValue, 0),
-      totalCurrentYearDepreciation: formatted.reduce((acc, curr) => acc + curr.currentYearExpense, 0)
+      totalAcquisitionCost,
+      totalAccumulatedDepreciation,
+      totalBookValue,
+      totalCurrentYearDepreciation: formatted.reduce((acc, curr) => acc + curr.currentYearExpense, 0),
+      reconciliation: {
+        subsidiaryCost: totalAcquisitionCost,
+        ledgerAssetCost,
+        costDiff,
+        isCostReconciled: Math.abs(costDiff) < 1,
+        subsidiaryDepr: totalAccumulatedDepreciation,
+        ledgerDepr,
+        deprDiff,
+        isDeprReconciled: Math.abs(deprDiff) < 1,
+        isFullyReconciled: Math.abs(costDiff) < 1 && Math.abs(deprDiff) < 1
+      }
     }
 
     return NextResponse.json({

@@ -259,6 +259,105 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
         </div>
       </div>
 
+      {/* AUDIT RECONCILIATION STATUS BANNER */}
+      {summary.reconciliation && (
+        <div
+          className={`p-4 rounded-2xl border transition-all ${
+            summary.reconciliation.isFullyReconciled
+              ? "bg-emerald-50/80 border-emerald-200 text-emerald-900"
+              : "bg-amber-50/80 border-amber-200 text-amber-900"
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div
+                className={`p-2 rounded-xl shrink-0 ${
+                  summary.reconciliation.isFullyReconciled
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-amber-100 text-amber-700"
+                }`}
+              >
+                {summary.reconciliation.isFullyReconciled ? (
+                  <CheckCircle2 className="w-5 h-5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5" />
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-xs font-bold uppercase tracking-wider">
+                    Kontrol Audit & Rekonsiliasi Neraca (Akun 1.2.01 & 1.2.02)
+                  </h4>
+                  <span
+                    className={`text-[10px] font-black px-2 py-0.5 rounded-md ${
+                      summary.reconciliation.isFullyReconciled
+                        ? "bg-emerald-200/80 text-emerald-800"
+                        : "bg-amber-200/80 text-amber-800"
+                    }`}
+                  >
+                    {summary.reconciliation.isFullyReconciled
+                      ? "SINKRON 100% (COCOK)"
+                      : "TERDAPAT SELISIH PEMBUKUAN"}
+                  </span>
+                </div>
+                <p className="text-xs mt-1 leading-relaxed">
+                  {summary.reconciliation.isFullyReconciled ? (
+                    <>
+                      Nilai perolehan aset tetap (
+                      <strong>{formatRupiah(summary.reconciliation.subsidiaryCost)}</strong>) dan akumulasi
+                      penyusutan (
+                      <strong>{formatRupiah(summary.reconciliation.subsidiaryDepr)}</strong>) cocok sempurna
+                      dengan saldo Buku Besar Neraca.
+                    </>
+                  ) : (
+                    <>
+                      Perhatian: Terdapat selisih pada pembukuan aset.
+                      {!summary.reconciliation.isCostReconciled && (
+                        <span>
+                          {" "}Harga Beli Register: <strong>{formatRupiah(summary.reconciliation.subsidiaryCost)}</strong> vs
+                          Buku Besar: <strong>{formatRupiah(summary.reconciliation.ledgerAssetCost)}</strong> (Selisih:{" "}
+                          <strong>{formatRupiah(summary.reconciliation.costDiff)}</strong>).
+                        </span>
+                      )}
+                      {!summary.reconciliation.isDeprReconciled && (
+                        <span>
+                          {" "}Akumulasi Penyusutan Register: <strong>{formatRupiah(summary.reconciliation.subsidiaryDepr)}</strong> vs
+                          Buku Besar: <strong>{formatRupiah(summary.reconciliation.ledgerDepr)}</strong> (Selisih:{" "}
+                          <strong>{formatRupiah(summary.reconciliation.deprDiff)}</strong>).
+                        </span>
+                      )}
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 self-end sm:self-center shrink-0 text-right">
+              <div>
+                <div className="text-[10px] text-slate-500 font-medium">Selisih Akun 1.2.01:</div>
+                <div
+                  className={`text-xs font-mono font-bold ${
+                    summary.reconciliation.isCostReconciled ? "text-emerald-700" : "text-amber-700"
+                  }`}
+                >
+                  {formatRupiah(summary.reconciliation.costDiff)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-slate-500 font-medium">Selisih Akun 1.2.02:</div>
+                <div
+                  className={`text-xs font-mono font-bold ${
+                    summary.reconciliation.isDeprReconciled ? "text-emerald-700" : "text-amber-700"
+                  }`}
+                >
+                  {formatRupiah(summary.reconciliation.deprDiff)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toolbar & Filter Card */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-2 w-full sm:w-auto">
