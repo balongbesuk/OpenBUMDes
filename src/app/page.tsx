@@ -47,7 +47,8 @@ import {
   Check,
   Download,
   Package,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Camera
 } from "lucide-react"
 import { formatRupiah, safePrintElement } from "@/lib/utils"
 import KwitansiModal from "@/components/KwitansiModal"
@@ -181,8 +182,9 @@ export default function StislaApp() {
   const [proofTypeFilter, setProofTypeFilter] = useState("all")
   const [attachmentFilter, setAttachmentFilter] = useState<string>("all")
 
-  // AI Prompt State (Buku Kas)
+  // AI Prompt & Receipt Scan State (Buku Kas)
   const [aiPrompt, setAiPrompt] = useState("")
+  const [receiptImage, setReceiptImage] = useState<{ base64: string; name: string } | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiResult, setAiResult] = useState<any>(null)
   const [aiError, setAiError] = useState<string | null>(null)
@@ -412,9 +414,29 @@ export default function StislaApp() {
     }
   }
 
-  // AI Parser Submit (Buku Kas)
+  // Upload & Scan Foto Nota (Multimodal Vision)
+  const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 6 * 1024 * 1024) {
+      showAppAlert("Ukuran foto maksimal 6 MB", { type: "warning" })
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const base64 = reader.result as string
+      setReceiptImage({
+        base64,
+        name: file.name
+      })
+      showAppToast(`Foto nota "${file.name}" siap dianalisis. Klik tombol "Proses AI".`, "info")
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // AI Parser Submit (Buku Kas & Vision)
   const handleAiProcess = async () => {
-    if (!aiPrompt.trim()) return
+    if (!aiPrompt.trim() && !receiptImage) return
     setAiLoading(true)
     setAiResult(null)
     setAiError(null)
@@ -422,7 +444,11 @@ export default function StislaApp() {
       const res = await fetch("/api/ai/parse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: aiPrompt })
+        body: JSON.stringify({
+          prompt: aiPrompt,
+          imageBase64: receiptImage?.base64,
+          mimeType: receiptImage?.base64.startsWith("data:image/png") ? "image/png" : "image/jpeg"
+        })
       })
       const json = await res.json()
       if (json.success) {
@@ -458,6 +484,7 @@ export default function StislaApp() {
       if (json.success) {
         showAppToast("Transaksi berhasil dicatat ke Buku Kas & Jurnal!", "success")
         setAiPrompt("")
+        setReceiptImage(null)
         setAiResult(null)
         loadData()
       } else {
@@ -1657,9 +1684,28 @@ export default function StislaApp() {
                       value={aiPrompt}
                       onChange={(e) => setAiPrompt(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleAiProcess()}
-                      placeholder="Contoh: Terima sewa gedung dari pak budi 1,5 juta tunai..."
+                      placeholder={receiptImage ? `Foto: ${receiptImage.name}. Ketik instruksi tambahan bila ada...` : "Contoh: Terima sewa gedung dari pak budi 1,5 juta tunai..."}
                       className="flex-1 bg-white/10 text-white placeholder-emerald-200 border border-white/20 rounded-xl px-3.5 py-2.5 sm:py-3 text-xs sm:text-sm focus:outline-none focus:bg-white focus:text-slate-900 transition-all shadow-inner"
                     />
+
+                    {/* Tombol Scan / Foto Nota (Multimodal Vision) */}
+                    <label
+                      htmlFor="receipt-scan-input"
+                      className="bg-emerald-800/60 hover:bg-emerald-800 text-emerald-100 font-semibold px-3.5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm border border-emerald-400/30 transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer shadow-xs active:scale-95"
+                      title="Ambil foto atau upload nota/kuitansi"
+                    >
+                      <Camera className="w-4 h-4 text-amber-300" />
+                      <span>{receiptImage ? "Ganti Foto" : "Scan Nota"}</span>
+                      <input
+                        id="receipt-scan-input"
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={handleReceiptUpload}
+                      />
+                    </label>
+
                     <button
                       onClick={handleAiProcess}
                       disabled={aiLoading}
@@ -1682,6 +1728,22 @@ export default function StislaApp() {
                       )}
                     </button>
                   </div>
+
+                  {/* Thumbnail / Status Foto Terpilih */}
+                  {receiptImage && (
+                    <div className="flex items-center gap-2 mt-2.5 px-3 py-1.5 bg-black/30 rounded-lg text-xs text-emerald-100 border border-emerald-400/30 w-fit">
+                      <Camera className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                      <span className="font-semibold text-amber-200">Foto Nota:</span>
+                      <span className="truncate max-w-[200px] text-white/90">{receiptImage.name}</span>
+                      <button
+                        onClick={() => setReceiptImage(null)}
+                        className="text-rose-300 hover:text-rose-100 font-bold ml-1.5 text-sm leading-none"
+                        title="Batal / Hapus foto"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  )}
 
                   {aiError && (
                     <div className="mt-3 p-3 bg-rose-500/20 border border-rose-300/40 rounded-xl text-xs text-white flex items-center gap-2 animate-in fade-in">

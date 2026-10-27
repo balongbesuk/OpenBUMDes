@@ -11,12 +11,14 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const prompt = (body.prompt || "").trim()
+    const imageBase64 = body.imageBase64 || body.image || undefined
+    const mimeType = body.mimeType || undefined
 
-    if (!prompt) {
-      return NextResponse.json({ success: false, error: "Teks transaksi tidak boleh kosong." }, { status: 400 })
+    if (!prompt && !imageBase64) {
+      return NextResponse.json({ success: false, error: "Teks atau foto bukti transaksi tidak boleh kosong." }, { status: 400 })
     }
 
-    const data = await parseTransactionWithGemini(prompt)
+    const data = await parseTransactionWithGemini(prompt, imageBase64, mimeType)
     return NextResponse.json({ success: true, data })
   } catch (error: any) {
     console.error("AI Parse Error:", error)

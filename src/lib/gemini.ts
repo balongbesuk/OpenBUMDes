@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai"
 import { db } from "./db"
+import { calculateFinancialReports } from "./reports"
 
 /**
  * Smart Rule-Based NLP Parser untuk Transaksi BUMDes (Kepmendes 136/2022)
@@ -226,7 +227,7 @@ export function getSmartFilteredCOA(accounts: any[], activeAccountCodes: Set<str
  * 1. Jika API Key ada -> Gunakan Gemini AI (Online).
  * 2. Jika API Key tidak ada atau error/kuota habis -> Otomatis beralih ke Rule-Based NLP (Offline).
  */
-export async function parseTransactionWithGemini(userText: string) {
+export async function parseTransactionWithGemini(userText: string, imageBase64?: string, mimeType?: string) {
   const accounts = await db.ledgerAccount.findMany({
     select: { code: true, name: true, type: true }
   })
@@ -234,8 +235,13 @@ export async function parseTransactionWithGemini(userText: string) {
   const keySetting = await db.setting.findUnique({ where: { key: "gemini_api_key" } })
   const apiKey = keySetting?.value?.trim() || process.env.GEMINI_API_KEY
 
-  // Jika operator belum mengisi API Key, gunakan parser offline aturan Kepmendes 136 langsung
+  // Jika operator belum mengisi API Key:
+  // - Bila ada gambar nota: beri tahu bahwa scan foto butuh API Key
+  // - Bila hanya teks: gunakan parser offline aturan Kepmendes 136 langsung
   if (!apiKey) {
+    if (imageBase64) {
+      throw new Error("Pemindaian nota/struk foto membutuhkan Google Gemini AI aktif. Silakan masukkan API Key di menu Pengaturan.")
+    }
     return parseTransactionOffline(userText, accounts)
   }
 
@@ -391,6 +397,19 @@ ATURAN WAJIB:
     ]
   }
 
+  // Siapkan isi konten (teks dan/atau foto nota multimodal)
+  const contentParts: any[] = []
+  if (imageBase64) {
+    contentParts.push({
+      inlineData: {
+        data: imageBase64.replace(/^data:[^;]+;base64,/, ""),
+        mimeType: mimeType || "image/jpeg"
+      }
+    })
+  }
+  const promptText = userText?.trim() || "Analisis foto bukti transaksi/nota/kuitansi ini. Ekstrak tanggal transaksi, nama toko/penerima/penyetor, rincian barang, total nominal, dan susun jurnal akuntansinya sesuai standar Kepmendesa 136/2022."
+  contentParts.push({ text: promptText })
+
   for (const model of candidateModels) {
     try {
       const config: any = {
@@ -408,7 +427,7 @@ ATURAN WAJIB:
 
       const response = await ai.models.generateContent({
         model,
-        contents: userText,
+        contents: contentParts,
         config
       })
 
@@ -426,11 +445,259 @@ ATURAN WAJIB:
     }
   }
 
-  // Jika seluruh model Gemini gagal (misal kuota habis / offline), otomatis fallback ke offline rule
+  // Jika seluruh model Gemini gagal (misal kuota habis / offline), otomatis fallback ke offline rule bila ada teks
+  if (imageBase64) {
+    throw new Error("Gagal memproses gambar melalui AI. Periksa koneksi internet atau kuota API Key Anda.")
+  }
+
   console.log("Semua model AI gagal/offline, beralih ke Offline Rule-Based Engine.")
   const offlineResult = parseTransactionOffline(userText, accounts)
   return {
     ...offlineResult,
     engine: "OFFLINE_RULES"
+  }
+}
+
+/**
+ * Generator Narasi & Analisis LPJ Otomatis untuk Musyawarah Desa (Musdes)
+ * Menghasilkan ikhtisar eksekutif profesional untuk lembar CaLK & panduan pidato Direktur BUMDes.
+ */
+export async function generateLpjMusdesSummary(year: number) {
+  const reports = await calculateFinancialReports(year)
+  const bumdesSetting = await db.setting.findUnique({ where: { key: "bumdes_name" } })
+  const villageSetting = await db.setting.findUnique({ where: { key: "village_name" } })
+  const bumdesName = bumdesSetting?.value || "BUM Desa"
+  const villageName = villageSetting?.value || "Desa"
+
+  const { labaRugi, neraca, lak } = reports
+  const totalRev = labaRugi.totalRevenue
+  const totalExp = labaRugi.totalExpense
+  const netProfit = labaRugi.netProfit
+  const cashEnd = lak.saldoKasAkhir
+  const totalAssets = neraca.totalAssets
+
+  const topRevenues = [...labaRugi.revenues].sort((a, b) => b.amount - a.amount).slice(0, 3)
+  const topExpenses = [...labaRugi.expenses].sort((a, b) => b.amount - a.amount).slice(0, 3)
+
+  const keySetting = await db.setting.findUnique({ where: { key: "gemini_api_key" } })
+  const apiKey = keySetting?.value?.trim() || process.env.GEMINI_API_KEY
+
+  const formatRp = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`
+
+  if (!apiKey) {
+    // Generator narasi cerdas offline jika API key belum ada
+    const profitStatus = netProfit >= 0 ? "memperoleh Sisa Hasil Usaha (laba bersih)" : "mengalami defisit operasional"
+    const revSummary = topRevenues.map(r => `${r.name} (${formatRp(r.amount)})`).join(", ") || "tidak ada penerimaan"
+    const expSummary = topExpenses.map(e => `${e.name} (${formatRp(e.amount)})`).join(", ") || "tidak ada beban"
+
+    return {
+      summary: `Pada Tahun Anggaran ${year}, ${bumdesName} ${villageName} berhasil membukukan total pendapatan operasional sebesar ${formatRp(totalRev)} dengan realisasi beban operasional sebesar ${formatRp(totalExp)}, sehingga ${profitStatus} sebesar ${formatRp(Math.abs(netProfit))}. Posisi total aset tercatat senilai ${formatRp(totalAssets)} dengan saldo kas & bank akhir tahun sebesar ${formatRp(cashEnd)}. Kontributor pendapatan utama berasal dari ${revSummary}, sedangkan alokasi beban terbesar diserap untuk ${expSummary}. Seluruh laporan telah diselaraskan dengan Kepmendesa PDTT No. 136 Tahun 2022.`,
+      highlights: [
+        `Total Pendapatan TA ${year}: ${formatRp(totalRev)}`,
+        `Sisa Hasil Usaha (SHU): ${formatRp(netProfit)}`,
+        `Saldo Kas & Bank Akhir: ${formatRp(cashEnd)}`,
+        `Total Aset BUMDes: ${formatRp(totalAssets)}`
+      ],
+      recommendations: [
+        "Optimalisasi dan perluasan penetrasi unit usaha dengan kontribusi pendapatan tertinggi.",
+        "Pengendalian efisiensi beban operasional rutin perkantoran untuk memaksimalkan margin SHU.",
+        "Peningkatan tertib administrasi pembukuan digital dan kelengkapan bukti transaksi fisik sebelum Musdes."
+      ],
+      engine: "OFFLINE_RULES"
+    }
+  }
+
+  // Gunakan Gemini Generative AI untuk narasi kaya
+  const prompt = `Anda adalah Tenaga Ahli Akuntansi & Pendamping BUM Desa. Buatlah ringkasan eksekutif naratif formal dan santun untuk dibacakan oleh Direktur BUMDes pada forum Musyawarah Desa (Musdes) Laporan Pertanggungjawaban (LPJ) Akhir Tahun ${year}.
+
+DATA KEUANGAN:
+- Nama BUMDes: ${bumdesName} (${villageName})
+- Tahun Anggaran: ${year}
+- Total Pendapatan: ${formatRp(totalRev)}
+- Total Beban: ${formatRp(totalExp)}
+- Laba Bersih / SHU: ${formatRp(netProfit)}
+- Total Aset: ${formatRp(totalAssets)}
+- Saldo Kas Akhir: ${formatRp(cashEnd)}
+- Unit Pendapatan Terbesar: ${topRevenues.map(r => `${r.name} (${formatRp(r.amount)})`).join(", ")}
+- Beban Terbesar: ${topExpenses.map(e => `${e.name} (${formatRp(e.amount)})`).join(", ")}
+
+Buat output JSON:
+{
+  "summary": "Teks narasi 2 paragraf yang santun, profesional, lugas, dan mudah dipahami oleh BPD dan warga masyarakat desa",
+  "highlights": ["Poin penting 1", "Poin penting 2", "Poin penting 3", "Poin penting 4"],
+  "recommendations": ["Rekomendasi strategis 1 untuk tahun depan", "Rekomendasi 2", "Rekomendasi 3"]
+}`
+
+  try {
+    const ai = new GoogleGenAI({ apiKey })
+    const modelSetting = await db.setting.findUnique({ where: { key: "gemini_model" } })
+    const chosenModel = modelSetting?.value?.trim() || "gemini-3.5-flash-lite"
+    const response = await ai.models.generateContent({
+      model: chosenModel,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            summary: { type: Type.STRING },
+            highlights: { type: Type.ARRAY, items: { type: Type.STRING } },
+            recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["summary", "highlights", "recommendations"]
+        }
+      }
+    })
+    const text = response.text
+    if (text) {
+      return {
+        ...JSON.parse(text),
+        engine: "GEMINI_AI"
+      }
+    }
+  } catch (err) {
+    console.warn("Gagal generate narasi LPJ via Gemini, beralih ke generator offline:", err)
+  }
+
+  return {
+    summary: `Pada Tahun Anggaran ${year}, ${bumdesName} ${villageName} membukukan total pendapatan ${formatRp(totalRev)} dengan total beban ${formatRp(totalExp)}, menghasilkan SHU sebesar ${formatRp(netProfit)}.`,
+    highlights: [`Total Pendapatan: ${formatRp(totalRev)}`, `SHU Bersih: ${formatRp(netProfit)}`],
+    recommendations: ["Menjaga efisiensi biaya operasional kantor", "Mendorong ekspansi unit usaha produktif"],
+    engine: "OFFLINE_RULES"
+  }
+}
+
+/**
+ * Pemeriksa Kesehatan Keuangan & Deteksi Anomali Pembukuan (Pra-Audit Ringan LPJ)
+ */
+export async function runFinancialHealthAudit(year: number) {
+  const reports = await calculateFinancialReports(year)
+  const { labaRugi, neraca, lak } = reports
+  const totalRev = labaRugi.totalRevenue
+  const totalExp = labaRugi.totalExpense
+  const netProfit = labaRugi.netProfit
+  const cashEnd = lak.saldoKasAkhir
+  const currentAssets = neraca.totalCurrentAssets
+  const currentLiabilities = neraca.totalLiabilities
+
+  // 1. Indikator Keuangan Kunci
+  const bopo = totalRev > 0 ? (totalExp / totalRev) * 100 : totalExp > 0 ? 150 : 0
+  const npm = totalRev > 0 ? (netProfit / totalRev) * 100 : netProfit < 0 ? -100 : 0
+  const currentRatio = currentLiabilities > 0 ? (currentAssets / currentLiabilities) * 100 : 999
+
+  // 2. Pemeriksaan Anomali Transaksi
+  const startDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0))
+  const endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999))
+
+  const entries = await db.journalEntry.findMany({
+    where: {
+      date: { gte: startDate, lte: endDate },
+      proofType: { not: "MEMORIAL" }
+    },
+    include: { lines: true }
+  })
+
+  const issues: { type: "critical" | "warning" | "healthy"; title: string; detail: string; recommendation: string }[] = []
+
+  // Check 1: Saldo Kas & Bank
+  if (cashEnd < 0) {
+    issues.push({
+      type: "critical",
+      title: "Kas Akhir Bernilai Negatif",
+      detail: `Saldo kas & bank tercatat minus (Rp ${Math.round(cashEnd).toLocaleString("id-ID")}). Pengeluaran tercatat lebih dulu sebelum penerimaan kas masuk.`,
+      recommendation: "Periksa kembali tanggal transaksi kas masuk (BKM) agar tidak tertulis setelah pengeluaran terjadi."
+    })
+  } else if (cashEnd === 0 && totalRev > 0) {
+    issues.push({
+      type: "warning",
+      title: "Saldo Kas Nol di Akhir Tahun",
+      detail: "Kas dan bank di akhir periode bersaldo Rp 0. Tidak ada bantalan kas untuk operasional awal tahun depan.",
+      recommendation: "Pastikan seluruh bukti transaksi kas masuk dan bank telah selesai diinput."
+    })
+  } else {
+    issues.push({
+      type: "healthy",
+      title: "Likuiditas Kas Positif",
+      detail: `Saldo kas dan setara kas akhir tahun aman terkendali sebesar Rp ${Math.round(cashEnd).toLocaleString("id-ID")}.`,
+      recommendation: "Lakukan opname kas fisik bersama Badan Pengawas sebelum Musdes."
+    })
+  }
+
+  // Check 2: Rasio BOPO (Efisiensi Beban)
+  if (bopo > 95) {
+    issues.push({
+      type: "warning",
+      title: `Efisiensi Beban Rendah (BOPO ${bopo.toFixed(1)}%)`,
+      detail: `Beban operasional menyerap hampir seluruh (${bopo.toFixed(1)}%) pendapatan BUMDes.`,
+      recommendation: "Lakukan evaluasi pos-pos beban terbesar untuk efisiensi di tahun anggaran berikutnya."
+    })
+  } else {
+    issues.push({
+      type: "healthy",
+      title: `Rasio Beban Operasional Sehat (${bopo.toFixed(1)}%)`,
+      detail: `Rasio BOPO terjaga di angka ${bopo.toFixed(1)}% (standar sehat di bawah 90%).`,
+      recommendation: "Pertahankan proporsi belanja operasional yang produktif."
+    })
+  }
+
+  // Check 3: Transaksi dengan Keterangan Terlalu Pendek / Ambigu
+  const vagueEntries = entries.filter(e => e.description.trim().length <= 4 || e.payeeOrPayer === "-" || !e.payeeOrPayer)
+  if (vagueEntries.length > 0) {
+    issues.push({
+      type: "warning",
+      title: `${vagueEntries.length} Transaksi dengan Uraian Kurang Rinci`,
+      detail: `Terdapat ${vagueEntries.length} bukti pembukuan dengan deskripsi terlalu singkat atau nama pihak tidak terisi jelas.`,
+      recommendation: "Lengkapi nama toko/rekanan dan rincian transaksi sebelum mencetak dokumen LPJ final."
+    })
+  }
+
+  // Check 4: Keseimbangan Debit Kredit
+  const unbalanced = entries.filter(e => {
+    const d = e.lines.filter(l => l.type === "DEBIT").reduce((s, l) => s + l.amount, 0)
+    const c = e.lines.filter(l => l.type === "CREDIT").reduce((s, l) => s + l.amount, 0)
+    return Math.abs(d - c) > 0.01
+  })
+  if (unbalanced.length > 0) {
+    issues.push({
+      type: "critical",
+      title: `${unbalanced.length} Transaksi Tidak Seimbang (Debit != Kredit)`,
+      detail: `Ditemukan ketidakseimbangan pada nomor bukti: ${unbalanced.map(u => u.proofNumber).join(", ")}.`,
+      recommendation: "Segera edit dan seimbangkan jurnal transaksi tersebut sebelum penutupan buku."
+    })
+  } else {
+    issues.push({
+      type: "healthy",
+      title: "Integritas Jurnal 100% Seimbang",
+      detail: "Seluruh entri jurnal memiliki total Debit dan Kredit yang tepat dan seimbang.",
+      recommendation: "Pembukuan berpasangan memenuhi standar akuntansi SAK EMKM."
+    })
+  }
+
+  // Hitung Skor Kesehatan (0 - 100)
+  let healthScore = 100
+  issues.forEach(i => {
+    if (i.type === "critical") healthScore -= 30
+    if (i.type === "warning") healthScore -= 15
+  })
+  healthScore = Math.max(10, Math.min(100, healthScore))
+
+  let overallStatus: "SEHAT" | "PERHATIAN" | "WASPADA" = "SEHAT"
+  if (healthScore < 60) overallStatus = "WASPADA"
+  else if (healthScore < 85) overallStatus = "PERHATIAN"
+
+  return {
+    year,
+    overallStatus,
+    healthScore,
+    metrics: {
+      totalRevenue: totalRev,
+      totalExpense: totalExp,
+      netProfit,
+      cashEnd,
+      bopoPercent: Number(bopo.toFixed(1)),
+      netMarginPercent: Number(npm.toFixed(1)),
+      currentRatio: currentRatio > 900 ? "Bebas Utang" : `${currentRatio.toFixed(1)}%`
+    },
+    issues
   }
 }

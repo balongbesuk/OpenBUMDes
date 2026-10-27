@@ -1681,7 +1681,14 @@ export default function LpjPrintModal({
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-xs uppercase tracking-wide text-slate-900 mb-1">5. PERTANGGUNGJAWABAN & PENGESAHAN</h3>
+                  <h3 className="font-bold text-xs uppercase tracking-wide text-slate-900 mb-1">5. RINGKASAN EKSEKUTIF KINERJA & EVALUASI USAHA (MUSDES)</h3>
+                  <p className="text-justify text-[11px] leading-relaxed text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                    Berdasarkan hasil pembukuan standar Kepmendesa No. 136 Tahun 2022, pada Tahun Anggaran {year} BUM Desa membukukan realisasi pendapatan sebesar {formatRupiah(labaRugi.totalRevenue)} dan realisasi beban sebesar {formatRupiah(labaRugi.totalExpense)}, sehingga menghasilkan {labaRugi.netProfit >= 0 ? "Sisa Hasil Usaha (SHU) positif" : "defisit operasional"} sebesar {formatRupiah(Math.abs(labaRugi.netProfit))}. Kinerja keuangan ini menjadi dasar alokasi Pendapatan Asli Desa (PADes) serta rencana kerja penguatan unit usaha tahun anggaran berikutnya.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-xs uppercase tracking-wide text-slate-900 mb-1">6. PERTANGGUNGJAWABAN & PENGESAHAN</h3>
                   <p className="text-justify text-[11px] leading-relaxed text-slate-600">
                     Laporan Keuangan ini telah disusun secara tertib, akuntabel, dan transparan berdasarkan bukti pembukuan yang sah, serta dipertanggungjawabkan dalam Musyawarah Desa (Musdes) Laporan Pertanggungjawaban (LPJ) BUM Desa Tahun Anggaran {year}.
                   </p>
