@@ -60,8 +60,12 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
 
   const bumdesName = settings.bumdes_name || "BUMDesa Mandiri Sejahtera"
   const villageName = settings.village_name || "Balongbesuk"
+  const subdistrictName = settings.subdistrict_name || settings.district_name || "Diwek"
+  const regencyName = settings.regency_name || "Jombang"
   const directorName = settings.director_name || "DODIK SUSANTO, S.Fil.I"
+  const directorNip = settings.director_nip || "-"
   const treasurerName = settings.treasurer_name || "MAMIK KURNIAWATI"
+  const treasurerNip = settings.treasurer_nip || "-"
 
   const loadData = async (targetYear = selectedYear) => {
     setLoading(true)
@@ -293,25 +297,78 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
           </button>
         </div>
 
-        {/* Table Content */}
-        <div className="overflow-x-auto" id="printable-assets-report">
-          <table className="w-full text-left border-collapse text-xs">
+      {/* DOCUMENT PRINT CONTAINER */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8" id="printable-assets-report">
+        {/* KOP RESMI DOKUMEN CETAK */}
+        <div className="border-b-2 border-slate-800 pb-4 mb-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              {settings.bumdes_logo ? (
+                <img
+                  src={settings.bumdes_logo}
+                  alt="Logo BUMDes"
+                  className="w-16 h-16 object-contain rounded-lg border border-slate-200 p-1"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-xl bg-slate-900 text-white font-black text-2xl flex items-center justify-center">
+                  {bumdesName.charAt(0)}
+                </div>
+              )}
+              <div>
+                <h1 className="font-black text-xl text-slate-900 uppercase tracking-tight">
+                  {bumdesName}
+                </h1>
+                <p className="text-xs text-slate-600 font-medium">
+                  Desa {villageName}, Kecamatan {subdistrictName}, Kabupaten {regencyName}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {settings.bumdes_address || `Kantor BUMDes Desa ${villageName}`}
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-300 uppercase tracking-wider">
+                Dokumen Audit Inspektorat
+              </span>
+              <p className="text-[11px] text-slate-500 mt-1 font-mono">
+                TA: {selectedYear}
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center mt-5">
+            <h2 className="text-lg font-black text-slate-900 uppercase tracking-wide">
+              DAFTAR REGISTER & JADWAL AMORTISASI / PENYUSUTAN ASET TETAP
+            </h2>
+            <div className="inline-block mt-1 px-3 py-0.5 rounded-full bg-slate-100 text-slate-800 text-xs font-bold border border-slate-300">
+              Metode Garis Lurus (Straight-Line Method) Standar SAK EMKM & Kepmendes 136
+            </div>
+            <p className="text-xs text-slate-500 mt-1 italic">
+              Posisi Nilai Perolehan, Akumulasi Penyusutan & Nilai Buku Bersih per 31 Desember {selectedYear}
+            </p>
+          </div>
+        </div>
+
+        {/* TABEL DATA ASET */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-left border-collapse border border-slate-300">
             <thead>
-              <tr className="bg-slate-100/80 text-slate-600 border-b border-slate-200 font-semibold">
-                <th className="py-3 px-4">No Reg / Kode</th>
-                <th className="py-3 px-4">Nama Aset Tetap</th>
-                <th className="py-3 px-4">Kelompok</th>
-                <th className="py-3 px-4">Tgl Beli</th>
-                <th className="py-3 px-4 text-right">Harga Perolehan</th>
-                <th className="py-3 px-4 text-center">Masa (Th)</th>
-                <th className="py-3 px-4 text-right">Beban {selectedYear}</th>
-                <th className="py-3 px-4 text-right">Akum. Penyusutan</th>
-                <th className="py-3 px-4 text-right">Nilai Buku Bersih</th>
-                <th className="py-3 px-4 text-center">Kondisi</th>
-                <th className="py-3 px-4 text-center print:hidden">Aksi</th>
+              <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+                <th className="py-2.5 px-3 border-r border-slate-300 w-28">No. Reg / Kode</th>
+                <th className="py-2.5 px-3 border-r border-slate-300">Nama Aset Tetap</th>
+                <th className="py-2.5 px-3 border-r border-slate-300 w-32">Kelompok Aset</th>
+                <th className="py-2.5 px-3 border-r border-slate-300 w-24">Tgl Beli</th>
+                <th className="py-2.5 px-3 border-r border-slate-300 text-right w-28">Harga Beli</th>
+                <th className="py-2.5 px-3 border-r border-slate-300 text-center w-20">Masa (Th)</th>
+                <th className="py-2.5 px-3 border-r border-slate-300 text-right w-28">Beban {selectedYear}</th>
+                <th className="py-2.5 px-3 border-r border-slate-300 text-right w-28">Akum. Susut</th>
+                <th className="py-2.5 px-3 border-r border-slate-300 text-right w-28">Nilai Buku</th>
+                <th className="py-2.5 px-3 text-center w-24">Kondisi</th>
+                <th className="py-2.5 px-3 text-center w-16 print:hidden">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
+            <tbody className="divide-y divide-slate-200">
               {loading ? (
                 <tr>
                   <td colSpan={11} className="py-12 text-center text-slate-400">
@@ -328,32 +385,32 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
                 </tr>
               ) : (
                 filteredAssets.map((asset) => (
-                  <tr key={asset.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4 font-mono font-medium text-slate-900">{asset.code}</td>
-                    <td className="py-3 px-4 font-semibold text-slate-800">
+                  <tr key={asset.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-2 px-3 border-r border-slate-300 font-mono font-medium text-slate-900">{asset.code}</td>
+                    <td className="py-2 px-3 border-r border-slate-300 font-semibold text-slate-800">
                       <div>{asset.name}</div>
                       <div className="text-[10px] text-slate-400 font-normal">Lokasi: {asset.location}</div>
                     </td>
-                    <td className="py-3 px-4 text-slate-500">{asset.category}</td>
-                    <td className="py-3 px-4 font-mono text-slate-600">
+                    <td className="py-2 px-3 border-r border-slate-300 text-slate-500">{asset.category}</td>
+                    <td className="py-2 px-3 border-r border-slate-300 font-mono text-slate-600">
                       {new Date(asset.acquisitionDate).toLocaleDateString("id-ID")}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-medium text-slate-900">
+                    <td className="py-2 px-3 border-r border-slate-300 text-right font-mono font-medium text-slate-900">
                       {formatRupiah(asset.acquisitionCost)}
                     </td>
-                    <td className="py-3 px-4 text-center font-bold text-slate-700">
+                    <td className="py-2 px-3 border-r border-slate-300 text-center font-bold text-slate-700">
                       {asset.usefulLifeYears} th
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-slate-600">
+                    <td className="py-2 px-3 border-r border-slate-300 text-right font-mono text-slate-700">
                       {formatRupiah(asset.currentYearExpense)}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-rose-600 font-medium">
+                    <td className="py-2 px-3 border-r border-slate-300 text-right font-mono text-rose-700 font-medium">
                       ({formatRupiah(asset.accumulatedDepreciation)})
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-700">
+                    <td className="py-2 px-3 border-r border-slate-300 text-right font-mono font-bold text-emerald-800">
                       {formatRupiah(asset.bookValue)}
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-2 px-3 text-center">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
                         asset.condition === "BAIK"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -364,7 +421,7 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
                         {asset.condition}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-center print:hidden">
+                    <td className="py-2 px-3 text-center print:hidden">
                       <button
                         onClick={() => handleDeleteAsset(asset)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
@@ -379,19 +436,19 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
             </tbody>
             {filteredAssets.length > 0 && (
               <tfoot>
-                <tr className="bg-slate-100 font-bold text-slate-900 border-t-2 border-slate-300">
-                  <td colSpan={4} className="py-3 px-4 text-right uppercase tracking-wider">Total Nilai Bersih Inventaris ({selectedYear}):</td>
-                  <td className="py-3 px-4 text-right font-mono text-blue-700">
+                <tr className="bg-slate-100 font-black border-t-2 border-slate-400 text-slate-900">
+                  <td colSpan={4} className="py-2.5 px-3 border-r border-slate-300 text-right uppercase tracking-wider">Total Nilai Bersih Inventaris ({selectedYear}):</td>
+                  <td className="py-2.5 px-3 border-r border-slate-300 text-right font-mono text-blue-800">
                     {formatRupiah(summary.totalAcquisitionCost)}
                   </td>
-                  <td></td>
-                  <td className="py-3 px-4 text-right font-mono text-slate-700">
+                  <td className="border-r border-slate-300"></td>
+                  <td className="py-2.5 px-3 border-r border-slate-300 text-right font-mono text-slate-800">
                     {formatRupiah(summary.totalCurrentYearDepreciation)}
                   </td>
-                  <td className="py-3 px-4 text-right font-mono text-rose-700">
+                  <td className="py-2.5 px-3 border-r border-slate-300 text-right font-mono text-rose-800">
                     ({formatRupiah(summary.totalAccumulatedDepreciation)})
                   </td>
-                  <td className="py-3 px-4 text-right font-mono text-emerald-700 text-sm">
+                  <td className="py-2.5 px-3 border-r border-slate-300 text-right font-mono font-black text-emerald-800 text-sm">
                     {formatRupiah(summary.totalBookValue)}
                   </td>
                   <td colSpan={2}></td>
@@ -399,21 +456,26 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
               </tfoot>
             )}
           </table>
+        </div>
 
-          {/* Kolom TTD untuk Cetak LPJ */}
-          <div className="hidden print:grid grid-cols-2 gap-8 pt-8 px-6 text-center text-xs">
-            <div>
-              <p className="text-slate-500">Mengetahui & Menyetujui,</p>
-              <p className="font-bold text-slate-800">Direktur / Kepala {bumdesName}</p>
-              <div className="h-16"></div>
-              <p className="font-bold underline text-slate-900">{directorName}</p>
-            </div>
-            <div>
-              <p className="text-slate-500">{villageName}, 31 Desember {selectedYear}</p>
-              <p className="font-bold text-slate-800">Bendahara / Pengurus Barang</p>
-              <div className="h-16"></div>
-              <p className="font-bold underline text-slate-900">{treasurerName}</p>
-            </div>
+        {/* KOLOM TANDA TANGAN AUDIT */}
+        <div className="mt-12 pt-6 border-t border-slate-200 grid grid-cols-2 text-center text-xs">
+          <div>
+            <p className="text-slate-500 mb-1">Mengetahui & Menyetujui,</p>
+            <p className="font-bold text-slate-800 uppercase">DIREKTUR BUMDES</p>
+            <div className="h-20"></div>
+            <p className="font-bold text-slate-900 underline uppercase">{directorName}</p>
+            <p className="text-[11px] text-slate-500">NIP. {directorNip}</p>
+          </div>
+
+          <div>
+            <p className="text-slate-500 mb-1">
+              {villageName}, 31 Desember {selectedYear}
+            </p>
+            <p className="font-bold text-slate-800 uppercase">BENDAHARA / PENGURUS BARANG</p>
+            <div className="h-20"></div>
+            <p className="font-bold text-slate-900 underline uppercase">{treasurerName}</p>
+            <p className="text-[11px] text-slate-500">NIP. {treasurerNip}</p>
           </div>
         </div>
       </div>
