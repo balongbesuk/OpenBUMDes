@@ -2,6 +2,29 @@
 
 All notable changes to OpenBUMDes are documented in this file.
 
+## [1.4.1] - 2026-10-29
+
+### Fixed & Improved - Cetak Register Aset Landscape, Hak Akses Hapus Admin, & Kop Kwitansi Dua Kolom
+
+* **Penyempurnaan Cetak Register & Amortisasi Aset Tetap (`FixedAssetsTab.tsx`, `utils.ts`, `globals.css`)**:
+  * **Orientasi Otomatis A4 Landscape**: Memperbarui fungsi `safePrintElement` dengan opsi orientasi dan menerapkan ukuran `A4 landscape` (margin 8mm) sehingga seluruh 10 kolom tabel inventaris termuat utuh tanpa terpotong di sisi kanan.
+  * **Perbaikan Total Nilai Halaman Ganda (`tfoot`)**: Mengubah aturan cetak footer tabel menjadi `display: table-row-group !important;` agar baris Total Nilai Bersih hanya dicetak 1 kali di halaman paling akhir (penutup tabel), tidak terulang di setiap potongan lembar.
+  * **Pencegahan Tanda Tangan Terpisah (*Orphaned Signatures*)**: Menetapkan `break-inside: avoid` dan merapatkan margin blok pengesahan agar tanda tangan Direktur & Bendahara tetap menyatu dengan baris tabel dan tidak terdorong sendiri ke halaman kosong.
+  * **Pembersihan Elemen Mobile**: Menyembunyikan petunjuk mobile (*"Geser tabel untuk melihat rincian aset"*) dan kolom tombol aksi saat mencetak dokumen.
+
+* **Pembaruan Kondisi Fisik Aset & Keamanan Hak Akses (`/api/assets` & `FixedAssetsTab.tsx`)**:
+  * **Dropdown Interaktif Kondisi Fisik**: Menambahkan menu dropdown instan langsung pada baris tabel untuk mengubah status fisik barang (`BAIK`, `RUSAK RINGAN`, `RUSAK BERAT`) secara langsung ke database SQLite via endpoint baru `PATCH /api/assets`.
+  * **Tampilan Khusus Cetak**: Menyediakan badge formal bergaris tepi tanpa ikon panah dropdown saat dokumen dicetak atau diekspor ke PDF.
+  * **Restriksi Hak Akses Hapus Aset (Admin Only)**: Membatasi hak akses hapus aset inventaris secara ketat hanya untuk pengguna dengan peran **Admin** (`session.role === "ADMIN"`). Backend menolak upaya hapus dari non-admin dengan status `403 Forbidden`, dan UI otomatis menyembunyikan kolom dan tombol hapus untuk Operator.
+
+* **Desain Ulang Kop Cetak Kwitansi BKK & BKM Dua Kolom (`KwitansiModal.tsx`)**:
+  * **Format Dua Kolom Sejajar**: Menata ulang kop surat bukti kas menjadi format horizontal profesional: Logo BUMDes berdampingan horizontal dengan nama dan alamat instansi di sisi kiri, serta Box Nomor Bukti dan Tanggal berbingkai tegas di sisi kanan.
+  * **Kerapian & Ketajaman Cetak**: Menambahkan `-webkit-print-color-adjust: exact !important` dan garis pembatas kop utuh (`border-b-2 border-slate-900 pb-4 mb-4`) agar hasil cetak fisik maupun PDF tetap tajam pada printer warna maupun monokrom.
+
+* **Sinkronisasi Saldo Awal & Pengadaan Aset Berjalan (`ClosingTab.tsx`, `ManualTransactionModal.tsx`, `/api/cash-book`)**:
+  * **Input Interaktif Buka Buku**: Mendukung pemilihan akun neraca dinamis dan toggle Debit/Kredit untuk pencatatan Saldo Awal (Buka Buku) berbasis data riil SPJ konsolidasi tahun sebelumnya.
+  * **Auto-Link Belanja Modal ke Aset**: Otomatis mendeteksi transaksi belanja modal (BKK) dan mendaftarkannya ke Register Aset Tetap sehingga saldo buku besar dan register aset selalu seimbang (*costDiff: 0*).
+
 ## [1.4.0] - 2026-10-28
 
 ### Added & Optimized - Gemini AI Vision, Pra-Audit LPJ, Executive Summary Musdes & Structured Output
