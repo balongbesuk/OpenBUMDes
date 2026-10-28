@@ -22,9 +22,25 @@ import { showAppAlert, showAppConfirm, showAppToast } from "@/components/ui/AppD
 
 interface FixedAssetsTabProps {
   settings?: Record<string, string>
+  currentUser?: { id?: string; username?: string; name?: string; role?: string } | null
 }
 
-export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
+export default function FixedAssetsTab({ settings = {}, currentUser }: FixedAssetsTabProps) {
+  const [internalRole, setInternalRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!currentUser) {
+      fetch("/api/auth/me")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.authenticated && d?.user?.role) setInternalRole(d.user.role)
+        })
+        .catch(() => {})
+    }
+  }, [currentUser])
+
+  const isAdmin = (currentUser?.role || internalRole) === "ADMIN"
+
   const [assets, setAssets] = useState<any[]>([])
   const [summary, setSummary] = useState<any>({
     totalAssetsCount: 0,
@@ -50,8 +66,8 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
     acquisitionCost: "",
     usefulLifeYears: "4",
     salvageValue: "0",
-    assetAccountCode: "1.2.01.01",
-    deprAccountCode: "1.2.02.01",
+    assetAccountCode: "1.3.03.01",
+    deprAccountCode: "1.3.07.02",
     expAccountCode: "6.1.05.01",
     location: "Kantor BUMDes",
     condition: "BAIK",
@@ -118,8 +134,8 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
           acquisitionCost: "",
           usefulLifeYears: "4",
           salvageValue: "0",
-          assetAccountCode: "1.2.01.01",
-          deprAccountCode: "1.2.02.01",
+          assetAccountCode: "1.3.03.01",
+          deprAccountCode: "1.3.07.02",
           expAccountCode: "6.1.05.01",
           location: "Kantor BUMDes",
           condition: "BAIK",
@@ -135,6 +151,11 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
   }
 
   const handleDeleteAsset = async (asset: any) => {
+    if (!isAdmin) {
+      showAppAlert("Akses ditolak. Hanya Administrator yang memiliki hak akses menghapus data aset tetap.", { type: "error" })
+      return
+    }
+
     const confirmed = await showAppConfirm(
       `Hapus aset tetap "${asset.code} - ${asset.name}" dari register inventaris?`,
       {
@@ -158,6 +179,31 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
       }
     } catch (e: any) {
       showAppAlert("Error: " + e.message, { type: "error" })
+    }
+  }
+
+  // Ubah status kondisi fisik aset secara instan
+  const handleUpdateCondition = async (assetId: string, newCondition: string) => {
+    // Optimistic UI update
+    setAssets((prev) =>
+      prev.map((a) => (a.id === assetId ? { ...a, condition: newCondition } : a))
+    )
+    try {
+      const res = await fetch("/api/assets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: assetId, condition: newCondition })
+      })
+      const json = await res.json()
+      if (json.success) {
+        showAppToast(`Kondisi aset berhasil diubah menjadi ${newCondition}.`, "success")
+      } else {
+        showAppAlert(json.error || "Gagal mengubah kondisi aset.", { type: "error" })
+        loadData(selectedYear)
+      }
+    } catch (e: any) {
+      showAppAlert("Error: " + e.message, { type: "error" })
+      loadData(selectedYear)
     }
   }
 
@@ -204,7 +250,11 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
           </select>
 
           <button
-            onClick={() => safePrintElement("printable-assets-report", `Daftar Register & Amortisasi Aset Tetap TA ${selectedYear} - ${bumdesName}`)}
+            onClick={() => safePrintElement(
+              "printable-assets-report",
+              `Daftar Register & Amortisasi Aset Tetap TA ${selectedYear} - ${bumdesName}`,
+              { orientation: "landscape", customPageMargin: "8mm" }
+            )}
             className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
           >
             <Printer className="w-4 h-4 text-slate-500" />
@@ -286,7 +336,7 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h4 className="text-xs font-bold uppercase tracking-wider">
-                    Kontrol Audit & Rekonsiliasi Neraca (Akun 1.2.01 & 1.2.02)
+                    Kontrol Audit & Rekonsiliasi Neraca (Akun 1.3 & 1.3.07)
                   </h4>
                   <span
                     className={`text-[10px] font-black px-2 py-0.5 rounded-md ${
@@ -296,19 +346,31 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
                     }`}
                   >
                     {summary.reconciliation.isFullyReconciled
-                      ? "SINKRON 100% (COCOK)"
+                      ? summary.reconciliation.isPendingClosingDepreciation
+                        ? "SINKRON (Beban Berjalan Menunggu Tutup Buku)"
+                        : "SINKRON 100% (COCOK)"
                       : "TERDAPAT SELISIH PEMBUKUAN"}
                   </span>
                 </div>
                 <p className="text-xs mt-1 leading-relaxed">
                   {summary.reconciliation.isFullyReconciled ? (
-                    <>
-                      Nilai perolehan aset tetap (
-                      <strong>{formatRupiah(summary.reconciliation.subsidiaryCost)}</strong>) dan akumulasi
-                      penyusutan (
-                      <strong>{formatRupiah(summary.reconciliation.subsidiaryDepr)}</strong>) cocok sempurna
-                      dengan saldo Buku Besar Neraca.
-                    </>
+                    summary.reconciliation.isPendingClosingDepreciation ? (
+                      <>
+                        Harga perolehan aset tetap (
+                        <strong>{formatRupiah(summary.reconciliation.subsidiaryCost)}</strong>) dan saldo awal penyusutan (
+                        <strong>{formatRupiah(summary.reconciliation.ledgerDepr)}</strong>) cocok 100%.
+                        Beban penyusutan berjalan tahun {selectedYear} sebesar{" "}
+                        <strong>{formatRupiah(summary.reconciliation.pendingDepreciationAmount)}</strong> akan otomatis dibukukan pada saat Tutup Buku Akhir Tahun (31 Desember).
+                      </>
+                    ) : (
+                      <>
+                        Nilai perolehan aset tetap (
+                        <strong>{formatRupiah(summary.reconciliation.subsidiaryCost)}</strong>) dan akumulasi
+                        penyusutan (
+                        <strong>{formatRupiah(summary.reconciliation.subsidiaryDepr)}</strong>) cocok sempurna
+                        dengan saldo Buku Besar Neraca.
+                      </>
+                    )
                   ) : (
                     <>
                       Perhatian: Terdapat selisih pada pembukuan aset.
@@ -334,7 +396,7 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
 
             <div className="flex items-center gap-4 self-end sm:self-center shrink-0 text-right">
               <div>
-                <div className="text-[10px] text-slate-500 font-medium">Selisih Akun 1.2.01:</div>
+                <div className="text-[10px] text-slate-500 font-medium">Selisih Akun 1.3 (Aset Tetap):</div>
                 <div
                   className={`text-xs font-mono font-bold ${
                     summary.reconciliation.isCostReconciled ? "text-emerald-700" : "text-amber-700"
@@ -344,13 +406,15 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
                 </div>
               </div>
               <div>
-                <div className="text-[10px] text-slate-500 font-medium">Selisih Akun 1.2.02:</div>
+                <div className="text-[10px] text-slate-500 font-medium">Akum. Penyusutan 1.3.07:</div>
                 <div
                   className={`text-xs font-mono font-bold ${
                     summary.reconciliation.isDeprReconciled ? "text-emerald-700" : "text-amber-700"
                   }`}
                 >
-                  {formatRupiah(summary.reconciliation.deprDiff)}
+                  {summary.reconciliation.isPendingClosingDepreciation
+                    ? `${formatRupiah(summary.reconciliation.deprDiff)} (Beban Berjalan)`
+                    : formatRupiah(summary.reconciliation.deprDiff)}
                 </div>
               </div>
             </div>
@@ -448,7 +512,7 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
         </div>
 
         {/* TABEL DATA ASET */}
-        <div className="sm:hidden px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10.5px] text-slate-500 font-medium flex items-center justify-between mb-2">
+        <div className="sm:hidden no-print print:hidden px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10.5px] text-slate-500 font-medium flex items-center justify-between mb-2">
           <span>Geser tabel untuk melihat rincian aset</span>
           <span className="text-[#6777ef] font-bold">➔</span>
         </div>
@@ -456,30 +520,30 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
           <table className="w-full text-xs text-left border-collapse border border-slate-300">
             <thead>
               <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
-                <th className="py-2.5 px-3 border-r border-slate-300 w-28">No. Reg / Kode</th>
-                <th className="py-2.5 px-3 border-r border-slate-300">Nama Aset Tetap</th>
-                <th className="py-2.5 px-3 border-r border-slate-300 w-32">Kelompok Aset</th>
-                <th className="py-2.5 px-3 border-r border-slate-300 w-24">Tgl Beli</th>
-                <th className="py-2.5 px-3 border-r border-slate-300 text-right w-28">Harga Beli</th>
-                <th className="py-2.5 px-3 border-r border-slate-300 text-center w-20">Masa (Th)</th>
-                <th className="py-2.5 px-3 border-r border-slate-300 text-right w-28">Beban {selectedYear}</th>
-                <th className="py-2.5 px-3 border-r border-slate-300 text-right w-28">Akum. Susut</th>
-                <th className="py-2.5 px-3 border-r border-slate-300 text-right w-28">Nilai Buku</th>
-                <th className="py-2.5 px-3 text-center w-24">Kondisi</th>
-                <th className="py-2.5 px-3 text-center w-16 print:hidden">Aksi</th>
+                <th className="py-2 px-2.5 border-r border-slate-300 w-28">No. Reg / Kode</th>
+                <th className="py-2 px-2.5 border-r border-slate-300">Nama Aset Tetap</th>
+                <th className="py-2 px-2.5 border-r border-slate-300 w-32">Kelompok Aset</th>
+                <th className="py-2 px-2.5 border-r border-slate-300 w-24">Tgl Beli</th>
+                <th className="py-2 px-2.5 border-r border-slate-300 text-right w-28">Harga Beli</th>
+                <th className="py-2 px-2.5 border-r border-slate-300 text-center w-20">Masa (Th)</th>
+                <th className="py-2 px-2.5 border-r border-slate-300 text-right w-28">Beban {selectedYear}</th>
+                <th className="py-2 px-2.5 border-r border-slate-300 text-right w-28">Akum. Susut</th>
+                <th className="py-2 px-2.5 border-r border-slate-300 text-right w-28">Nilai Buku</th>
+                <th className="py-2 px-2.5 text-center w-24">Kondisi</th>
+                {isAdmin && <th className="py-2 px-2.5 text-center w-16 no-print print:hidden">Aksi</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {loading ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 11 : 10} className="py-12 text-center text-slate-400">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#6777ef]" />
                     Memuat daftar inventaris aset tetap...
                   </td>
                 </tr>
               ) : filteredAssets.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 11 : 10} className="py-12 text-center text-slate-400">
                     <Building2 className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                     Belum ada aset tetap tercatat. Klik tombol "Tambah Aset Tetap" untuk mendaftarkan barang modal BUMDes.
                   </td>
@@ -487,32 +551,33 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
               ) : (
                 filteredAssets.map((asset) => (
                   <tr key={asset.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-2 px-3 border-r border-slate-300 font-mono font-medium text-slate-900">{asset.code}</td>
-                    <td className="py-2 px-3 border-r border-slate-300 font-semibold text-slate-800">
+                    <td className="py-2 px-2.5 border-r border-slate-300 font-mono font-medium text-slate-900">{asset.code}</td>
+                    <td className="py-2 px-2.5 border-r border-slate-300 font-semibold text-slate-800">
                       <div>{asset.name}</div>
                       <div className="text-[10px] text-slate-400 font-normal">Lokasi: {asset.location}</div>
                     </td>
-                    <td className="py-2 px-3 border-r border-slate-300 text-slate-500">{asset.category}</td>
-                    <td className="py-2 px-3 border-r border-slate-300 font-mono text-slate-600">
+                    <td className="py-2 px-2.5 border-r border-slate-300 text-slate-500">{asset.category}</td>
+                    <td className="py-2 px-2.5 border-r border-slate-300 font-mono text-slate-600">
                       {new Date(asset.acquisitionDate).toLocaleDateString("id-ID")}
                     </td>
-                    <td className="py-2 px-3 border-r border-slate-300 text-right font-mono font-medium text-slate-900">
+                    <td className="py-2 px-2.5 border-r border-slate-300 text-right font-mono font-medium text-slate-900">
                       {formatRupiah(asset.acquisitionCost)}
                     </td>
-                    <td className="py-2 px-3 border-r border-slate-300 text-center font-bold text-slate-700">
+                    <td className="py-2 px-2.5 border-r border-slate-300 text-center font-bold text-slate-700">
                       {asset.usefulLifeYears} th
                     </td>
-                    <td className="py-2 px-3 border-r border-slate-300 text-right font-mono text-slate-700">
+                    <td className="py-2 px-2.5 border-r border-slate-300 text-right font-mono text-slate-700">
                       {formatRupiah(asset.currentYearExpense)}
                     </td>
-                    <td className="py-2 px-3 border-r border-slate-300 text-right font-mono text-rose-700 font-medium">
+                    <td className="py-2 px-2.5 border-r border-slate-300 text-right font-mono text-rose-700 font-medium">
                       ({formatRupiah(asset.accumulatedDepreciation)})
                     </td>
-                    <td className="py-2 px-3 border-r border-slate-300 text-right font-mono font-bold text-emerald-800">
+                    <td className="py-2 px-2.5 border-r border-slate-300 text-right font-mono font-bold text-emerald-800">
                       {formatRupiah(asset.bookValue)}
                     </td>
-                    <td className="py-2 px-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                    <td className="py-2 px-2.5 text-center">
+                      {/* Tampilan cetak: badge rapi */}
+                      <span className={`hidden print:inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
                         asset.condition === "BAIK"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                           : asset.condition === "RUSAK RINGAN"
@@ -521,16 +586,35 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
                       }`}>
                         {asset.condition}
                       </span>
-                    </td>
-                    <td className="py-2 px-3 text-center print:hidden">
-                      <button
-                        onClick={() => handleDeleteAsset(asset)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                        title="Hapus Aset Tetap"
+                      {/* Tampilan layar aplikasi: dropdown langsung ubah */}
+                      <select
+                        value={asset.condition}
+                        onChange={(e) => handleUpdateCondition(asset.id, e.target.value)}
+                        className={`print:hidden px-2 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer focus:outline-none transition-colors ${
+                          asset.condition === "BAIK"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                            : asset.condition === "RUSAK RINGAN"
+                            ? "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+                            : "bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100"
+                        }`}
+                        title="Klik untuk mengubah kondisi fisik aset"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        <option value="BAIK">BAIK</option>
+                        <option value="RUSAK RINGAN">RUSAK RINGAN</option>
+                        <option value="RUSAK BERAT">RUSAK BERAT</option>
+                      </select>
                     </td>
+                    {isAdmin && (
+                      <td className="py-2 px-2.5 text-center no-print print:hidden">
+                        <button
+                          onClick={() => handleDeleteAsset(asset)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="Hapus Aset Tetap"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -538,21 +622,22 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
             {filteredAssets.length > 0 && (
               <tfoot>
                 <tr className="bg-slate-100 font-black border-t-2 border-slate-400 text-slate-900">
-                  <td colSpan={4} className="py-2.5 px-3 border-r border-slate-300 text-right uppercase tracking-wider">Total Nilai Bersih Inventaris ({selectedYear}):</td>
-                  <td className="py-2.5 px-3 border-r border-slate-300 text-right font-mono text-blue-800">
+                  <td colSpan={4} className="py-2.5 px-2.5 border-r border-slate-300 text-right uppercase tracking-wider">Total Nilai Bersih Inventaris ({selectedYear}):</td>
+                  <td className="py-2.5 px-2.5 border-r border-slate-300 text-right font-mono text-blue-800">
                     {formatRupiah(summary.totalAcquisitionCost)}
                   </td>
                   <td className="border-r border-slate-300"></td>
-                  <td className="py-2.5 px-3 border-r border-slate-300 text-right font-mono text-slate-800">
+                  <td className="py-2.5 px-2.5 border-r border-slate-300 text-right font-mono text-slate-800">
                     {formatRupiah(summary.totalCurrentYearDepreciation)}
                   </td>
-                  <td className="py-2.5 px-3 border-r border-slate-300 text-right font-mono text-rose-800">
+                  <td className="py-2.5 px-2.5 border-r border-slate-300 text-right font-mono text-rose-800">
                     ({formatRupiah(summary.totalAccumulatedDepreciation)})
                   </td>
-                  <td className="py-2.5 px-3 border-r border-slate-300 text-right font-mono font-black text-emerald-800 text-sm">
+                  <td className="py-2.5 px-2.5 border-r border-slate-300 text-right font-mono font-black text-emerald-800 text-sm">
                     {formatRupiah(summary.totalBookValue)}
                   </td>
-                  <td colSpan={2}></td>
+                  <td></td>
+                  {isAdmin && <td className="no-print print:hidden"></td>}
                 </tr>
               </tfoot>
             )}
@@ -560,11 +645,11 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
         </div>
 
         {/* KOLOM TANDA TANGAN AUDIT */}
-        <div className="mt-12 pt-6 border-t border-slate-200 grid grid-cols-2 text-center text-xs">
+        <div className="mt-8 pt-4 border-t border-slate-200 grid grid-cols-2 text-center text-xs signature-block break-inside-avoid" style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
           <div>
             <p className="text-slate-500 mb-1">Mengetahui & Menyetujui,</p>
             <p className="font-bold text-slate-800 uppercase">DIREKTUR BUMDES</p>
-            <div className="h-20"></div>
+            <div className="h-16"></div>
             <p className="font-bold text-slate-900 underline uppercase">{directorName}</p>
             <p className="text-[11px] text-slate-500">NIP. {directorNip}</p>
           </div>
@@ -574,7 +659,7 @@ export default function FixedAssetsTab({ settings = {} }: FixedAssetsTabProps) {
               {villageName}, 31 Desember {selectedYear}
             </p>
             <p className="font-bold text-slate-800 uppercase">BENDAHARA / PENGURUS BARANG</p>
-            <div className="h-20"></div>
+            <div className="h-16"></div>
             <p className="font-bold text-slate-900 underline uppercase">{treasurerName}</p>
             <p className="text-[11px] text-slate-500">NIP. {treasurerNip}</p>
           </div>

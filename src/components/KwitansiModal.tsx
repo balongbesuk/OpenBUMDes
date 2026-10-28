@@ -135,6 +135,10 @@ export default function KwitansiModal({
       {/* CSS KHUSUS CETAK KWITANSI */}
       <style jsx global>{`
         @media print {
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
           body * {
             visibility: hidden;
           }
@@ -146,11 +150,36 @@ export default function KwitansiModal({
             position: absolute;
             left: 0;
             top: 0;
-            width: 100%;
+            width: 100% !important;
             margin: 0;
-            padding: 20px;
+            padding: 24px !important;
             box-shadow: none !important;
-            border: 1px solid #94a3b8 !important;
+            border: 1px solid #475569 !important;
+          }
+          .kop-container {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+          }
+          .kop-left {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 14px !important;
+          }
+          .kop-logo {
+            width: 56px !important;
+            height: 56px !important;
+            display: block !important;
+            object-fit: contain !important;
+            flex-shrink: 0 !important;
+          }
+          .kop-right {
+            text-align: right !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-end !important;
           }
           .no-print {
             display: none !important;
@@ -214,45 +243,54 @@ export default function KwitansiModal({
             ref={printRef}
             className={`border-2 ${borderColor} rounded-2xl p-4 sm:p-6 bg-white shadow-sm print:rounded-none`}
           >
-            {/* Header Form Kwitansi */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3 sm:gap-4 border-b-2 border-slate-800 pb-4 print:flex-row print:gap-0">
-              <div className="flex items-center gap-3">
+            {/* Header Form Kwitansi - Format Dua Kolom Sejajar */}
+            <div className="kop-container flex flex-row items-center justify-between gap-4 border-b-2 border-slate-900 pb-4 mb-4">
+              {/* Kolom Kiri: Logo Berdampingan Horizontal dengan Identitas BUMDes */}
+              <div className="kop-left flex flex-row items-center gap-3.5">
                 {settings.bumdes_logo && (
                   <img
                     src={settings.bumdes_logo}
                     alt="Logo BUMDes"
-                    className="w-12 h-12 sm:w-14 sm:h-14 object-contain shrink-0"
+                    className="kop-logo w-14 h-14 object-contain shrink-0"
+                    style={{ width: "56px", height: "56px" }}
                   />
                 )}
                 <div>
-                  <h2 className="text-sm sm:text-base font-black tracking-tight uppercase text-slate-900">
-                    {settings.bumdes_name || "BUM DESA BAROKAH"}
+                  <h2 className="text-base sm:text-lg font-black tracking-tight uppercase text-slate-900 leading-tight">
+                    {settings.bumdes_name || "BUMDESA \"BAROKAH\""}
                   </h2>
-                  <p className="text-[11px] sm:text-xs text-slate-600 uppercase">
+                  <p className="text-[11.5px] sm:text-xs font-bold text-slate-700 uppercase mt-0.5">
                     DESA {settings.village_name || "BALONGBESUK"}, KEC. {settings.subdistrict_name || "DIWEK"}, KAB. {settings.regency_name || "JOMBANG"}
                   </p>
-                  <p className="text-[9.5px] sm:text-[10px] text-slate-400">
+                  <p className="text-[10px] text-slate-500 font-medium mt-0.5">
                     Badan Hukum: Kemenkumham RI &bull; Standar Akuntansi Kepmendes 136/2022
                   </p>
                 </div>
               </div>
 
-              <div className="text-left sm:text-right w-full sm:w-auto">
-                <div
-                  className={`inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg font-black text-xs sm:text-sm uppercase tracking-wider ${headerBg}`}
-                >
-                  {isMemorial
-                    ? entry.proofNumber?.startsWith("SA/")
-                      ? "BUKTI MEMORIAL (BM) - BUKA BUKU"
-                      : "BUKTI MEMORIAL (BM)"
-                    : isBKM
-                    ? "BUKTI KAS MASUK (BKM)"
-                    : "BUKTI KAS KELUAR (BKK)"}
+              {/* Kolom Kanan: Box Nomor Bukti & Tanggal Tegas */}
+              <div className="kop-right shrink-0 text-right">
+                <div className="border-2 border-slate-800 rounded-xl px-3.5 py-2 bg-slate-50 shadow-xs inline-block text-right min-w-[210px]">
+                  <div
+                    className={`font-black text-xs sm:text-sm uppercase tracking-wider ${
+                      isMemorial ? "text-indigo-700" : isBKM ? "text-sky-700" : "text-rose-700"
+                    }`}
+                  >
+                    {isMemorial
+                      ? entry.proofNumber?.startsWith("SA/")
+                        ? "BUKTI MEMORIAL (BM) - BUKA BUKU"
+                        : "BUKTI MEMORIAL (BM)"
+                      : isBKM
+                      ? "BUKTI KAS MASUK (BKM)"
+                      : "BUKTI KAS KELUAR (BKK)"}
+                  </div>
+                  <div className="mt-1 font-mono text-xs font-black text-slate-900">
+                    No: {entry.proofNumber}
+                  </div>
+                  <div className="text-[10.5px] font-semibold text-slate-500 mt-0.5">
+                    Tanggal: {formattedDate}
+                  </div>
                 </div>
-                <div className="mt-1 font-mono text-xs font-bold text-slate-800">
-                  No: {entry.proofNumber}
-                </div>
-                <div className="text-[11px] text-slate-500">Tanggal: {formattedDate}</div>
               </div>
             </div>
 

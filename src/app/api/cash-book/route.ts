@@ -119,6 +119,61 @@ export async function POST(request: Request) {
       attachmentUrl
     )
 
+    // Otomatis Daftarkan ke Register Aset Tetap jika belanja aset (Akun 1.3.xx)
+    if (proofType === "BKK") {
+      const assetLine = lines.find((l: any) => {
+        const code = String(l.accountCode || "").trim()
+        return code.startsWith("1.3.") && !code.startsWith("1.3.07") && l.type === "DEBIT"
+      })
+
+      if (assetLine && body.autoRegisterAsset !== false) {
+        try {
+          const codeYear = txDate.getFullYear()
+          const countExisting = await db.fixedAsset.count({
+            where: { code: { startsWith: `AST-${codeYear}-` } }
+          })
+          const autoCode = `AST-${codeYear}-${String(countExisting + 1).padStart(3, "0")}`
+          const deprCode = assetLine.accountCode.startsWith("1.3.02")
+            ? "1.3.07.01"
+            : assetLine.accountCode.startsWith("1.3.04")
+            ? "1.3.07.03"
+            : assetLine.accountCode.startsWith("1.3.05")
+            ? "1.3.07.04"
+            : "1.3.07.02"
+
+          const category = assetLine.accountCode.startsWith("1.3.02")
+            ? "Kendaraan"
+            : assetLine.accountCode.startsWith("1.3.04")
+            ? "Meubelair"
+            : assetLine.accountCode.startsWith("1.3.05")
+            ? "Gedung & Bangunan"
+            : "Peralatan & Mesin"
+
+          const assetName = body.assetName?.trim() || description.trim()
+
+          await db.fixedAsset.create({
+            data: {
+              code: body.assetCode?.trim().toUpperCase() || autoCode,
+              name: assetName,
+              category: body.assetCategory?.trim() || category,
+              acquisitionDate: txDate,
+              acquisitionCost: assetLine.amount,
+              usefulLifeYears: Math.max(1, parseInt(body.usefulLifeYears, 10) || 4),
+              salvageValue: Math.max(0, parseFloat(body.salvageValue) || 0),
+              assetAccountCode: assetLine.accountCode,
+              deprAccountCode: deprCode,
+              expAccountCode: "6.1.05.01",
+              location: body.location?.trim() || "Kantor BUMDes",
+              condition: "BAIK",
+              notes: `Otomatis dari BKK (${result.entry.proofNumber}): ${description}`
+            }
+          })
+        } catch (assetErr) {
+          console.error("Gagal otomatis registrasi aset:", assetErr)
+        }
+      }
+    }
+
     return NextResponse.json({ success: true, data: result })
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })

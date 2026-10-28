@@ -152,6 +152,10 @@
     break-inside: avoid !important;
   }
 
+  tfoot {
+    display: table-row-group !important;
+  }
+
   .page-break-before {
     page-break-before: always !important;
     break-before: page !important;

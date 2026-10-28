@@ -85,10 +85,16 @@ export async function GET(request: Request) {
       }
     })
 
-    // Agregasi Buku Besar untuk Aset Tetap (1.2.01) dan Akumulasi Penyusutan (1.2.02)
+    // Agregasi Buku Besar untuk Aset Tetap (1.3.xx / 1.2.01) dan Akumulasi Penyusutan (1.3.07 / 1.2.02)
     const assetLines = await db.journalLine.findMany({
       where: {
-        accountCode: { startsWith: "1.2.01" },
+        OR: [
+          { accountCode: { startsWith: "1.3." } },
+          { accountCode: { startsWith: "1.2.01" } }
+        ],
+        NOT: [
+          { accountCode: { startsWith: "1.3.07" } }
+        ],
         journalEntry: {
           date: { lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999)) }
         }
@@ -103,7 +109,10 @@ export async function GET(request: Request) {
 
     const deprLines = await db.journalLine.findMany({
       where: {
-        accountCode: { startsWith: "1.2.02" },
+        OR: [
+          { accountCode: { startsWith: "1.3.07" } },
+          { accountCode: { startsWith: "1.2.02" } }
+        ],
         journalEntry: {
           date: { lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999)) }
         }
@@ -119,25 +128,36 @@ export async function GET(request: Request) {
     const totalAcquisitionCost = formatted.reduce((acc, curr) => acc + curr.acquisitionCost, 0)
     const totalAccumulatedDepreciation = formatted.reduce((acc, curr) => acc + curr.accumulatedDepreciation, 0)
     const totalBookValue = formatted.reduce((acc, curr) => acc + curr.bookValue, 0)
+    const totalCurrentYearDepreciation = formatted.reduce((acc, curr) => acc + curr.currentYearExpense, 0)
+    const priorAccumulatedDepreciation = totalAccumulatedDepreciation - totalCurrentYearDepreciation
+
     const costDiff = totalAcquisitionCost - ledgerAssetCost
     const deprDiff = totalAccumulatedDepreciation - ledgerDepr
+    const isCostReconciled = Math.abs(costDiff) < 1
+    const isDeprFullyPosted = Math.abs(deprDiff) < 1
+    const isOpeningDeprReconciled = Math.abs(priorAccumulatedDepreciation - ledgerDepr) < 1
+    const isPendingClosingDepreciation = isOpeningDeprReconciled && !isDeprFullyPosted
 
     const summary = {
       totalAssetsCount: formatted.length,
       totalAcquisitionCost,
       totalAccumulatedDepreciation,
       totalBookValue,
-      totalCurrentYearDepreciation: formatted.reduce((acc, curr) => acc + curr.currentYearExpense, 0),
+      totalCurrentYearDepreciation,
+      priorAccumulatedDepreciation,
       reconciliation: {
         subsidiaryCost: totalAcquisitionCost,
         ledgerAssetCost,
         costDiff,
-        isCostReconciled: Math.abs(costDiff) < 1,
+        isCostReconciled,
         subsidiaryDepr: totalAccumulatedDepreciation,
         ledgerDepr,
         deprDiff,
-        isDeprReconciled: Math.abs(deprDiff) < 1,
-        isFullyReconciled: Math.abs(costDiff) < 1 && Math.abs(deprDiff) < 1
+        isDeprReconciled: isDeprFullyPosted || isOpeningDeprReconciled,
+        isDeprFullyPosted,
+        isPendingClosingDepreciation,
+        pendingDepreciationAmount: totalCurrentYearDepreciation,
+        isFullyReconciled: isCostReconciled && (isDeprFullyPosted || isOpeningDeprReconciled)
       }
     }
 
@@ -211,9 +231,52 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: "Aset tetap berhasil didaftarkan ke register.", data: newAsset })
     }
 
+    if (action === "UPDATE_CONDITION") {
+      const { id, condition } = body
+      if (!id || !["BAIK", "RUSAK RINGAN", "RUSAK BERAT"].includes(condition)) {
+        return NextResponse.json({ success: false, error: "ID dan status kondisi fisik valid wajib disertakan." }, { status: 400 })
+      }
+      const updated = await db.fixedAsset.update({
+        where: { id },
+        data: { condition }
+      })
+      return NextResponse.json({ success: true, message: `Kondisi fisik aset diperbarui menjadi ${condition}`, data: updated })
+    }
+
     return NextResponse.json({ success: false, error: "Aksi tidak dikenali." }, { status: 400 })
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message || "Gagal menyimpan aset tetap" }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const session = await getUserSession()
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Akses ditolak" }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { id, condition, location, notes } = body
+    if (!id) {
+      return NextResponse.json({ success: false, error: "ID aset tetap wajib disertakan." }, { status: 400 })
+    }
+
+    const dataToUpdate: any = {}
+    if (condition && ["BAIK", "RUSAK RINGAN", "RUSAK BERAT"].includes(condition)) {
+      dataToUpdate.condition = condition
+    }
+    if (location !== undefined) dataToUpdate.location = location
+    if (notes !== undefined) dataToUpdate.notes = notes
+
+    const updated = await db.fixedAsset.update({
+      where: { id },
+      data: dataToUpdate
+    })
+
+    return NextResponse.json({ success: true, message: "Kondisi fisik aset berhasil diperbarui.", data: updated })
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message || "Gagal memperbarui kondisi aset" }, { status: 500 })
   }
 }
 
@@ -222,6 +285,13 @@ export async function DELETE(request: Request) {
     const session = await getUserSession()
     if (!session) {
       return NextResponse.json({ success: false, error: "Akses ditolak" }, { status: 401 })
+    }
+
+    if (session.role !== "ADMIN") {
+      return NextResponse.json(
+        { success: false, error: "Akses ditolak. Hanya Administrator yang memiliki hak akses menghapus data aset tetap." },
+        { status: 403 }
+      )
     }
 
     const { searchParams } = new URL(request.url)

@@ -375,14 +375,13 @@ export default function StislaApp() {
       .then((data) => {
         if (data.success && data.authenticated && data.user) {
           setCurrentUser(data.user)
+          loadData()
         } else {
           setCurrentUser(null)
         }
       })
       .catch(() => setCurrentUser(null))
       .finally(() => setAuthLoading(false))
-
-    loadData()
   }, [selectedMonth, selectedYear, proofTypeFilter])
 
   useEffect(() => {
@@ -765,8 +764,17 @@ export default function StislaApp() {
     </div>
   )
 
+  // JIKA SEDANG MEMERIKSA SESI: Tampilkan pemuatan minimalis
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#f4f6f9] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   // JIKA BELUM LOGIN: Tampilkan Halaman Masuk Layar Ganda Eksklusif
-  if (!authLoading && !currentUser) {
+  if (!currentUser) {
     return (
       <LoginModal
         settings={settings}
@@ -4381,7 +4389,7 @@ export default function StislaApp() {
             )}
 
             {activeTab === "fixed-assets" && (
-              <FixedAssetsTab settings={settings} />
+              <FixedAssetsTab settings={settings} currentUser={currentUser} />
             )}
 
             {/* TAB: EIS / KESEHATAN BUMDES */}

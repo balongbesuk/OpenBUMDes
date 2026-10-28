@@ -93,6 +93,7 @@ export function safePrintElement(
     customPageMargin?: string
     includeTailwindScript?: boolean
     baseHref?: string
+    orientation?: "portrait" | "landscape"
   }
 ) {
   if (!elementOrId) return
@@ -148,12 +149,19 @@ export function safePrintElement(
   })
 
   const pageMargin = options?.customPageMargin || "12mm"
+  const orientation = options?.orientation || "portrait"
   const customStyle = printDoc.createElement("style")
   customStyle.textContent = `
     @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #fff !important; }
-      @page { size: A4 portrait; margin: ${pageMargin}; }
-      .no-print { display: none !important; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #fff !important; margin: 0; padding: 0; }
+      @page { size: A4 ${orientation}; margin: ${pageMargin}; }
+      .no-print, .print\\:hidden { display: none !important; }
+      table { width: 100% !important; border-collapse: collapse !important; }
+      th, td { word-break: normal; }
+      thead { display: table-header-group; }
+      tfoot { display: table-row-group !important; }
+      tr { page-break-inside: avoid; break-inside: avoid; }
+      .signature-block, .page-break-avoid { page-break-inside: avoid; break-inside: avoid; }
     }
     body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #fff; color: #1e293b; padding: 20px; }
   `

@@ -1164,9 +1164,8 @@ export default function ClosingTab({
             <table className="w-full text-xs text-left">
               <thead className="bg-slate-50 text-slate-600 uppercase font-bold text-[10px] tracking-wider border-b border-slate-200">
                 <tr>
-                  <th className="px-4 py-3">Kode Akun</th>
-                  <th className="px-4 py-3">Nama Akun Standar (Kepmendes 136)</th>
-                  <th className="px-4 py-3 text-center">Posisi Normal</th>
+                  <th className="px-4 py-3" colSpan={2}>Pilihan Akun Neraca (Kepmendes 136)</th>
+                  <th className="px-4 py-3 text-center">Posisi</th>
                   <th className="px-4 py-3 text-right">Nominal Saldo Awal (Rp)</th>
                   <th className="px-4 py-3 text-center">Aksi</th>
                 </tr>
@@ -1179,56 +1178,108 @@ export default function ClosingTab({
                     </td>
                   </tr>
                 ) : (
-                  openingAccounts.map((acc, index) => (
-                    <tr key={index} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-2.5 font-mono font-bold text-slate-700">
-                        {acc.accountCode}
-                      </td>
-                      <td className="px-4 py-2.5 font-medium text-slate-800">{acc.name}</td>
-                      <td className="px-4 py-2.5 text-center">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            acc.type === "DEBIT"
-                              ? "bg-blue-50 text-blue-700 border border-blue-200"
-                              : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          }`}
-                        >
-                          {acc.type}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
-                        <div className="relative inline-flex items-center">
-                          <span className="absolute left-2.5 text-[11px] font-bold text-slate-400 select-none">
-                            Rp
-                          </span>
-                          <input
-                            type="text"
-                            value={acc.amount ? Number(acc.amount).toLocaleString("id-ID") : ""}
+                  openingAccounts.map((acc, index) => {
+                    const neracaAccounts = (accounts || []).filter((a: any) => {
+                      const c = a.code || ""
+                      return c.startsWith("1.") || c.startsWith("2.") || c.startsWith("3.")
+                    })
+                    const hasCurrent = neracaAccounts.some((na: any) => na.code === acc.accountCode)
+
+                    return (
+                      <tr key={index} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-2.5" colSpan={2}>
+                          <select
+                            value={acc.accountCode}
                             onChange={(e) => {
-                              const rawVal = e.target.value.replace(/\D/g, "")
-                              const val = rawVal ? parseInt(rawVal, 10) : 0
+                              const found = (accounts || []).find((a: any) => a.code === e.target.value)
                               const updated = [...openingAccounts]
-                              updated[index].amount = val
+                              const code = e.target.value
+                              const isContra =
+                                code.startsWith("1.3.07") ||
+                                code.startsWith("1.3.08") ||
+                                code.startsWith("1.3.02") ||
+                                found?.normal === "Kredit" ||
+                                (found?.name || "").toLowerCase().includes("akumulasi")
+                              const defaultSide = isContra
+                                ? "CREDIT"
+                                : code.startsWith("1.")
+                                ? "DEBIT"
+                                : "CREDIT"
+
+                              updated[index] = {
+                                ...updated[index],
+                                accountCode: code,
+                                name: found?.name || updated[index].name,
+                                type: defaultSide
+                              }
                               setOpeningAccounts(updated)
                             }}
-                            placeholder="0"
-                            className="w-44 pl-8 pr-3 py-1.5 text-right font-mono font-bold text-slate-800 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-2xs"
-                          />
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5 text-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setOpeningAccounts(openingAccounts.filter((_, i) => i !== index))
-                          }}
-                          className="text-slate-400 hover:text-rose-600 p-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                            className="w-full text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
+                          >
+                            {!hasCurrent && (
+                              <option value={acc.accountCode}>
+                                {acc.accountCode} - {acc.name}
+                              </option>
+                            )}
+                            {neracaAccounts.map((a: any) => (
+                              <option key={a.code} value={a.code}>
+                                {a.code} - {a.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...openingAccounts]
+                              updated[index].type = updated[index].type === "DEBIT" ? "CREDIT" : "DEBIT"
+                              setOpeningAccounts(updated)
+                            }}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors cursor-pointer ${
+                              acc.type === "DEBIT"
+                                ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                            }`}
+                            title="Klik untuk ubah posisi Debit / Kredit"
+                          >
+                            {acc.type}
+                          </button>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="relative inline-flex items-center">
+                            <span className="absolute left-2.5 text-[11px] font-bold text-slate-400 select-none">
+                              Rp
+                            </span>
+                            <input
+                              type="text"
+                              value={acc.amount ? Number(acc.amount).toLocaleString("id-ID") : ""}
+                              onChange={(e) => {
+                                const rawVal = e.target.value.replace(/\D/g, "")
+                                const val = rawVal ? parseInt(rawVal, 10) : 0
+                                const updated = [...openingAccounts]
+                                updated[index].amount = val
+                                setOpeningAccounts(updated)
+                              }}
+                              placeholder="0"
+                              className="w-44 pl-8 pr-3 py-1.5 text-right font-mono font-bold text-slate-800 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-2xs"
+                            />
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpeningAccounts(openingAccounts.filter((_, i) => i !== index))
+                            }}
+                            className="text-slate-400 hover:text-rose-600 p-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>
@@ -1241,15 +1292,31 @@ export default function ClosingTab({
               <button
                 type="button"
                 onClick={() => {
-                  const defaultAcc = accounts.find(
-                    (a) => !openingAccounts.some((oa) => oa.accountCode === a.code)
-                  ) || { code: "1.1.01.02", name: "Bank BUMDes", normal: "DEBIT" }
+                  const neracaAccounts = (accounts || []).filter((a: any) => {
+                    const c = a.code || ""
+                    return c.startsWith("1.") || c.startsWith("2.") || c.startsWith("3.")
+                  })
+                  const defaultAcc = neracaAccounts.find(
+                    (a: any) => !openingAccounts.some((oa) => oa.accountCode === a.code)
+                  ) || neracaAccounts[0] || { code: "1.1.01.06", name: "Kas di Bank Jatim", normal: "Debit" }
+
+                  const isContra =
+                    defaultAcc.code.startsWith("1.3.07") ||
+                    defaultAcc.code.startsWith("1.3.08") ||
+                    defaultAcc.code.startsWith("1.3.02") ||
+                    defaultAcc.normal === "Kredit"
+                  const defaultSide = isContra
+                    ? "CREDIT"
+                    : defaultAcc.code.startsWith("1.")
+                    ? "DEBIT"
+                    : "CREDIT"
+
                   setOpeningAccounts([
                     ...openingAccounts,
                     {
                       accountCode: defaultAcc.code,
                       name: defaultAcc.name,
-                      type: defaultAcc.normal === "CREDIT" ? "CREDIT" : "DEBIT",
+                      type: defaultSide,
                       amount: 0
                     }
                   ])

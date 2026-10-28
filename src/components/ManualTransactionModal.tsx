@@ -32,6 +32,11 @@ export function ManualTransactionModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const isAssetAccount = form.proofType === "BKK" && form.contraAccount.startsWith("1.3.") && !form.contraAccount.startsWith("1.3.07")
+  const [autoRegisterAsset, setAutoRegisterAsset] = useState(true)
+  const [assetLocation, setAssetLocation] = useState("Kantor BUMDes")
+  const [assetLifeYears, setAssetLifeYears] = useState("4")
+
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -47,6 +52,9 @@ export function ManualTransactionModal({
       })
       setCoaSearch("")
       setFilterCategory("EXPENSE")
+      setAutoRegisterAsset(true)
+      setAssetLocation("Kantor BUMDes")
+      setAssetLifeYears("4")
       setError(null)
     }
   }, [isOpen])
@@ -122,7 +130,10 @@ export function ManualTransactionModal({
           date: form.date,
           description: form.description,
           payeeOrPayer: form.payeeOrPayer,
-          lines
+          lines,
+          autoRegisterAsset: isAssetAccount ? autoRegisterAsset : false,
+          location: assetLocation,
+          usefulLifeYears: assetLifeYears
         })
       })
       const json = await res.json()
@@ -381,6 +392,60 @@ export function ManualTransactionModal({
               </select>
             </div>
           </div>
+
+          {/* Auto Register Fixed Asset Card (Jika Memilih Akun Aset Tetap 1.3) */}
+          {isAssetAccount && (
+            <div className="p-3.5 bg-emerald-50/90 border border-emerald-300 rounded-xl space-y-2.5 transition-all animate-fadeIn">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={autoRegisterAsset}
+                    onChange={(e) => setAutoRegisterAsset(e.target.checked)}
+                    className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 accent-emerald-600 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                    📦 Daftarkan Otomatis ke Buku Register Aset & Kartu Penyusutan
+                  </span>
+                </label>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-800">
+                  AUTO-LINK
+                </span>
+              </div>
+
+              {autoRegisterAsset && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      Masa Manfaat (Umur Ekonomis)
+                    </label>
+                    <select
+                      value={assetLifeYears}
+                      onChange={(e) => setAssetLifeYears(e.target.value)}
+                      className="w-full p-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:border-emerald-500"
+                    >
+                      <option value="4">4 Tahun (Peralatan, Elektronik, Meubelair)</option>
+                      <option value="8">8 Tahun (Mesin Pabrik / Alat Berat)</option>
+                      <option value="16">16 Tahun (Peralatan Tahan Lama)</option>
+                      <option value="20">20 Tahun (Bangunan / Gedung)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      Lokasi / Unit Penanggung Jawab
+                    </label>
+                    <input
+                      type="text"
+                      value={assetLocation}
+                      onChange={(e) => setAssetLocation(e.target.value)}
+                      placeholder="Contoh: Kantor BUMDes / Rest Area"
+                      className="w-full p-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Tips Info Box */}
           <div className="p-2.5 bg-blue-50/70 border border-blue-200/60 rounded-xl flex items-start gap-2 text-[11px] text-blue-900 leading-relaxed">
