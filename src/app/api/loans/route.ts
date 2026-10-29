@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import crypto from "crypto"
 import { db } from "@/lib/db"
 import { getUserSession } from "@/lib/auth"
 
@@ -60,29 +61,73 @@ export async function GET(request: Request) {
       orderBy: [{ statusPinjaman: "asc" }, { memberNo: "asc" }]
     })
 
-    // Calculate aggregated stats from entire database
-    const allMembers = await db.loanMember.findMany()
+    // Calculate aggregated stats using native database aggregation
+    const [totalMembers, totalActiveBorrowers, sums] = await Promise.all([
+      db.loanMember.count(),
+      db.loanMember.count({ where: { sisaPinjaman: { gt: 0 } } }),
+      db.loanMember.aggregate({
+        _sum: {
+          simpananPokok: true,
+          simpananWajib: true,
+          simpananSukarela: true,
+          totalPinjaman: true,
+          sisaPinjaman: true
+        }
+      })
+    ])
+
     const summary = {
-      totalMembers: allMembers.length,
-      totalActiveBorrowers: allMembers.filter((m) => m.sisaPinjaman > 0).length,
-      totalSimpananPokok: allMembers.reduce((acc, m) => acc + (m.simpananPokok || 0), 0),
-      totalSimpananWajib: allMembers.reduce((acc, m) => acc + (m.simpananWajib || 0), 0),
-      totalSimpananSukarela: allMembers.reduce((acc, m) => acc + (m.simpananSukarela || 0), 0),
+      totalMembers,
+      totalActiveBorrowers,
+      totalSimpananPokok: sums._sum.simpananPokok || 0,
+      totalSimpananWajib: sums._sum.simpananWajib || 0,
+      totalSimpananSukarela: sums._sum.simpananSukarela || 0,
       totalSimpanan: 0,
-      totalPinjamanDisalurkan: allMembers.reduce((acc, m) => acc + (m.totalPinjaman || 0), 0),
-      totalSisaPinjaman: allMembers.reduce((acc, m) => acc + (m.sisaPinjaman || 0), 0)
+      totalPinjamanDisalurkan: sums._sum.totalPinjaman || 0,
+      totalSisaPinjaman: sums._sum.sisaPinjaman || 0
     }
     summary.totalSimpanan = summary.totalSimpananPokok + summary.totalSimpananWajib + summary.totalSimpananSukarela
 
     // Reconcile with General Ledger (Kepmendes 136/2022 Accounts)
-    // 2.1.01.01 / 2.1.01.02 / 2.1.01.03 for Simpanan Anggota
-    // 1.1.02 for Piutang Pinjaman USP
+    // 2.1.01 for Simpanan Anggota, 1.1.02 for Piutang Pinjaman USP
+    const yearParam = searchParams.get("year")
+    const targetYear = yearParam ? parseInt(yearParam, 10) : null
+
+    // Cek apakah ada jurnal saldo awal (SA) di tahun target untuk mencegah saldo ganda lintas tahun
+    let dateCondition: any = undefined
+    if (targetYear) {
+      const saEntry = await db.journalEntry.findFirst({
+        where: {
+          proofType: "MEMORIAL",
+          date: {
+            gte: new Date(Date.UTC(targetYear, 0, 1, 0, 0, 0)),
+            lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999))
+          },
+          OR: [
+            { proofNumber: { startsWith: `SA/${targetYear}` } },
+            { proofNumber: { startsWith: "SA-USP" } }
+          ]
+        }
+      })
+      if (saEntry) {
+        dateCondition = {
+          gte: new Date(Date.UTC(targetYear, 0, 1, 0, 0, 0)),
+          lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999))
+        }
+      } else {
+        dateCondition = {
+          lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999))
+        }
+      }
+    }
+
     const glLines = await db.journalLine.findMany({
       where: {
         OR: [
           { accountCode: { startsWith: "2.1.01" } },
           { accountCode: { startsWith: "1.1.02" } }
-        ]
+        ],
+        ...(dateCondition ? { journalEntry: { date: dateCondition } } : {})
       }
     })
 
@@ -250,6 +295,16 @@ export async function POST(request: Request) {
       const numInterest = Math.max(0, Number(interestAmount))
 
       const result = await db.$transaction(async (tx) => {
+        // Check if fiscal year is closed before recording journal
+        const txDate = new Date(date)
+        const txYear = txDate.getFullYear()
+        if (autoPostJournal) {
+          const closed = await tx.annualClosing.findUnique({ where: { year: txYear } })
+          if (closed && closed.isLocked) {
+            throw new Error(`Tahun pembukuan ${txYear} telah ditutup buku dan dikunci secara permanen.`)
+          }
+        }
+
         let updatedMemberData: any = {}
 
         if (type === "SIMPANAN_POKOK") {
@@ -296,9 +351,9 @@ export async function POST(request: Request) {
         const txRecord = await tx.loanTransaction.create({
           data: {
             memberId,
-            date: new Date(date),
+            date: txDate,
             type,
-            amount: numAmount,
+            amount: type === "ANGSURAN" && (numPrincipal > 0 || numInterest > 0) ? (numPrincipal + numInterest) : numAmount,
             principalAmount: numPrincipal,
             interestAmount: numInterest,
             proofNumber: proofNumber || null,
@@ -308,7 +363,7 @@ export async function POST(request: Request) {
 
         // Optional: Auto post to General Journal Entry if requested
         if (autoPostJournal) {
-          const autoProofNumber = proofNumber || `USP-${Date.now().toString().slice(-6)}`
+          const autoProofNumber = proofNumber || `USP/${txYear}/${crypto.randomBytes(3).toString("hex").toUpperCase()}`
           let debitCode = "1.1.01.01" // Kas Tunai
           let creditCode = "1.1.01.01"
           let entryDesc = description || `Transaksi Simpan Pinjam: ${member.name}`
@@ -328,8 +383,6 @@ export async function POST(request: Request) {
           } else if (type === "PENCAIRAN_PINJAMAN") {
             debitCode = member.memberType === "KELOMPOK" ? "1.1.02.02" : "1.1.02.01" // Piutang Pinjaman
             creditCode = "1.1.01.01" // Kas Keluar
-          } else if (type === "ANGSURAN") {
-            // Can be multi-line: Kas (D), Piutang (C), Pendapatan Jasa Pinjaman (C: 4.1.01.02)
           }
 
           // Simple single/double posting
@@ -338,7 +391,7 @@ export async function POST(request: Request) {
               data: {
                 proofNumber: autoProofNumber,
                 proofType: type === "TARIK_SIMPANAN" || type === "PENCAIRAN_PINJAMAN" ? "BKK" : "BKM",
-                date: new Date(date),
+                date: txDate,
                 description: entryDesc,
                 payeeOrPayer: member.name,
                 unitName: "Unit Simpan Pinjam",
@@ -356,27 +409,36 @@ export async function POST(request: Request) {
               data: { journalEntryId: entry.id }
             })
           } else {
-            // ANGSURAN: Debits Kas, Credits Piutang (principal), Credits Pendapatan Bunga (interest)
-            const lines: any[] = [
-              { accountCode: "1.1.01.01", type: "DEBIT", amount: numAmount }
-            ]
+            // ANGSURAN: Enforce exact double-entry balance between Cash debit and (Principal + Interest) credits
+            const totalCash = (numPrincipal > 0 || numInterest > 0) ? (numPrincipal + numInterest) : numAmount
             const piutangCode = member.memberType === "KELOMPOK" ? "1.1.02.02" : "1.1.02.01"
+
+            const lines: any[] = [
+              { accountCode: "1.1.01.01", type: "DEBIT", amount: totalCash }
+            ]
             if (numPrincipal > 0) {
               lines.push({ accountCode: piutangCode, type: "CREDIT", amount: numPrincipal })
             }
             if (numInterest > 0) {
               lines.push({ accountCode: "4.1.01.02", type: "CREDIT", amount: numInterest })
             }
-            // fallback if amounts not split
+            // fallback if neither principal nor interest was split
             if (lines.length === 1) {
-              lines.push({ accountCode: piutangCode, type: "CREDIT", amount: numAmount })
+              lines.push({ accountCode: piutangCode, type: "CREDIT", amount: totalCash })
+            }
+
+            // Verify strict double-entry equality
+            const debits = lines.filter(l => l.type === "DEBIT").reduce((s, l) => s + l.amount, 0)
+            const credits = lines.filter(l => l.type === "CREDIT").reduce((s, l) => s + l.amount, 0)
+            if (Math.abs(debits - credits) >= 0.01) {
+              throw new Error(`Jurnal tidak seimbang: Total Debit (Rp ${debits}) != Total Kredit (Rp ${credits})`)
             }
 
             const entry = await tx.journalEntry.create({
               data: {
                 proofNumber: autoProofNumber,
                 proofType: "BKM",
-                date: new Date(date),
+                date: txDate,
                 description: entryDesc,
                 payeeOrPayer: member.name,
                 unitName: "Unit Simpan Pinjam",
@@ -718,8 +780,11 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const session = await getUserSession()
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Akses ditolak" }, { status: 401 })
+    if (!session || session.role !== "ADMIN") {
+      return NextResponse.json({
+        success: false,
+        error: "Akses ditolak. Hanya Administrator yang memiliki hak akses untuk menghapus data anggota."
+      }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)

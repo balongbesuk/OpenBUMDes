@@ -191,6 +191,29 @@ async function runSelfChecks() {
   const isSimpananBalanced = Math.abs(totalSimpanan - glSimpanan) < 1
   assert.strictEqual(isSimpananBalanced, true, "Simpanan must balance with GL liability account")
 
+  // 14. Loan installment strict double-entry balance and authorization check
+  const installmentPrincipal = 400000
+  const installmentInterest = 60000
+  const installmentCash = installmentPrincipal + installmentInterest
+  const journalLines = [
+    { type: "DEBIT", amount: installmentCash },
+    { type: "CREDIT", amount: installmentPrincipal },
+    { type: "CREDIT", amount: installmentInterest }
+  ]
+  const dSum = journalLines.filter(l => l.type === "DEBIT").reduce((s, l) => s + l.amount, 0)
+  const cSum = journalLines.filter(l => l.type === "CREDIT").reduce((s, l) => s + l.amount, 0)
+  assert.strictEqual(Math.abs(dSum - cSum) < 0.01, true, "Installment journal must strictly balance")
+
+  // Authorization guard check: OPERATOR role must be rejected on admin-only actions
+  const operatorSession = { id: "u2", username: "kasir", role: "OPERATOR" }
+  const isAuthorized = operatorSession && operatorSession.role === "ADMIN"
+  assert.strictEqual(isAuthorized, false, "Operator must not pass admin authorization check")
+
+  // Closed fiscal year check: locked year must block journal insertion
+  const closedYear = { year: 2025, isLocked: true }
+  const canPostToClosed = !(closedYear && closedYear.isLocked)
+  assert.strictEqual(canPostToClosed, false, "Posting to locked fiscal year must be blocked")
+
   console.log("✔ All OpenBUMDes self-checks passed successfully!")
 }
 

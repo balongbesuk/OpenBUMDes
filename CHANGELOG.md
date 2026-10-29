@@ -23,7 +23,16 @@ All notable changes to OpenBUMDes are documented in this file.
   * Fitur cetak ramah printer (*print-ready*) dengan kop resmi BUMDes, tanda tangan Direktur, Pengawas, dan Pengelola USP.
 
 * **Uji Mandiri Otomatis (`tests/self-check.mjs`)**:
-  * Menambahkan skenario uji mandiri ke-13 untuk verifikasi formula simpanan, amortisasi angsuran pokok/bunga pinjaman, dan rekonsiliasi saldo buku besar.
+  * Menambahkan skenario uji mandiri ke-13 dan ke-14 untuk verifikasi formula simpanan, amortisasi angsuran pokok/bunga pinjaman, keseimbangan debit-kredit jurnal, serta restriksi hak akses admin.
+
+### Fixed & Hardened - Hasil Audit Kualitas Simpan Pinjam, Keseimbangan Ganda, & Otorisasi
+
+* **Integritas Keseimbangan Jurnal Angsuran (`/api/loans`)**: Memvalidasi kesamaan nilai Debit Kas dengan total Kredit Pokok dan Kredit Bunga Jasa secara ketat sebelum jurnal disimpan ke database, mencegah jurnal tidak seimbang (*unbalanced entries*).
+* **Restriksi Hak Akses Hapus Anggota (Admin Only)**: Menambahkan pengecekan `session.role === "ADMIN"` pada method `DELETE /api/loans` agar akun kasir/operator biasa tidak dapat menghapus data nasabah.
+* **Integrasi Reset Aplikasi (`/api/system/reset`)**: Menyertakan pembersihan tabel `LoanTransaction` dan `LoanMember` saat konfirmasi `"KOSONGKAN"` dijalankan oleh admin untuk mencegah data yatim yang merusak rekonsiliasi.
+* **Proteksi Tahun Buku Terkunci**: Mencegah pencatatan transaksi simpan pinjam dengan *auto-post journal* pada tahun buku yang telah ditutup dan dikunci (`AnnualClosing.isLocked`).
+* **Pencegahan Tabrakan Nomor Bukti**: Mengganti pembangkit nomor bukti berbasis potongan milidetik dengan akhiran acak aman (*crypto random*) `USP/${txYear}/${randomHex}`.
+* **Penyelarasan Rekonsiliasi Lintas Tahun & Kinerja Kueri**: Mengganti kalkulasi memori `.reduce()` dengan `aggregate` database langsung, serta mendukung parameter `year` dengan pengecekan saldo awal (`SA/...`) untuk mencegah duplikasi saldo.
 
 ## [1.4.2] - 2026-10-29
 

@@ -32,6 +32,8 @@ export async function POST(request: Request) {
       await tx.inventoryMovement.deleteMany()
       await tx.inventoryItem.deleteMany()
       await tx.fixedAsset.deleteMany()
+      await tx.loanTransaction.deleteMany()
+      await tx.loanMember.deleteMany()
 
       // Safeguard: Jika karena alasan apa pun tabel ledgerAccount kosong, otomatis isi kembali dengan COA standar Kemendes 136
       const count = await tx.ledgerAccount.count()
