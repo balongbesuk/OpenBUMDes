@@ -200,7 +200,7 @@ export function getSmartFilteredCOA(accounts: any[], activeAccountCodes: Set<str
         name.includes("akumulasi penyusutan") ||
         name.includes("akumulasi amortisasi") ||
         name.includes("ikhtisar laba rugi") ||
-        a.code.startsWith("1.3.02") ||
+
         a.code.startsWith("1.4") ||
         a.code.startsWith("1.9") ||
         a.code.startsWith("2.2") ||

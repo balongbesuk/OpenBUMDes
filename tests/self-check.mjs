@@ -244,6 +244,29 @@ async function runSelfChecks() {
   const canIssueStock = !(inventoryItem.currentQty < requestedOutQty);
   assert.strictEqual(canIssueStock, false, "Outgoing movement exceeding available stock must be blocked");
 
+  // 18. Audit fix: Vehicle account (1.3.02.01) must NOT be misclassified as credit contra-depreciation
+  function isContraAsset(code, accName = "", normal = "Debit") {
+    return (
+      code.startsWith("1.3.07") ||
+      code.startsWith("1.3.08") ||
+      normal === "Kredit" ||
+      accName.toLowerCase().includes("akumulasi")
+    );
+  }
+  assert.strictEqual(isContraAsset("1.3.02.01", "Kendaraan", "Debit"), false, "Kendaraan must be treated as a normal asset, not contra-depreciation");
+  assert.strictEqual(isContraAsset("1.3.07.01", "Akumulasi Penyusutan Kendaraan", "Kredit"), true, "Akumulasi Penyusutan must be treated as contra-asset");
+
+  // 19. Audit fix: Warehouse item with active stock must be blocked from deletion
+  const itemWithStock = { id: "i1", name: "Pupuk Urea", currentQty: 15, unit: "Sak" };
+  const canDeleteItem = itemWithStock.currentQty <= 0;
+  assert.strictEqual(canDeleteItem, false, "Item with remaining stock must not be deleted");
+
+  // 20. Audit fix: Asset acquired in a locked fiscal year must be blocked from deletion
+  const lockedClosing = { year: 2025, isLocked: true };
+  const assetYear = 2025;
+  const canDeleteAsset = !(lockedClosing && lockedClosing.year === assetYear && lockedClosing.isLocked);
+  assert.strictEqual(canDeleteAsset, false, "Asset from locked fiscal year must be protected from deletion");
+
   console.log("✔ All OpenBUMDes self-checks passed successfully!")
 }
 

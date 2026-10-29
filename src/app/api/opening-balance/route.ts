@@ -81,7 +81,7 @@ export async function GET(request: Request) {
       const isAccPenyusutan =
         code.startsWith("1.3.07") ||
         code.startsWith("1.3.08") ||
-        code.startsWith("1.3.02") ||
+
         acc?.normal === "Kredit" ||
         (acc?.name || "").toLowerCase().includes("akumulasi")
 

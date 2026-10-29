@@ -227,8 +227,8 @@ export async function POST(request: Request) {
           acquisitionCost: Math.max(0, parseFloat(acquisitionCost) || 0),
           usefulLifeYears: Math.max(1, parseInt(usefulLifeYears, 10) || 4),
           salvageValue: Math.max(0, parseFloat(salvageValue) || 0),
-          assetAccountCode: assetAccountCode?.trim() || "1.2.01.01",
-          deprAccountCode: deprAccountCode?.trim() || "1.2.02.01",
+          assetAccountCode: assetAccountCode?.trim() || "1.3.03.01",
+          deprAccountCode: deprAccountCode?.trim() || "1.3.07.02",
           expAccountCode: expAccountCode?.trim() || "6.1.05.01",
           location: location?.trim() || "Kantor BUMDes",
           condition: condition?.trim() || "BAIK",
@@ -307,6 +307,20 @@ export async function DELETE(request: Request) {
 
     if (!id) {
       return NextResponse.json({ success: false, error: "ID aset tetap wajib disertakan." }, { status: 400 })
+    }
+
+    const existing = await db.fixedAsset.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ success: false, error: "Aset tetap tidak ditemukan atau sudah dihapus." }, { status: 404 })
+    }
+
+    const acqYear = new Date(existing.acquisitionDate).getFullYear()
+    const closed = await db.annualClosing.findUnique({ where: { year: acqYear } })
+    if (closed && closed.isLocked) {
+      return NextResponse.json({
+        success: false,
+        error: `Penghapusan ditolak. Aset berada pada Tahun Anggaran ${acqYear} yang telah ditutup buku dan berstatus Terkunci (Arsip LPJ Resmi).`
+      }, { status: 403 })
     }
 
     await db.fixedAsset.delete({

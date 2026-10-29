@@ -270,6 +270,18 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "ID barang wajib disertakan" }, { status: 400 })
     }
 
+    const item = await db.inventoryItem.findUnique({ where: { id } })
+    if (!item) {
+      return NextResponse.json({ success: false, error: "Barang tidak ditemukan atau sudah dihapus." }, { status: 404 })
+    }
+
+    if (item.currentQty > 0) {
+      return NextResponse.json({
+        success: false,
+        error: `Barang "${item.name}" tidak dapat dihapus karena masih memiliki stok sebanyak ${item.currentQty} ${item.unit}. Harap lakukan mutasi keluar atau sesuaikan stok menjadi 0 terlebih dahulu.`
+      }, { status: 400 })
+    }
+
     await db.inventoryItem.delete({
       where: { id }
     })
