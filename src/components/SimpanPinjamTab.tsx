@@ -263,10 +263,10 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
   // Seed sample data from SPJ 2025 Balongbesuk
   const handleSeedSampleData = async () => {
     const confirmed = await showAppConfirm(
-      "Apakah Anda ingin memuat data awal contoh Unit Simpan Pinjam BUMDes sesuai laporan SPJ 2025 Balongbesuk?\n\n• 60 Anggota Simpanan Pokok & Wajib: Rp 14.820.000\n• Piutang Pinjaman Masyarakat & Kelompok: Rp 89.000.000\n\nData ini berstandar universal Kepmendes 136/2022 dan dapat disesuaikan untuk desa mana saja.",
+      "Apakah Anda ingin memuat data awal Unit Simpan Pinjam BUMDes sesuai laporan riil SPJ 2025 Balongbesuk?\n\n• 65 Anggota Warga & Kelompok Tani (GAPOKTAN)\n• Total Simpanan Pokok & Wajib: Rp 17.840.000\n• Total Piutang Pinjaman USP: Rp 89.000.000\n\nSeluruh nama nasabah dan saldo diisi secara rinci per orang sesuai dokumen SPJ asli.",
       {
-        title: "Muat Data Awal Standar (Contoh SPJ 2025)",
-        confirmText: "Muat Data Contoh",
+        title: "Muat Data Rinci SPJ 2025 Balongbesuk",
+        confirmText: "Muat Data Rinci",
         cancelText: "Batal",
         type: "info"
       }

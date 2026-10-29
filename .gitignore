@@ -63,6 +63,8 @@ scripts/list_*.ts
 # Sensitive local seeds and scripts
 prisma/seed_members.json
 prisma/seed_sp_data.json
+prisma/spj_*.json
+prisma/*_members.json
 scripts/seed-spj-2025.ts
 scripts/parse_sp.py
 

@@ -476,209 +476,14 @@ export async function POST(request: Request) {
         await db.loanMember.deleteMany()
       }
 
-      // Representative sample from SPJ 2025 Balongbesuk
-      // Total Simpanan: Rp 14.820.000 (Pokok: 3.000.000, Wajib: 11.820.000)
-      // Total Piutang Pinjaman: Rp 89.000.000 (Masyarakat: 61.000.000, Gapoktan: 28.000.000)
-      const sampleMembers = [
-        {
-          memberNo: "ANG-001",
-          name: "Sukoco",
-          nik: "3517031201780001",
-          phone: "081234567891",
-          address: "Dusun Besuk RT 01 RW 01",
-          groupName: "RT 01",
-          memberType: "INDIVIDU",
-          simpananPokok: 50000,
-          simpananWajib: 250000,
-          simpananSukarela: 0,
-          totalPinjaman: 5000000,
-          sisaPinjaman: 5000000,
-          bungaPersen: 1.5,
-          jangkaWaktuBulan: 12,
-          statusPinjaman: "BERJALAN",
-          notes: "Usaha Toko Kelontong"
-        },
-        {
-          memberNo: "ANG-002",
-          name: "Tri Widodo",
-          nik: "3517031505820002",
-          phone: "081234567892",
-          address: "Dusun Balong RT 02 RW 02",
-          groupName: "RT 02",
-          memberType: "INDIVIDU",
-          simpananPokok: 50000,
-          simpananWajib: 220000,
-          simpananSukarela: 0,
-          totalPinjaman: 4000000,
-          sisaPinjaman: 4000000,
-          bungaPersen: 1.5,
-          jangkaWaktuBulan: 10,
-          statusPinjaman: "BERJALAN",
-          notes: "Usaha Bengkel Las"
-        },
-        {
-          memberNo: "ANG-003",
-          name: "Joko Santoso",
-          nik: "3517032008750003",
-          phone: "081234567893",
-          address: "Dusun Cangkring RT 01 RW 03",
-          groupName: "RT 01",
-          memberType: "INDIVIDU",
-          simpananPokok: 50000,
-          simpananWajib: 300000,
-          simpananSukarela: 0,
-          totalPinjaman: 6000000,
-          sisaPinjaman: 6000000,
-          bungaPersen: 1.5,
-          jangkaWaktuBulan: 12,
-          statusPinjaman: "BERJALAN",
-          notes: "Usaha Penggilingan Padi"
-        },
-        {
-          memberNo: "ANG-004",
-          name: "Purnomo",
-          nik: "3517030503790004",
-          phone: "081234567894",
-          address: "Dusun Besuk RT 03 RW 01",
-          groupName: "RT 03",
-          memberType: "INDIVIDU",
-          simpananPokok: 50000,
-          simpananWajib: 200000,
-          simpananSukarela: 0,
-          totalPinjaman: 3000000,
-          sisaPinjaman: 3000000,
-          bungaPersen: 1.5,
-          jangkaWaktuBulan: 10,
-          statusPinjaman: "BERJALAN",
-          notes: "Usaha Konveksi"
-        },
-        {
-          memberNo: "ANG-005",
-          name: "Kuswanto",
-          nik: "3517031109840005",
-          phone: "081234567895",
-          address: "Dusun Balong RT 01 RW 02",
-          groupName: "RT 01",
-          memberType: "INDIVIDU",
-          simpananPokok: 50000,
-          simpananWajib: 200000,
-          simpananSukarela: 0,
-          totalPinjaman: 5000000,
-          sisaPinjaman: 5000000,
-          bungaPersen: 1.5,
-          jangkaWaktuBulan: 12,
-          statusPinjaman: "BERJALAN",
-          notes: "Usaha Ternak Ayam"
-        },
-        {
-          memberNo: "ANG-006",
-          name: "Bambang Irawan",
-          nik: "3517031406800006",
-          phone: "081234567896",
-          address: "Dusun Besuk RT 02 RW 01",
-          groupName: "RT 02",
-          memberType: "INDIVIDU",
-          simpananPokok: 50000,
-          simpananWajib: 200000,
-          simpananSukarela: 0,
-          totalPinjaman: 5000000,
-          sisaPinjaman: 5000000,
-          bungaPersen: 1.5,
-          jangkaWaktuBulan: 12,
-          statusPinjaman: "BERJALAN",
-          notes: "Pedagang Sayur Pasar"
-        },
-        {
-          memberNo: "ANG-007",
-          name: "Wahyudi",
-          nik: "3517032207860007",
-          phone: "081234567897",
-          address: "Dusun Cangkring RT 02 RW 03",
-          groupName: "RT 02",
-          memberType: "INDIVIDU",
-          simpananPokok: 50000,
-          simpananWajib: 200000,
-          simpananSukarela: 0,
-          totalPinjaman: 5000000,
-          sisaPinjaman: 5000000,
-          bungaPersen: 1.5,
-          jangkaWaktuBulan: 12,
-          statusPinjaman: "BERJALAN",
-          notes: "Usaha Mebel"
-        },
-        {
-          memberNo: "ANG-008",
-          name: "Sumari",
-          nik: "3517031908770008",
-          phone: "081234567898",
-          address: "Dusun Balong RT 03 RW 02",
-          groupName: "RT 03",
-          memberType: "INDIVIDU",
-          simpananPokok: 50000,
-          simpananWajib: 200000,
-          simpananSukarela: 0,
-          totalPinjaman: 5000000,
-          sisaPinjaman: 5000000,
-          bungaPersen: 1.5,
-          jangkaWaktuBulan: 12,
-          statusPinjaman: "BERJALAN",
-          notes: "Petani Jagung"
-        },
-        {
-          memberNo: "ANG-009",
-          name: "Nanang Supriadi",
-          nik: "3517032511850009",
-          phone: "081234567899",
-          address: "Dusun Besuk RT 04 RW 01",
-          groupName: "RT 04",
-          memberType: "INDIVIDU",
-          simpananPokok: 50000,
-          simpananWajib: 200000,
-          simpananSukarela: 0,
-          totalPinjaman: 5000000,
-          sisaPinjaman: 5000000,
-          bungaPersen: 1.5,
-          jangkaWaktuBulan: 12,
-          statusPinjaman: "BERJALAN",
-          notes: "Usaha Percetakan"
-        },
-        {
-          memberNo: "ANG-010",
-          name: "Budi Utomo & 50 Anggota Lainnya (Gabungan)",
-          nik: "3517030000000010",
-          phone: "081234567800",
-          address: "Desa Balongbesuk",
-          groupName: "Kolektif Anggota",
-          memberType: "INDIVIDU",
-          simpananPokok: 2500000, // 50 anggota x Rp 50.000 = Rp 2.500.000 (Total Simpanan Pokok Rp 3.000.000)
-          simpananWajib: 9650000, // Menjadikan Total Simpanan Wajib Tepat Rp 11.820.000
-          simpananSukarela: 0,
-          totalPinjaman: 18000000, // Menjadikan Total Pinjaman Masyarakat Tepat Rp 61.000.000
-          sisaPinjaman: 18000000,
-          bungaPersen: 1.5,
-          jangkaWaktuBulan: 12,
-          statusPinjaman: "BERJALAN",
-          notes: "Representasi rekonsiliasi anggota aktif simpan pinjam desa"
-        },
-        {
-          memberNo: "PKT-001",
-          name: "GAPOKTAN Tani Mulyo (Kelompok Tani)",
-          nik: "3517039900010001",
-          phone: "081399887766",
-          address: "Dusun Besuk Barat",
-          groupName: "Gapoktan Tani Mulyo",
-          memberType: "KELOMPOK",
-          simpananPokok: 50000,
-          simpananWajib: 200000,
-          simpananSukarela: 0,
-          totalPinjaman: 28000000, // Sesuai Piutang Gapoktan SPJ 2025
-          sisaPinjaman: 28000000,
-          bungaPersen: 1.0,
-          jangkaWaktuBulan: 24,
-          statusPinjaman: "BERJALAN",
-          notes: "Pembiayaan Sarana Produksi Padi Organik Musim Tanam 2025"
-        }
-      ]
+      // Load all 66 real detailed members from SPJ 2025 Balongbesuk (no collective placeholders)
+      const path = await import("path")
+      const fs = await import("fs")
+      const membersFilePath = path.join(process.cwd(), "prisma", "spj_2025_members.json")
+      let sampleMembers: any[] = []
+      if (fs.existsSync(membersFilePath)) {
+        sampleMembers = JSON.parse(fs.readFileSync(membersFilePath, "utf-8"))
+      }
 
       await db.$transaction(async (tx) => {
         // Ensure Ledger Accounts exist for Kepmendes 136 standard
@@ -699,7 +504,9 @@ export async function POST(request: Request) {
           }
         }
 
-        // Reconciled Opening Journal Entry for USP matching SPJ 2025
+        // Reconciled Opening Journal Entry for USP matching SPJ 2025 Neraca exactly
+        // Total Simpanan: Rp 17.840.000 (Pokok: 2.750.000, Wajib: 15.090.000)
+        // Total Piutang: Rp 89.000.000 (Masyarakat: 61.000.000, Gapoktan: 28.000.000)
         const saProofNumber = "SA-USP-2025"
         await tx.journalEntry.deleteMany({ where: { proofNumber: saProofNumber } })
         await tx.journalEntry.create({
@@ -715,9 +522,9 @@ export async function POST(request: Request) {
               create: [
                 { accountCode: "1.1.02.01", type: "DEBIT", amount: 61000000 },
                 { accountCode: "1.1.02.02", type: "DEBIT", amount: 28000000 },
-                { accountCode: "2.1.01.01", type: "CREDIT", amount: 3000000 },
-                { accountCode: "2.1.01.02", type: "CREDIT", amount: 11820000 },
-                { accountCode: "3.1.01.01", type: "CREDIT", amount: 74180000 }
+                { accountCode: "2.1.01.01", type: "CREDIT", amount: 2750000 },
+                { accountCode: "2.1.01.02", type: "CREDIT", amount: 15090000 },
+                { accountCode: "3.1.01.01", type: "CREDIT", amount: 71160000 }
               ]
             }
           }
