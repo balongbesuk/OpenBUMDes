@@ -1271,11 +1271,11 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => safePrintElement("print-member-card")}
-                  className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all flex items-center gap-1.5"
+                  onClick={() => safePrintElement("print-member-card", `Kartu Simpan Pinjam - ${selectedMember.memberNo} - ${selectedMember.name}`)}
+                  className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all flex items-center gap-1.5 shadow-sm"
                 >
-                  <Printer className="w-3.5 h-3.5 text-slate-600" />
-                  Cetak Kartu
+                  <Printer className="w-3.5 h-3.5 text-indigo-600" />
+                  Cetak Kartu Resmi
                 </button>
                 <button
                   onClick={() => setShowDetailModal(false)}
@@ -1286,91 +1286,255 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
               </div>
             </div>
 
-            <div id="print-member-card" className="p-6 overflow-y-auto space-y-6">
-              {/* Header Kartu */}
-              <div className="hidden print:block text-center border-b pb-4 mb-4">
-                <h3 className="font-bold text-base uppercase">{bumdesName}</h3>
-                <p className="text-xs">KARTU SIMPAN PINJAM ANGGOTA: {selectedMember.name} ({selectedMember.memberNo})</p>
-              </div>
-
-              {/* Ringkasan Saldo Anggota */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70">
-                  <span className="text-[11px] text-slate-500 font-medium">Simpanan Pokok</span>
-                  <div className="text-sm font-bold font-mono text-slate-800 mt-0.5">
-                    {formatRupiah(selectedMember.simpananPokok)}
+            <div id="print-member-card" className="p-6 overflow-y-auto space-y-6 text-slate-800 bg-white">
+              {/* KOP RESMI BUMDES (Tampil saat cetak maupun layar) */}
+              <div className="border-b-2 border-slate-900 pb-3 text-center">
+                <div className="flex items-center justify-between">
+                  <div className="w-16 h-16 hidden print:flex items-center justify-center font-bold text-slate-400 text-xs border border-dashed rounded">
+                    LOGO
                   </div>
+                  <div className="flex-1">
+                    <h2 className="text-base font-black tracking-wide uppercase text-slate-900">
+                      BADAN USAHA MILIK DESA &ldquo;{bumdesName}&rdquo;
+                    </h2>
+                    <h3 className="text-sm font-bold tracking-wider uppercase text-indigo-700">
+                      UNIT USAHA SIMPAN PINJAM (USP)
+                    </h3>
+                    <p className="text-[11px] text-slate-600 mt-0.5">
+                      Desa Balongbesuk, Kec. Diwek, Kab. Jombang - Jawa Timur • SPJ & Buku Register Anggota
+                    </p>
+                  </div>
+                  <div className="w-16 h-16 hidden print:block"></div>
                 </div>
-                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70">
-                  <span className="text-[11px] text-slate-500 font-medium">Simpanan Wajib</span>
-                  <div className="text-sm font-bold font-mono text-slate-800 mt-0.5">
-                    {formatRupiah(selectedMember.simpananWajib)}
-                  </div>
-                </div>
-                <div className="p-3.5 bg-emerald-50/70 rounded-2xl border border-emerald-200/70">
-                  <span className="text-[11px] text-emerald-800 font-medium">Total Simpanan</span>
-                  <div className="text-sm font-bold font-mono text-emerald-700 mt-0.5">
-                    {formatRupiah(selectedMember.simpananPokok + selectedMember.simpananWajib + selectedMember.simpananSukarela)}
-                  </div>
-                </div>
-                <div className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200/70">
-                  <span className="text-[11px] text-amber-800 font-medium">Sisa Piutang Pinjaman</span>
-                  <div className="text-sm font-bold font-mono text-amber-700 mt-0.5">
-                    {formatRupiah(selectedMember.sisaPinjaman)}
-                  </div>
+                <div className="mt-2 pt-1 border-t border-slate-300">
+                  <span className="inline-block px-3 py-0.5 text-xs font-extrabold uppercase tracking-widest bg-slate-900 text-white rounded">
+                    KARTU PINJAMAN & SIMPANAN ANGGOTA
+                  </span>
                 </div>
               </div>
 
-              {/* Riwayat Mutasi */}
+              {/* PROFIL DEBITUR & PINJAMAN */}
+              <div className="grid grid-cols-2 gap-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                <div className="space-y-1">
+                  <div className="flex">
+                    <span className="w-28 text-slate-500 font-medium">No. Anggota</span>
+                    <span className="font-mono font-bold text-slate-900">: {selectedMember.memberNo}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-28 text-slate-500 font-medium">Nama Anggota</span>
+                    <span className="font-bold text-slate-900">: {selectedMember.name}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-28 text-slate-500 font-medium">NIK</span>
+                    <span className="font-mono text-slate-700">: {selectedMember.nik || "-"}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-28 text-slate-500 font-medium">Dusun / Alamat</span>
+                    <span className="text-slate-700">: {selectedMember.groupName || selectedMember.address || "Balongbesuk"}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex">
+                    <span className="w-28 text-slate-500 font-medium">Plafon Pinjaman</span>
+                    <span className="font-mono font-bold text-slate-900">
+                      : {formatRupiah(selectedMember.plafonPinjaman || selectedMember.sisaPinjaman)}
+                    </span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-28 text-slate-500 font-medium">Sisa Pokok</span>
+                    <span className="font-mono font-bold text-rose-600">
+                      : {formatRupiah(selectedMember.sisaPinjaman)}
+                    </span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-28 text-slate-500 font-medium">Jasa / Tenor</span>
+                    <span className="text-slate-700">
+                      : {selectedMember.bungaPersen || 1.5}% / bln • {selectedMember.tenorBulan || 10} Bln
+                    </span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-28 text-slate-500 font-medium">Status Pinjaman</span>
+                    <span>
+                      : <span className={`inline-block px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                        selectedMember.sisaPinjaman > 0 ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                      }`}>
+                        {selectedMember.sisaPinjaman > 0 ? "AKTIF / MENGANGSUR" : "LUNAS"}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* BAGIAN A: REKAPITULASI SIMPANAN ANGGOTA */}
               <div>
-                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-indigo-600" />
-                  Buku Catatan Mutasi & Transaksi
-                </h4>
-                <div className="border border-slate-200 rounded-2xl overflow-hidden">
-                  <table className="w-full text-left text-xs text-slate-600">
-                    <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-indigo-600 inline-block"></span>
+                    Bagian A: Posisi Simpanan Anggota
+                  </h4>
+                  <span className="text-[11px] text-slate-500">Kewajiban BUMDes (Akun 2.1.01)</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase block">Simpanan Pokok</span>
+                    <span className="text-xs font-bold font-mono text-slate-800">
+                      {formatRupiah(selectedMember.simpananPokok)}
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase block">Simpanan Wajib</span>
+                    <span className="text-xs font-bold font-mono text-slate-800">
+                      {formatRupiah(selectedMember.simpananWajib)}
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase block">Simpanan Sukarela</span>
+                    <span className="text-xs font-bold font-mono text-slate-800">
+                      {formatRupiah(selectedMember.simpananSukarela || 0)}
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase block">Total Simpanan</span>
+                    <span className="text-xs font-black font-mono text-emerald-700">
+                      {formatRupiah(selectedMember.simpananPokok + selectedMember.simpananWajib + (selectedMember.simpananSukarela || 0))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* BAGIAN B: KARTU KONTROL PINJAMAN & ANGSURAN */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-600 inline-block"></span>
+                    Bagian B: Kartu Kontrol Pinjaman & Angsuran
+                  </h4>
+                  <span className="text-[11px] text-slate-500">Piutang Anggota (Akun 1.1.02)</span>
+                </div>
+                <div className="border border-slate-300 rounded-xl overflow-hidden">
+                  <table className="w-full text-left text-[11px] border-collapse">
+                    <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-300">
                       <tr>
-                        <th className="py-2.5 px-3 font-bold">Tanggal</th>
-                        <th className="py-2.5 px-3 font-bold">Jenis Mutasi</th>
-                        <th className="py-2.5 px-3 font-bold">Keterangan</th>
-                        <th className="py-2.5 px-3 font-bold text-right">Nominal (Rp)</th>
+                        <th className="py-2 px-2.5 text-center w-12 border-r border-slate-200">Ke-</th>
+                        <th className="py-2 px-2.5 border-r border-slate-200">Tanggal</th>
+                        <th className="py-2 px-2.5 border-r border-slate-200">No. Bukti / Ket</th>
+                        <th className="py-2 px-2.5 text-right border-r border-slate-200">Angsuran Pokok</th>
+                        <th className="py-2 px-2.5 text-right border-r border-slate-200">Jasa / Bunga</th>
+                        <th className="py-2 px-2.5 text-right border-r border-slate-200">Total Bayar</th>
+                        <th className="py-2 px-2.5 text-right border-r border-slate-200">Sisa Pokok</th>
+                        <th className="py-2 px-2 text-center w-16">Paraf</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-200">
+                      {/* Baris Pencairan Awal Pinjaman */}
+                      <tr className="bg-amber-50/40 font-medium">
+                        <td className="py-2 px-2.5 text-center font-bold text-slate-600 border-r border-slate-200">0</td>
+                        <td className="py-2 px-2.5 font-mono text-slate-700 border-r border-slate-200">
+                          {selectedMember.tglPinjam ? new Date(selectedMember.tglPinjam).toLocaleDateString("id-ID") : "Awal TA"}
+                        </td>
+                        <td className="py-2 px-2.5 font-semibold text-slate-800 border-r border-slate-200">
+                          Pencairan / Saldo Awal Piutang
+                        </td>
+                        <td className="py-2 px-2.5 text-right font-mono text-slate-500 border-r border-slate-200">-</td>
+                        <td className="py-2 px-2.5 text-right font-mono text-slate-500 border-r border-slate-200">-</td>
+                        <td className="py-2 px-2.5 text-right font-mono text-slate-500 border-r border-slate-200">-</td>
+                        <td className="py-2 px-2.5 text-right font-mono font-bold text-slate-900 border-r border-slate-200">
+                          {formatRupiah(selectedMember.plafonPinjaman || selectedMember.sisaPinjaman)}
+                        </td>
+                        <td className="py-2 px-2 text-center text-slate-400 font-mono text-[9px]">Admin</td>
+                      </tr>
+
+                      {/* Baris Transaksi Angsuran */}
                       {detailLoading ? (
                         <tr>
-                          <td colSpan={4} className="py-8 text-center text-slate-400">
-                            <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-1 text-indigo-500" />
-                            Memuat riwayat transaksi...
+                          <td colSpan={8} className="py-6 text-center text-slate-400">
+                            <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-indigo-600" />
+                            Memuat data mutasi...
                           </td>
                         </tr>
-                      ) : memberDetail?.transactions && memberDetail.transactions.length > 0 ? (
-                        memberDetail.transactions.map((tx: any) => (
-                          <tr key={tx.id} className="hover:bg-slate-50/50">
-                            <td className="py-2.5 px-3 font-mono text-slate-600">
-                              {new Date(tx.date).toLocaleDateString("id-ID")}
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 text-slate-700">
-                                {tx.type}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-slate-700">{tx.description}</td>
-                            <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800">
-                              {formatRupiah(tx.amount)}
-                            </td>
-                          </tr>
-                        ))
+                      ) : memberDetail?.transactions && memberDetail.transactions.filter((t: any) => t.type.includes("ANGSURAN") || t.type === "PENCAIRAN_PINJAMAN").length > 0 ? (
+                        memberDetail.transactions
+                          .filter((t: any) => t.type.includes("ANGSURAN"))
+                          .map((tx: any, idx: number) => (
+                            <tr key={tx.id} className="hover:bg-slate-50">
+                              <td className="py-2 px-2.5 text-center font-bold font-mono text-slate-700 border-r border-slate-200">
+                                {idx + 1}
+                              </td>
+                              <td className="py-2 px-2.5 font-mono text-slate-600 border-r border-slate-200">
+                                {new Date(tx.date).toLocaleDateString("id-ID")}
+                              </td>
+                              <td className="py-2 px-2.5 text-slate-700 border-r border-slate-200">
+                                <span className="font-mono text-[10px] text-slate-500 block">{tx.proofNumber || "-"}</span>
+                                {tx.description}
+                              </td>
+                              <td className="py-2 px-2.5 text-right font-mono text-slate-800 border-r border-slate-200">
+                                {formatRupiah(tx.principalAmount || tx.amount)}
+                              </td>
+                              <td className="py-2 px-2.5 text-right font-mono text-slate-600 border-r border-slate-200">
+                                {formatRupiah(tx.interestAmount || 0)}
+                              </td>
+                              <td className="py-2 px-2.5 text-right font-mono font-bold text-slate-900 border-r border-slate-200">
+                                {formatRupiah(tx.amount + (tx.interestAmount || 0))}
+                              </td>
+                              <td className="py-2 px-2.5 text-right font-mono font-semibold text-rose-700 border-r border-slate-200">
+                                {formatRupiah(selectedMember.sisaPinjaman)}
+                              </td>
+                              <td className="py-2 px-2 text-center text-slate-400 font-mono text-[9px]">✓</td>
+                            </tr>
+                          ))
                       ) : (
                         <tr>
-                          <td colSpan={4} className="py-6 text-center text-slate-400">
-                            Belum ada riwayat transaksi.
+                          <td colSpan={8} className="py-4 text-center text-slate-400 italic">
+                            Belum ada catatan angsuran tunai yang masuk untuk periode pinjaman ini.
                           </td>
                         </tr>
                       )}
                     </tbody>
+                    <tfoot className="bg-slate-50 font-bold border-t border-slate-300">
+                      <tr>
+                        <td colSpan={3} className="py-2 px-2.5 text-right uppercase tracking-wider text-slate-700 border-r border-slate-200">
+                          Sisa Pokok Pinjaman Saat Ini :
+                        </td>
+                        <td colSpan={3} className="py-2 px-2.5 font-mono text-xs text-rose-600 border-r border-slate-200">
+                          {formatRupiah(selectedMember.sisaPinjaman)}
+                        </td>
+                        <td colSpan={2} className="py-2 px-2.5 text-center text-[10px] text-slate-500">
+                          {selectedMember.sisaPinjaman === 0 ? "LUNAS TUNTAS" : "BELUM LUNAS"}
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
+                </div>
+              </div>
+
+              {/* LEMBAR PENGESAHAN & TANDA TANGAN 3 PIHAK */}
+              <div className="pt-4 border-t border-slate-200 break-inside-avoid">
+                <div className="text-right text-[11px] text-slate-600 mb-2">
+                  Balongbesuk, {getLocalDateString()}
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-center text-xs">
+                  <div>
+                    <p className="text-slate-500 font-medium">Nasabah / Debitur,</p>
+                    <div className="h-16 flex items-end justify-center">
+                      <p className="font-bold underline text-slate-900">{selectedMember.name}</p>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">NIK: {selectedMember.nik || "...................."}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 font-medium">Pengelola Unit Simpan Pinjam,</p>
+                    <div className="h-16 flex items-end justify-center">
+                      <p className="font-bold underline text-slate-900">Bendahara / Kasir USP</p>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">BUMDes Balongbesuk</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 font-medium">Mengetahui,</p>
+                    <div className="h-16 flex items-end justify-center">
+                      <p className="font-bold underline text-slate-900">Direktur BUMDes</p>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">BUMDes Balongbesuk</p>
+                  </div>
                 </div>
               </div>
             </div>
