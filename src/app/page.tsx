@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
+import Link from "next/link"
 import {
   LayoutDashboard,
   BookOpen,
@@ -1187,6 +1188,16 @@ export default function StislaApp() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              <Link
+                href="/scan"
+                target="_blank"
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition-all"
+                title="Buka Scanner Kamera AI Khusus HP"
+              >
+                <Camera className="w-4 h-4" />
+                <span className="hidden sm:inline">Mobile AI Scan</span>
+              </Link>
+
               <button
                 onClick={() => setShowManualModal(true)}
                 className="flex items-center gap-1.5 bg-[#6777ef] hover:bg-[#5868e4] text-white px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition-all"
