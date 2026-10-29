@@ -89,4 +89,5 @@ export async function postJournalEntry(
       throw err
     }
   }
+  throw new Error("Gagal menyimpan transaksi jurnal.");
 }

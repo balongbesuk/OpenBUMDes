@@ -167,7 +167,7 @@ export async function POST(request: Request) {
               expAccountCode: "6.1.05.01",
               location: body.location?.trim() || "Kantor BUMDes",
               condition: "BAIK",
-              notes: `Otomatis dari BKK (${result.entry.proofNumber}): ${description}`
+              notes: `Otomatis dari BKK (${result?.entry?.proofNumber || proofType}): ${description}`
             }
           })
         } catch (assetErr) {

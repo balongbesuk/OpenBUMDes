@@ -312,7 +312,7 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
         title: "Konfirmasi Hapus Anggota",
         confirmText: "Hapus Permanen",
         cancelText: "Batal",
-        type: "error"
+        type: "danger"
       }
     )
     if (!confirmed) return
