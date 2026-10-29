@@ -347,6 +347,8 @@ export async function POST(request: Request) {
           data: updatedMemberData
         })
 
+        const finalProofNumber = proofNumber || `USP/${txYear}/${crypto.randomBytes(3).toString("hex").toUpperCase()}`
+
         // Create transaction record
         const txRecord = await tx.loanTransaction.create({
           data: {
@@ -356,14 +358,14 @@ export async function POST(request: Request) {
             amount: type === "ANGSURAN" && (numPrincipal > 0 || numInterest > 0) ? (numPrincipal + numInterest) : numAmount,
             principalAmount: numPrincipal,
             interestAmount: numInterest,
-            proofNumber: proofNumber || null,
+            proofNumber: finalProofNumber,
             description: description || `Transaksi ${type} anggota ${member.name}`
           }
         })
 
         // Optional: Auto post to General Journal Entry if requested
         if (autoPostJournal) {
-          const autoProofNumber = proofNumber || `USP/${txYear}/${crypto.randomBytes(3).toString("hex").toUpperCase()}`
+          const autoProofNumber = finalProofNumber
           let debitCode = "1.1.01.01" // Kas Tunai
           let creditCode = "1.1.01.01"
           let entryDesc = description || `Transaksi Simpan Pinjam: ${member.name}`
@@ -461,6 +463,30 @@ export async function POST(request: Request) {
 
     // 3. SEED_SAMPLE_DATA: Balongbesuk 2025 SPJ Data (Generalized & Balanced)
     if (action === "SEED_SAMPLE_DATA") {
+      if (session.role !== "ADMIN") {
+        return NextResponse.json({
+          success: false,
+          error: "Akses ditolak. Hanya Administrator yang berwenang memuat ulang data awal."
+        }, { status: 403 })
+      }
+
+      // Load all 66 real detailed members from SPJ 2025 Balongbesuk (no collective placeholders)
+      const path = await import("path")
+      const fs = await import("fs")
+      const membersFilePath = path.join(process.cwd(), "prisma", "spj_2025_members.json")
+      let sampleMembers: any[] = []
+      if (fs.existsSync(membersFilePath)) {
+        sampleMembers = JSON.parse(fs.readFileSync(membersFilePath, "utf-8"))
+      }
+
+      // Guard: Abort if file is missing to prevent creating unbalanced phantom journals
+      if (!sampleMembers || sampleMembers.length === 0) {
+        return NextResponse.json({
+          success: false,
+          error: "Berkas data awal contoh (prisma/spj_2025_members.json) tidak ditemukan pada instalasi server ini. Mohon sediakan berkas data sebelum menjalankan pemuatan awal."
+        }, { status: 404 })
+      }
+
       // Check if data already exists
       const count = await db.loanMember.count()
       if (count > 0 && !body.force) {
@@ -474,15 +500,6 @@ export async function POST(request: Request) {
       if (body.force) {
         await db.loanTransaction.deleteMany()
         await db.loanMember.deleteMany()
-      }
-
-      // Load all 66 real detailed members from SPJ 2025 Balongbesuk (no collective placeholders)
-      const path = await import("path")
-      const fs = await import("fs")
-      const membersFilePath = path.join(process.cwd(), "prisma", "spj_2025_members.json")
-      let sampleMembers: any[] = []
-      if (fs.existsSync(membersFilePath)) {
-        sampleMembers = JSON.parse(fs.readFileSync(membersFilePath, "utf-8"))
       }
 
       await db.$transaction(async (tx) => {
