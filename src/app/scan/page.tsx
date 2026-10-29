@@ -127,11 +127,10 @@ export default function MobileScanPage() {
       const res = await fetch("/api/keuangan/coa")
       const json = await res.json()
       if (json.success && Array.isArray(json.data)) {
-        // Ambil akun beban (5.), pendapatan (4.), atau aset (1.3)
-        const relevant = json.data.filter((a: any) =>
-          a.code.startsWith("5.") || a.code.startsWith("4.") || a.code.startsWith("1.3.") || a.code.startsWith("2.")
-        )
-        setAccounts(relevant)
+        // Sertakan semua akun Kepmendes 136 (Beban 6.x, HPP 5.x, Pendapatan 4.x, Aset 1.x, Hutang 2.x, Modal 3.x)
+        // Cukup kecualikan kas tunai/bank primer (1.1.01) karena otomatis menjadi pasangan kas
+        const relevant = json.data.filter((a: any) => !a.code.startsWith("1.1.01"))
+        setAccounts(relevant.length > 0 ? relevant : json.data)
       }
     } catch {}
   }
@@ -244,7 +243,15 @@ export default function MobileScanPage() {
         if (contraLine) contra = contraLine.accountCode
       }
       if (!contra) {
-        contra = d.proofType === "BKM" ? "4.1.04.01" : "5.1.02.99"
+        contra = d.proofType === "BKM" ? "4.1.04.01" : "6.1.99.04"
+      }
+
+      // Pastikan opsi akun hasil analisa AI terdaftar di state dropdown
+      if (contra) {
+        setAccounts((prev) => {
+          if (prev.some((a) => a.code === contra)) return prev
+          return [{ code: contra, name: d.targetAccountName || `Akun ${contra}` }, ...prev]
+        })
       }
 
       const todayStr = new Date().toISOString().split("T")[0]
@@ -803,6 +810,44 @@ export default function MobileScanPage() {
                   <option value="Unit Pengelolaan Sampah">Unit Pengelolaan Sampah</option>
                   <option value="Kemitraan Gapoktan">Kemitraan Pertanian (GAPOKTAN)</option>
                 </select>
+              </div>
+
+              {/* Preview Jurnal Berpasangan (Sama Seperti Versi Desktop) */}
+              <div className="bg-slate-900/90 rounded-xl p-3 border border-slate-800 space-y-1.5">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
+                  <span>Jurnal Berpasangan (Kepmendes 136)</span>
+                  <span className="text-emerald-400 font-mono text-[9px]">Otomatis Sync Kas</span>
+                </div>
+                <div className="text-[11px] flex justify-between items-center bg-slate-950/70 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                  <div className="flex items-center gap-1.5 min-w-0 mr-2">
+                    <span className="bg-emerald-950 text-emerald-300 font-extrabold px-1.5 py-0.5 rounded text-[9px] border border-emerald-800 shrink-0">DEBIT</span>
+                    <span className="text-emerald-300 font-medium truncate">
+                      {parsedData.proofType === "BKK" ? parsedData.contraAccount : "1.1.01.01"} - {
+                        parsedData.proofType === "BKK"
+                          ? (accounts.find((a) => a.code === parsedData.contraAccount)?.name || "Beban / Biaya")
+                          : "Kas Tunai di Bendahara"
+                      }
+                    </span>
+                  </div>
+                  <span className="font-mono text-emerald-300 font-bold shrink-0">
+                    Rp {Number(parsedData.amount || 0).toLocaleString("id-ID")}
+                  </span>
+                </div>
+                <div className="text-[11px] flex justify-between items-center bg-slate-950/70 px-2.5 py-1.5 rounded-lg border border-slate-800 pl-3">
+                  <div className="flex items-center gap-1.5 min-w-0 mr-2">
+                    <span className="bg-rose-950 text-rose-300 font-extrabold px-1.5 py-0.5 rounded text-[9px] border border-rose-800 shrink-0">KREDIT</span>
+                    <span className="text-rose-300 font-medium truncate">
+                      {parsedData.proofType === "BKK" ? "1.1.01.01" : parsedData.contraAccount} - {
+                        parsedData.proofType === "BKK"
+                          ? "Kas Tunai di Bendahara"
+                          : (accounts.find((a) => a.code === parsedData.contraAccount)?.name || "Pendapatan / Modal")
+                      }
+                    </span>
+                  </div>
+                  <span className="font-mono text-rose-300 font-bold shrink-0">
+                    Rp {Number(parsedData.amount || 0).toLocaleString("id-ID")}
+                  </span>
+                </div>
               </div>
             </div>
 
