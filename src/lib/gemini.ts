@@ -326,11 +326,16 @@ ATURAN WAJIB:
 8. Tentukan kelompok LAK (Laporan Arus Kas) yang sesuai (Aktivitas Operasi, Aktivitas Investasi, Aktivitas Pendanaan).`
 
   const modelSetting = await db.setting.findUnique({ where: { key: "gemini_model" } })
-  const chosenModel = modelSetting?.value?.trim() || "gemini-2.5-flash"
+  const chosenModel = modelSetting?.value?.trim() || "gemini-3.5-flash"
 
   const ai = new GoogleGenAI({ apiKey })
-  const candidateModels = [chosenModel, "gemini-2.5-flash", "gemini-3.8-flash", "gemini-2.5-flash"].filter(
-    (v, i, a) => a.indexOf(v) === i
+  const candidateModels = [
+    chosenModel,
+    "gemini-3.5-flash",
+    "gemini-flash-latest",
+    "gemini-3.8-flash"
+  ].filter(
+    (v, i, a) => a.indexOf(v) === i && !v.includes("2.5") && !v.includes("2.0") && !v.includes("1.5")
   )
 
   // Skema JSON terstruktur (Structured Output) untuk akurasi 100% tanpa halusinasi format
@@ -531,7 +536,7 @@ Buat output JSON:
   try {
     const ai = new GoogleGenAI({ apiKey })
     const modelSetting = await db.setting.findUnique({ where: { key: "gemini_model" } })
-    const chosenModel = modelSetting?.value?.trim() || "gemini-2.5-flash"
+    const chosenModel = modelSetting?.value?.trim() || "gemini-3.5-flash"
     const response = await ai.models.generateContent({
       model: chosenModel,
       contents: prompt,
