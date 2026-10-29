@@ -107,6 +107,9 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
   const villageName = settings.village_name || "Balongbesuk"
   const subdistrictName = settings.subdistrict_name || settings.district_name || "Diwek"
   const regencyName = settings.regency_name || "Jombang"
+  const directorName = settings.director_name || "DODIK SUSANTO"
+  const treasurerName = settings.treasurer_name || "MAMIK KURNIAWATI"
+  const bumdesLogo = settings.bumdes_logo || ""
 
   const loadData = async () => {
     setLoading(true)
@@ -1287,24 +1290,36 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
             </div>
 
             <div id="print-member-card" className="p-6 overflow-y-auto space-y-6 text-slate-800 bg-white">
-              {/* KOP RESMI BUMDES (Tampil saat cetak maupun layar) */}
+              {/* KOP RESMI BUMDES */}
               <div className="border-b-2 border-slate-900 pb-3 text-center">
-                <div className="flex items-center justify-between">
-                  <div className="w-16 h-16 hidden print:flex items-center justify-center font-bold text-slate-400 text-xs border border-dashed rounded">
-                    LOGO
+                <div className="flex items-center justify-between gap-4">
+                  <div className="w-16 h-16 shrink-0 flex items-center justify-center">
+                    {bumdesLogo ? (
+                      <img
+                        src={bumdesLogo}
+                        alt="Logo BUMDes"
+                        className="w-16 h-16 object-contain"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-xl bg-slate-900 text-white font-black text-xl flex items-center justify-center">
+                        {villageName ? villageName.charAt(0) : "B"}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex-1">
-                    <h2 className="text-base font-black tracking-wide uppercase text-slate-900">
-                      BADAN USAHA MILIK DESA &ldquo;{bumdesName}&rdquo;
+                  <div className="flex-1 text-center">
+                    <h2 className="text-base font-black tracking-wide uppercase text-slate-900 leading-tight">
+                      BADAN USAHA MILIK DESA &ldquo;{bumdesName.replace(/["“”]/g, "").replace(/^BUMDES(A)?\s+/i, "").trim().toUpperCase()}&rdquo;
                     </h2>
-                    <h3 className="text-sm font-bold tracking-wider uppercase text-indigo-700">
+                    <h3 className="text-sm font-bold tracking-wider uppercase text-indigo-700 leading-tight mt-0.5">
                       UNIT USAHA SIMPAN PINJAM (USP)
                     </h3>
-                    <p className="text-[11px] text-slate-600 mt-0.5">
-                      Desa Balongbesuk, Kec. Diwek, Kab. Jombang - Jawa Timur • SPJ & Buku Register Anggota
+                    <p className="text-[11px] text-slate-600 mt-0.5 leading-snug">
+                      {settings.bumdes_address || `Desa ${villageName}, Kec. ${subdistrictName}, Kab. ${regencyName} - Jawa Timur`} • SPJ & Buku Register Anggota
                     </p>
                   </div>
-                  <div className="w-16 h-16 hidden print:block"></div>
+                  <div className="w-16 h-16 shrink-0 hidden md:block print:block">
+                    {/* Placeholder penyeimbang agar judul KOP di tengah presisi */}
+                  </div>
                 </div>
                 <div className="mt-2 pt-1 border-t border-slate-300">
                   <span className="inline-block px-3 py-0.5 text-xs font-extrabold uppercase tracking-widest bg-slate-900 text-white rounded">
@@ -1510,30 +1525,30 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
 
               {/* LEMBAR PENGESAHAN & TANDA TANGAN 3 PIHAK */}
               <div className="pt-4 border-t border-slate-200 break-inside-avoid">
-                <div className="text-right text-[11px] text-slate-600 mb-2">
-                  Balongbesuk, {getLocalDateString()}
+                <div className="text-right text-xs text-slate-700 mb-2 font-medium">
+                  {villageName}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                 </div>
                 <div className="grid grid-cols-3 gap-4 text-center text-xs">
                   <div>
-                    <p className="text-slate-500 font-medium">Nasabah / Debitur,</p>
+                    <p className="text-slate-600 font-medium">Nasabah / Debitur,</p>
                     <div className="h-16 flex items-end justify-center">
                       <p className="font-bold underline text-slate-900">{selectedMember.name}</p>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-0.5">NIK: {selectedMember.nik || "...................."}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">NIK: {selectedMember.nik || "-"}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500 font-medium">Pengelola Unit Simpan Pinjam,</p>
+                    <p className="text-slate-600 font-medium">Pengelola Unit Simpan Pinjam,</p>
                     <div className="h-16 flex items-end justify-center">
-                      <p className="font-bold underline text-slate-900">Bendahara / Kasir USP</p>
+                      <p className="font-bold underline text-slate-900">{treasurerName}</p>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-0.5">BUMDes Balongbesuk</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Bendahara / Kasir USP</p>
                   </div>
                   <div>
-                    <p className="text-slate-500 font-medium">Mengetahui,</p>
+                    <p className="text-slate-600 font-medium">Mengetahui,</p>
                     <div className="h-16 flex items-end justify-center">
-                      <p className="font-bold underline text-slate-900">Direktur BUMDes</p>
+                      <p className="font-bold underline text-slate-900">{directorName}</p>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-0.5">BUMDes Balongbesuk</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Direktur BUMDes</p>
                   </div>
                 </div>
               </div>
