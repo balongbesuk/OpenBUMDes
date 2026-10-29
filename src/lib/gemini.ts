@@ -333,6 +333,7 @@ ATURAN WAJIB:
     chosenModel,
     "gemini-3.5-flash",
     "gemini-flash-latest",
+    "gemini-3.5-flash-lite",
     "gemini-3.8-flash"
   ].filter(
     (v, i, a) => a.indexOf(v) === i && !v.includes("2.5") && !v.includes("2.0") && !v.includes("1.5")

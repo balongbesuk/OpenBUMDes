@@ -1722,7 +1722,7 @@ export default function StislaApp() {
                     {isAiConfigured && aiStatus && aiStatus.configured ? (
                       <div className="flex items-center gap-2 text-[11px] bg-black/20 backdrop-blur-xs px-3 py-1 rounded-full text-emerald-100 border border-white/15 self-start sm:self-auto flex-wrap">
                         <span className="font-medium">
-                          Model: <strong className="text-white font-mono">{settings.gemini_model || "gemini-3.5-flash-lite"}</strong>
+                          Model: <strong className="text-white font-mono">{settings.gemini_model || "gemini-3.5-flash"}</strong>
                         </span>
                         <span className="text-white/40">&bull;</span>
                         <span>
@@ -3923,14 +3923,14 @@ export default function StislaApp() {
                           Model AI Terpilih
                         </span>
                         <div className="text-sm font-mono font-bold text-indigo-600 mt-0.5 truncate">
-                          {settings.gemini_model || "gemini-3.5-flash-lite"}
+                          {settings.gemini_model || "gemini-3.5-flash"}
                         </div>
                         <span className="text-[10px] text-slate-500 block mt-0.5">
                           {settings.gemini_model === "gemini-3.8-flash"
                             ? "Advanced Thinking"
-                            : settings.gemini_model === "gemini-2.5-pro"
-                            ? "Model Kualitas Tinggi"
-                            : "Super Cepat (~2 dtk)"}
+                            : settings.gemini_model === "gemini-3.5-flash-lite"
+                            ? "Super Ringan & Hemat Kuota"
+                            : "Paling Stabil & Cepat (~1 dtk)"}
                         </span>
                       </div>
 
@@ -4334,21 +4334,24 @@ export default function StislaApp() {
                         </label>
                         <select
                           name="gemini_model"
-                          defaultValue={settings.gemini_model || "gemini-3.5-flash-lite"}
+                          defaultValue={settings.gemini_model || "gemini-3.5-flash"}
                           className="w-full p-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:border-[#6777ef]"
                         >
-                          <option value="gemini-3.5-flash-lite">
-                            ⚡ Gemini 3.5 Flash-Lite (Super Cepat ~1-2 detik, Paling Direkomendasikan)
+                          <option value="gemini-3.5-flash">
+                            ⚡ Gemini 3.5 Flash (Super Cepat ~1 dtk, Paling Direkomendasikan & Stabil)
                           </option>
                           <option value="gemini-3.8-flash">
-                            🧠 Gemini 3.8 Flash (High Intelligence - Cerdas & Cepat)
+                            🧠 Gemini 3.8 Flash (High Intelligence - Cerdas)
                           </option>
-                          <option value="gemini-2.5-flash">
-                            🚀 Gemini 2.5 Flash (Model Alternatif Stabil)
+                          <option value="gemini-flash-latest">
+                            🔄 Gemini Flash Latest (Versi Otomatis Terbaru)
+                          </option>
+                          <option value="gemini-3.5-flash-lite">
+                            🍃 Gemini 3.5 Flash-Lite (Super Ringan & Hemat Kuota)
                           </option>
                         </select>
                         <p className="text-[11px] text-slate-400 mt-1">
-                          Model Flash-Lite sangat disarankan karena memiliki respons instan (~1-2 detik) dan hemat token harian.
+                          Model Gemini 3.5 Flash sangat disarankan karena memiliki respons instan (~1 detik) dan terbukti paling stabil membaca foto nota/struk.
                         </p>
                       </div>
                     )}
