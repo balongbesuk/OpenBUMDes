@@ -1290,39 +1290,61 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
             </div>
 
             <div id="print-member-card" className="p-6 overflow-y-auto space-y-6 text-slate-800 bg-white">
-              {/* KOP RESMI BUMDES */}
-              <div className="border-b-2 border-slate-900 pb-3 text-center">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="w-16 h-16 shrink-0 flex items-center justify-center">
-                    {bumdesLogo ? (
-                      <img
-                        src={bumdesLogo}
-                        alt="Logo BUMDes"
-                        className="w-16 h-16 object-contain"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-xl bg-slate-900 text-white font-black text-xl flex items-center justify-center">
-                        {villageName ? villageName.charAt(0) : "B"}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 text-center">
-                    <h2 className="text-base font-black tracking-wide uppercase text-slate-900 leading-tight">
-                      BADAN USAHA MILIK DESA &ldquo;{bumdesName.replace(/["“”]/g, "").replace(/^BUMDES(A)?\s+/i, "").trim().toUpperCase()}&rdquo;
-                    </h2>
-                    <h3 className="text-sm font-bold tracking-wider uppercase text-indigo-700 leading-tight mt-0.5">
-                      UNIT USAHA SIMPAN PINJAM (USP)
-                    </h3>
-                    <p className="text-[11px] text-slate-600 mt-0.5 leading-snug">
-                      {settings.bumdes_address || `Desa ${villageName}, Kec. ${subdistrictName}, Kab. ${regencyName} - Jawa Timur`} • SPJ & Buku Register Anggota
-                    </p>
-                  </div>
-                  <div className="w-16 h-16 shrink-0 hidden md:block print:block">
-                    {/* Placeholder penyeimbang agar judul KOP di tengah presisi */}
-                  </div>
-                </div>
-                <div className="mt-2 pt-1 border-t border-slate-300">
-                  <span className="inline-block px-3 py-0.5 text-xs font-extrabold uppercase tracking-widest bg-slate-900 text-white rounded">
+              {/* KOP RESMI BUMDES (Format Table Anti-Lompat di Print Preview) */}
+              <div className="border-b-2 border-slate-900 pb-3 mb-4">
+                <table className="w-full border-none mb-1" style={{ borderCollapse: "collapse", width: "100%", border: "none" }}>
+                  <tbody>
+                    <tr style={{ border: "none" }}>
+                      <td style={{ width: "70px", verticalAlign: "middle", textAlign: "left", padding: 0, border: "none" }}>
+                        {bumdesLogo ? (
+                          <img
+                            src={bumdesLogo}
+                            alt="Logo BUMDes"
+                            className="w-16 h-16 object-contain"
+                            style={{ width: "64px", height: "64px", objectFit: "contain", display: "block" }}
+                          />
+                        ) : (
+                          <div
+                            className="w-16 h-16 rounded-xl bg-slate-900 text-white font-black text-xl flex items-center justify-center"
+                            style={{ width: "64px", height: "64px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          >
+                            {villageName ? villageName.charAt(0) : "B"}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ verticalAlign: "middle", textAlign: "center", padding: "0 12px", border: "none" }}>
+                        <h2
+                          className="text-base font-black tracking-wide uppercase text-slate-900 leading-tight"
+                          style={{ margin: 0, fontSize: "16px", fontWeight: 900, color: "#0f172a" }}
+                        >
+                          BADAN USAHA MILIK DESA &ldquo;{bumdesName.replace(/["“”]/g, "").replace(/^BUMDES(A)?\s+/i, "").trim().toUpperCase()}&rdquo;
+                        </h2>
+                        <h3
+                          className="text-sm font-bold tracking-wider uppercase text-indigo-700 leading-tight mt-1"
+                          style={{ margin: "4px 0 0 0", fontSize: "13px", fontWeight: 700, color: "#4338ca" }}
+                        >
+                          UNIT USAHA SIMPAN PINJAM (USP)
+                        </h3>
+                        <p
+                          className="text-[11px] text-slate-600 mt-1 leading-snug"
+                          style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#475569" }}
+                        >
+                          {settings.bumdes_address || `Desa ${villageName}, Kec. ${subdistrictName}, Kab. ${regencyName} - Jawa Timur`} • SPJ & Buku Register Anggota
+                        </p>
+                      </td>
+                      <td style={{ width: "70px", verticalAlign: "middle", padding: 0, border: "none" }}>
+                        {/* Placeholder penyeimbang agar teks KOP presisi di tengah */}
+                        <div style={{ width: "64px", height: "64px" }} />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div className="mt-2 pt-1 border-t border-slate-300 text-center" style={{ borderTop: "1px solid #cbd5e1", marginTop: "8px", paddingTop: "4px", textAlign: "center" }}>
+                  <span
+                    className="inline-block px-3 py-0.5 text-xs font-extrabold uppercase tracking-widest bg-slate-900 text-white rounded"
+                    style={{ display: "inline-block", backgroundColor: "#0f172a", color: "#ffffff", padding: "2px 12px", borderRadius: "4px", fontSize: "11px", fontWeight: 800, letterSpacing: "0.1em" }}
+                  >
                     KARTU PINJAMAN & SIMPANAN ANGGOTA
                   </span>
                 </div>
