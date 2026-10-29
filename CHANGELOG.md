@@ -2,6 +2,52 @@
 
 All notable changes to OpenBUMDes are documented in this file.
 
+## [1.6.0] - 2026-10-30
+
+### Added - Mobile AI Scanner, Sinkronisasi Bukti USP, & Favicon Dinamis
+
+* **Mobile AI Receipt Scanner & Text Journaling (`/scan`)**:
+  * Route mobile-first `/scan` untuk operator lapangan membaca struk/nota belanja secara instan lewat kamera HP atau input teks transaksi tanpa nota fisik.
+  * Kompresi gambar sisi klien menggunakan canvas (`max 1280px`, format JPEG 85%) untuk menghemat kuota dan mempercepat pengiriman payload.
+  * Dukungan menyeluruh seluruh akun Bagan Akun (CoA) Kepmendes 136 (Beban Operasional `6.x`, HPP `5.x`, Pendapatan `4.x`, Aset `1.x`, Kewajiban `2.x`, Modal `3.x`) serta pendaftaran otomatis akun hasil analisis AI di form dropdown.
+  * Kotak pratinjau visual Jurnal Berpasangan (Debit & Kredit) secara real-time sebelum transaksi disimpan ke Buku Kas Umum.
+
+* **Sinkronisasi Penomoran Bukti USP dengan Jurnal Kas (`/api/loans`, `SimpanPinjamTab.tsx`)**:
+  * Penomoran bukti mutasi simpan pinjam otomatis menggunakan format sekuensial resmi: `BKM/YYYY/MM/XXXX` (setoran simpanan & pembayaran angsuran) dan `BKK/YYYY/MM/XXXX` (penarikan simpanan & pencairan pinjaman).
+  * Penomoran tersinkronisasi 100% dengan Buku Kas Umum (BKU) dan Buku Besar sehingga tidak terjadi nomor bukti ganda.
+
+* **Penyempurnaan Cetak Kartu Simpan Pinjam Anggota**:
+  * Format cetak resmi 2 bagian: Bagian A (Rincian Simpanan Pokok, Wajib, Sukarela) dan Bagian B (Tabel Kontrol Angsuran Pokok & Bunga Pinjaman).
+  * Kop surat resmi BUMDes dengan logo dinamis, format tanggal Indonesia, serta penataan 3 pihak penandatangan (Nasabah/Debitur, Pengelola USP, Direktur BUMDes) yang presisi dan rapi pada print preview maupun cetak fisik.
+
+* **Favicon Dinamis Sesuai Logo BUMDes (`/api/favicon`, `/favicon.ico`)**:
+  * Penyediaan rute favicon dinamis yang otomatis mengalirkan logo resmi BUMDes dari database (`settings.bumdes_logo`) ke tab peramban pengguna.
+
+### Enhanced & Hardened - Verifikasi AI Desktop, Engine Gemini 3.5, & Hasil Audit Keuangan
+
+* **Fleksibilitas Verifikasi Hasil Analisis AI Desktop (`page.tsx`)**:
+  * Operator dapat mengoreksi langsung teks Keterangan/Uraian Transaksi dan Pihak/Toko sebelum disimpan.
+  * Penambahan pilihan dropdown Unit Usaha Penanggung Jawab (Kantor Umum, Unit Simpan Pinjam, Unit Persewaan GSG, Unit Pengelolaan Sampah, Kemitraan GAPOKTAN).
+  * Pemilih Tanggal Transaksi serta tombol toggle Bukti Kas (BKK / BKM) yang otomatis menyesuaikan posisi Debit dan Kredit kas secara instan.
+
+* **Upgrade Engine AI Gemini ke `gemini-3.5-flash` (`gemini.ts`, `settings`)**:
+  * Migrasi engine AI dari model deprecated `gemini-2.5-flash` ke model resmi berkecepatan tinggi `gemini-3.5-flash` (respons multimodal < 1 detik).
+  * Rantai fallback otomatis: `gemini-3.5-flash` -> `gemini-flash-latest` -> `gemini-3.5-flash-lite` -> `gemini-3.8-flash`.
+  * Pembaruan dropdown pilihan model AI di menu Pengaturan BUMDes.
+
+* **Perbaikan Audit Akuntansi & Integritas Buku Pembantu (`opening-balance`, `inventory`, `assets`, `ledger`)**:
+  * **Koreksi Akun Kendaraan (`1.3.02.01`)**: Menghapus `1.3.02` dari daftar kontra-penyusutan di `opening-balance` dan `ClosingTab` sehingga aset kendaraan tetap bersaldo normal Debit pada roll-forward tutup buku.
+  * **Proteksi Hapus Barang Berstok (`/api/inventory`)**: Mencegah penghapusan barang gudang jika masih memiliki sisa stok (`currentQty > 0`) untuk menjaga sinkronisasi saldo persediaan di neraca.
+  * **Proteksi Hapus Anggota Bersaldo Simpanan (`/api/loans`)**: Memvalidasi saldo simpanan anggota (`totalSimpanan > 0`) sebelum mengizinkan penghapusan data anggota.
+  * **Proteksi Aset dari Periode Terkunci (`/api/assets`)**: Mencegah penghapusan register aset tetap dari tahun buku yang telah ditutup dan berstatus terkunci (`AnnualClosing.isLocked`).
+  * **Standarisasi Akun Default Aset Tetap**: Mengalihkan akun fallback pendaftaran aset ke `1.3.03.01` (Peralatan dan Mesin) dan `1.3.07.02` (Akumulasi Penyusutan).
+  * **Pembersihan Berkas Fisik Lampiran (`/api/cash-book`)**: Menghapus berkas fisik di `public/uploads/` saat transaksi kas terkait dihapus.
+  * **Ekspansi Uji Mandiri Otomatis (`tests/self-check.mjs`)**: Menambahkan skenario uji 15 s.d. 20 (penomoran bukti, proteksi simpanan, pencegahan stok minus, saldo debit kendaraan, proteksi stok aktif, proteksi aset terkunci). Seluruh 20 skenario uji lulus 100%.
+
+* **Kompilasi Siap Produksi VPS (`.next-build.tar.gz`)**:
+  * Pengetatan tipe TypeScript pada modal konfirmasi (`type: "danger"`) dan penyelesaian return type pada `postJournalEntry`.
+  * Pengemasan arsip bersih siap pakai `.next-build.tar.gz` dan `next-build.tar.gz` (~1.2 MB) bebas dari cache webpack.
+
 ## [1.5.0] - 2026-10-29
 
 ### Added - Buku Pembantu Simpan Pinjam (USP) Universal Berstandar Kepmendes 136/2022
