@@ -873,3 +873,4 @@ export default function MobileScanPage() {
     </div>
   )
 }
+

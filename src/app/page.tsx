@@ -372,6 +372,18 @@ export default function StislaApp() {
   }
 
   useEffect(() => {
+    if (settings.bumdes_logo) {
+      let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']")
+      if (!link) {
+        link = document.createElement("link")
+        link.rel = "shortcut icon"
+        document.head.appendChild(link)
+      }
+      link.href = settings.bumdes_logo
+    }
+  }, [settings.bumdes_logo])
+
+  useEffect(() => {
     // Check auth session
     fetch("/api/auth/me")
       .then((r) => r.json())
