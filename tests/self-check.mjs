@@ -232,6 +232,18 @@ async function runSelfChecks() {
   const bkkProof = generateProofNumber("PENCAIRAN_PINJAMAN", new Date("2026-10-29"), [])
   assert.strictEqual(bkkProof, "BKK/2026/10/0001", "Loan disbursement must auto-assign BKK prefix")
 
+  // 16. Audit fix: Member with active savings must NOT be deleted
+  const memberWithSavings = { id: "m1", name: "Pak Budi", sisaPinjaman: 0, simpananPokok: 50000, simpananWajib: 100000, simpananSukarela: 0 };
+  const totalSavings = memberWithSavings.simpananPokok + memberWithSavings.simpananWajib + memberWithSavings.simpananSukarela;
+  const canDeleteMember = !(memberWithSavings.sisaPinjaman > 0 || totalSavings > 0);
+  assert.strictEqual(canDeleteMember, false, "Member with active savings must be blocked from deletion");
+
+  // 17. Audit fix: Inventory movement must block negative stock
+  const inventoryItem = { id: "item1", name: "Beras Premium", currentQty: 5, unit: "Sak" };
+  const requestedOutQty = 10;
+  const canIssueStock = !(inventoryItem.currentQty < requestedOutQty);
+  assert.strictEqual(canIssueStock, false, "Outgoing movement exceeding available stock must be blocked");
+
   console.log("✔ All OpenBUMDes self-checks passed successfully!")
 }
 

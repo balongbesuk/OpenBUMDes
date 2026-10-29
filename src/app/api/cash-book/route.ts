@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import fs from "fs"
+import path from "path"
 import { db } from "@/lib/db"
 import { postJournalEntry } from "@/lib/ledger"
 import { getUserSession } from "@/lib/auth"
@@ -236,6 +238,19 @@ export async function DELETE(request: Request) {
         },
         { status: 403 }
       )
+    }
+
+    // Hapus berkas lampiran fisik jika ada di public/uploads
+    if (existing.attachmentUrl && existing.attachmentUrl.startsWith("/uploads/")) {
+      try {
+        const fileName = path.basename(existing.attachmentUrl)
+        const filePath = path.join(process.cwd(), "public", "uploads", fileName)
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath)
+        }
+      } catch (err) {
+        console.warn("Gagal menghapus berkas lampiran fisik:", err)
+      }
     }
 
     // Hapus jurnal transaksi (baris jurnal otomatis terhapus via onDelete: Cascade)

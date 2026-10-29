@@ -202,6 +202,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: "Jumlah mutasi harus lebih dari 0." }, { status: 400 })
       }
 
+      if (type.toUpperCase() === "OUT" && item.currentQty < numQty) {
+        return NextResponse.json({
+          success: false,
+          error: `Stok barang tidak mencukupi untuk dikeluarkan. Tersedia: ${item.currentQty} ${item.unit}, diminta: ${numQty} ${item.unit}.`
+        }, { status: 400 })
+      }
+
       const unitCost = parseFloat(costPerUnit) || item.initialCost || 0
       const totalCost = numQty * unitCost
 

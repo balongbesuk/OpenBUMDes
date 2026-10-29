@@ -640,10 +640,18 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "Anggota tidak ditemukan" }, { status: 404 })
     }
 
+    const totalSimpanan = (member.simpananPokok || 0) + (member.simpananWajib || 0) + (member.simpananSukarela || 0)
     if (member.sisaPinjaman > 0) {
       return NextResponse.json({
         success: false,
         error: `Anggota tidak dapat dihapus karena masih memiliki pinjaman aktif sebesar Rp ${member.sisaPinjaman.toLocaleString("id-ID")}`
+      }, { status: 400 })
+    }
+
+    if (totalSimpanan > 0) {
+      return NextResponse.json({
+        success: false,
+        error: `Anggota tidak dapat dihapus karena masih memiliki saldo simpanan sebesar Rp ${totalSimpanan.toLocaleString("id-ID")}. Harap tarik atau mutasikan simpanan terlebih dahulu.`
       }, { status: 400 })
     }
 
