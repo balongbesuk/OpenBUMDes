@@ -26,13 +26,13 @@ export async function GET(request: Request) {
       if (month && month !== "all") {
         const m = parseInt(month, 10)
         where.date = {
-          gte: new Date(y, m - 1, 1),
-          lte: new Date(y, m, 0, 23, 59, 59, 999)
+          gte: new Date(Date.UTC(y, m - 1, 1, 0, 0, 0)),
+          lte: new Date(Date.UTC(y, m, 0, 23, 59, 59, 999))
         }
       } else {
         where.date = {
-          gte: new Date(y, 0, 1),
-          lte: new Date(y, 11, 31, 23, 59, 59, 999)
+          gte: new Date(Date.UTC(y, 0, 1, 0, 0, 0)),
+          lte: new Date(Date.UTC(y, 11, 31, 23, 59, 59, 999))
         }
       }
     }

@@ -115,7 +115,7 @@ model InventoryItem {
   initialCost Float               @default(0)
   currentQty  Float               @default(0)
   minStock    Float               @default(5)
-  accountCode String              @default("1.1.04.01")
+  accountCode String              @default("1.1.05.01")
   notes       String?
   createdAt   DateTime            @default(now())
   movements   InventoryMovement[]

@@ -28,12 +28,21 @@ export async function GET(request: Request) {
       orderBy: { code: "asc" }
     })
 
+    // Cek apakah jurnal buka buku (SA) ada untuk tahun ini agar tidak menduplikasi saldo tahun lalu
+    const hasOpeningJournal = await db.journalEntry.findFirst({
+      where: { proofNumber: { startsWith: `SA/${year}/` } },
+      select: { id: true }
+    })
+    const dateCondition = hasOpeningJournal
+      ? { gte: new Date(Date.UTC(year, 0, 1, 0, 0, 0)), lte: endDate }
+      : { lte: endDate }
+
     // Agregasi mutasi debit & kredit untuk semua akun hingga batas waktu endDate
     const sums = await db.journalLine.groupBy({
       by: ["accountCode", "type"],
       where: {
         journalEntry: {
-          date: { lte: endDate }
+          date: dateCondition
         }
       },
       _sum: { amount: true }

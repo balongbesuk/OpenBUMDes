@@ -50,7 +50,7 @@ import {
   FileSpreadsheet,
   Camera
 } from "lucide-react"
-import { formatRupiah, safePrintElement } from "@/lib/utils"
+import { formatRupiah, safePrintElement, getLocalDateString } from "@/lib/utils"
 import KwitansiModal from "@/components/KwitansiModal"
 import AddCoaModal from "@/components/AddCoaModal"
 import EditCoaModal from "@/components/EditCoaModal"
@@ -493,7 +493,7 @@ export default function StislaApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           proofType: aiResult.proofType,
-          date: aiResult.date || new Date().toISOString().split("T")[0],
+          date: aiResult.date || getLocalDateString(),
           description: aiResult.description,
           payeeOrPayer: aiResult.payeeOrPayer,
           unitName: aiResult.unitName || "Umum",

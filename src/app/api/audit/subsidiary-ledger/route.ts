@@ -28,10 +28,13 @@ export async function GET(request: Request) {
     })
     const accountMap = new Map(allAccounts.map((a) => [a.code, a]))
 
-    // Ambil seluruh journal line yang menyentuh akun piutang/utang
+    // Ambil seluruh journal line yang menyentuh akun piutang/utang hingga tahun yang dipilih
     const lines = await db.journalLine.findMany({
       where: {
-        OR: prefixes.map((prefix) => ({ accountCode: { startsWith: prefix } }))
+        OR: prefixes.map((prefix) => ({ accountCode: { startsWith: prefix } })),
+        journalEntry: {
+          date: { lte: new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999)) }
+        }
       },
       include: {
         journalEntry: {

@@ -48,6 +48,12 @@ export async function POST(request: Request) {
         current.lockedUntil = Date.now() + 60 * 1000 // Lock for 60 seconds
       }
       failedAttempts.set(rateLimitKey, current)
+      if (failedAttempts.size > 200) {
+        const threshold = Date.now()
+        for (const [k, v] of failedAttempts.entries()) {
+          if (v.lockedUntil < threshold) failedAttempts.delete(k)
+        }
+      }
     }
 
     if (!user) {

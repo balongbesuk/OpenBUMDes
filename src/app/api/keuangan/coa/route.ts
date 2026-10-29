@@ -171,15 +171,30 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "Kode akun wajib dicantumkan" }, { status: 400 })
     }
 
-    // Check if account has been used in transactions
-    const usedCount = await db.journalLine.count({
-      where: { accountCode: code }
-    })
-    if (usedCount > 0) {
+    // Check if account has been used in transactions or referenced in inventory/assets
+    const [usedCount, invCount, assetCount] = await Promise.all([
+      db.journalLine.count({ where: { accountCode: code } }),
+      db.inventoryItem.count({ where: { accountCode: code } }),
+      db.fixedAsset.count({
+        where: {
+          OR: [
+            { assetAccountCode: code },
+            { deprAccountCode: code },
+            { expAccountCode: code }
+          ]
+        }
+      })
+    ])
+
+    if (usedCount > 0 || invCount > 0 || assetCount > 0) {
+      const reasons: string[] = []
+      if (usedCount > 0) reasons.push(`${usedCount} riwayat transaksi jurnal`)
+      if (invCount > 0) reasons.push(`${invCount} barang inventaris`)
+      if (assetCount > 0) reasons.push(`${assetCount} register aset tetap`)
       return NextResponse.json(
         {
           success: false,
-          error: `Akun ${code} tidak dapat dihapus karena sudah memiliki ${usedCount} riwayat transaksi jurnal.`
+          error: `Akun ${code} tidak dapat dihapus karena masih terhubung dengan ${reasons.join(", ")}.`
         },
         { status: 400 }
       )

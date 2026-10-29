@@ -36,15 +36,17 @@ export async function POST(request: Request) {
     if (body.leader_name !== undefined) {
       body.village_head = body.leader_name
     }
-    for (const [key, val] of Object.entries(body)) {
-      if (val !== undefined) {
-        await db.setting.upsert({
-          where: { key },
-          update: { value: String(val) },
-          create: { key, value: String(val) }
-        })
+    await db.$transaction(async (tx) => {
+      for (const [key, val] of Object.entries(body)) {
+        if (val !== undefined) {
+          await tx.setting.upsert({
+            where: { key },
+            update: { value: String(val) },
+            create: { key, value: String(val) }
+          })
+        }
       }
-    }
+    })
     return NextResponse.json({ success: true, message: "Pengaturan berhasil disimpan." })
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })

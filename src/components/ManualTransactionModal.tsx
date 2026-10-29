@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { X, Loader2, Search, Sparkles, HelpCircle } from "lucide-react"
 import { showAppAlert } from "@/components/ui/AppDialog"
+import { getLocalDateString } from "@/lib/utils"
 
 interface ManualTransactionModalProps {
   isOpen: boolean
@@ -18,7 +19,7 @@ export function ManualTransactionModal({
   coaList
 }: ManualTransactionModalProps) {
   const [form, setForm] = useState({
-    date: new Date().toISOString().split("T")[0],
+    date: getLocalDateString(),
     proofType: "BKK", // Default ke BKK jika mayoritas input pengeluaran
     description: "",
     payeeOrPayer: "",
@@ -41,7 +42,7 @@ export function ManualTransactionModal({
   useEffect(() => {
     if (isOpen) {
       setForm({
-        date: new Date().toISOString().split("T")[0],
+        date: getLocalDateString(),
         proofType: "BKK",
         description: "",
         payeeOrPayer: "",

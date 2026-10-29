@@ -53,10 +53,18 @@ export async function GET(request: Request) {
 
     const labaBersih = totalPendapatanUsaha - totalBeban
 
-    // 3. Neraca per 31 Desember
+    // 3. Neraca per 31 Desember (Cek jurnal SA agar tidak menduplikasi saldo multi-tahun)
+    const hasOpeningJournal = await db.journalEntry.findFirst({
+      where: { proofNumber: { startsWith: `SA/${year}/` } },
+      select: { id: true }
+    })
     const neracaLines = await db.journalLine.findMany({
       where: {
-        journalEntry: { date: { lte: endDate } }
+        journalEntry: {
+          date: hasOpeningJournal
+            ? { gte: startDate, lte: endDate }
+            : { lte: endDate }
+        }
       }
     })
 

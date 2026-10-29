@@ -86,6 +86,14 @@ export async function GET(request: Request) {
     })
 
     // Agregasi Buku Besar untuk Aset Tetap (1.3.xx / 1.2.01) dan Akumulasi Penyusutan (1.3.07 / 1.2.02)
+    const hasOpeningJournal = await db.journalEntry.findFirst({
+      where: { proofNumber: { startsWith: `SA/${targetYear}/` } },
+      select: { id: true }
+    })
+    const assetDateCondition = hasOpeningJournal
+      ? { gte: new Date(Date.UTC(targetYear, 0, 1, 0, 0, 0)), lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999)) }
+      : { lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999)) }
+
     const assetLines = await db.journalLine.findMany({
       where: {
         OR: [
@@ -96,7 +104,7 @@ export async function GET(request: Request) {
           { accountCode: { startsWith: "1.3.07" } }
         ],
         journalEntry: {
-          date: { lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999)) }
+          date: assetDateCondition
         }
       },
       select: { type: true, amount: true }
@@ -114,7 +122,7 @@ export async function GET(request: Request) {
           { accountCode: { startsWith: "1.2.02" } }
         ],
         journalEntry: {
-          date: { lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999)) }
+          date: assetDateCondition
         }
       },
       select: { type: true, amount: true }

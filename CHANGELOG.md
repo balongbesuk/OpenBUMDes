@@ -2,6 +2,37 @@
 
 All notable changes to OpenBUMDes are documented in this file.
 
+## [1.4.2] - 2026-10-29
+
+### Fixed & Hardened - Hasil Audit Kualitas Pembukuan, Saldo Ganda, Integritas Relasi & Keamanan
+
+* **Perbaikan Saldo Ganda & Konsistensi Akuntansi Lintas Tahun (`general-ledger`, `trial-balance`, `eis`, `assets`)**:
+  * **Pencegahan Duplikasi Saldo Awal Buku Besar (`/api/audit/general-ledger`)**: Menambahkan pengecekan `hasSaLines` dan `obRecord`; jika jurnal saldo awal (`SA/...`) atau catatan saldo awal resmi telah tercatat, kueri mutasi sebelum 1 Januari dilewati sehingga saldo awal tidak terhitung dua kali saat melihat buku besar setahun penuh.
+  * **Sinkronisasi Neraca Saldo & Dashboard Eksekutif (`/api/audit/trial-balance` & `/api/eis`)**: Memeriksa keberadaan jurnal buka buku (`SA/${year}/`); jika ada, akumulasi mutasi dibatasi dari 1 Januari tahun berjalan (`date >= Jan 1`) agar tidak menumpuk mutasi transaksi tahun-tahun lampau yang sudah dipindahkan ke saldo awal.
+  * **Rekonsiliasi Register Aset Tetap Pasca Buka Buku (`/api/assets`)**: Memeriksa keberadaan jurnal `SA/${targetYear}/` pada buku besar aset tetap dan akumulasi penyusutan, mencegah munculnya selisih palsu (*false reconciliation difference*) antara fisik register dan buku besar.
+  * **Filter Tahun Buku Pembantu Piutang & Utang (`/api/audit/subsidiary-ledger`)**: Memfilter kueri mutasi sesuai parameter `year` yang dipilih (`date <= Dec 31` tahun target) sehingga buku pembantu tidak lagi menampilkan total akumulasi sepanjang masa.
+
+* **Penyelarasan Zona Waktu & Penanganan Tanggal Lokal (`utils.ts`, `cash-book`, komponen modal)**:
+  * **Utilitas Tanggal Lokal (`getLocalDateString`)**: Menyediakan fungsi pemformatan tanggal berbasis waktu lokal pengguna (`YYYY-MM-DD`), menggantikan `toISOString().split('T')[0]` yang sebelumnya memundurkan tanggal ke kemarin jika diakses pada dini hari (00:00–07:00 WIB, UTC+7).
+  * **Penyelarasan Batas Tanggal Buku Kas (`/api/cash-book`)**: Menggunakan `Date.UTC` untuk batas awal dan akhir bulan/tahun agar selaras 100% dengan mesin laporan keuangan (`reports.ts`).
+  * **Integrasi Modal (`ManualTransactionModal`, `InventoryTab`, `FixedAssetsTab`, `page.tsx`)**: Seluruh form input transaksi, barang inventaris, dan aset tetap kini otomatis menggunakan tanggal lokal yang akurat.
+
+* **Penguatan Keamanan, Integritas Relasi & Transaksi Atomik (`inventory`, `coa`, `settings`, `system/reset`, `ledger`)**:
+  * **Proteksi Transaksi Atomik Mutasi Stok (`/api/inventory`)**: Membungkus pencatatan kartu stok dan pembaruan `currentQty` dalam `db.$transaction` menggunakan operator atomik `increment`/`decrement` untuk mencegah inkonsistensi saat kasir mencatat penjualan secara bersamaan.
+  * **Restriksi Hak Akses Hapus Inventaris (Admin Only)**: Menambahkan verifikasi `session.role === "ADMIN"` pada method `DELETE /api/inventory` agar operator kasir tidak dapat menghapus data barang dan riwayat mutasi stok.
+  * **Autentikasi Saldo Awal**: Menambahkan validasi sesi pada `GET /api/opening-balance` untuk mengamankan data posisi keuangan desa dari akses tanpa login.
+  * **Validasi Relasi Bagan Akun (COA)**: Menolak penghapusan kode akun di `DELETE /api/keuangan/coa` jika akun tersebut masih ditautkan pada barang inventaris (`InventoryItem`) atau aset tetap (`FixedAsset`).
+  * **Standarisasi Akun Persediaan Kemendes 136**: Menstandarkan kode akun default persediaan ke `1.1.05.01` di `schema.prisma` dan modul inventaris (bukan `1.1.04` yang merupakan Penyisihan Piutang).
+  * **Pembersihan Bersih Saat Reset Sistem (`/api/system/reset`)**: Menghapus `InventoryItem`, `InventoryMovement`, dan `FixedAsset` saat aksi `"KOSONGKAN"` dijalankan agar tidak menyisakan data register yatim (*orphaned records*).
+  * **Penanganan Tabrakan Nomor Bukti (`/api/ledger`)**: Menambahkan loop *retry* otomatis hingga 3 kali saat terjadi benturan nomor bukti unik (`P2002`) pada transaksi kas serentak.
+  * **Batch Transaksi Pengaturan (`/api/settings`)**: Membungkus penyimpanan pengaturan sistem dalam satu transaksi database tunggal.
+  * **Pencegahan Kebocoran Memori Rate Limiter (`/api/auth/login`)**: Otomatis membersihkan entri pembatasan percobaan login yang telah kedaluwarsa.
+
+* **Perampingan Repositori & Penghapusan Kode Mati (*Lean*)**:
+  * **Hapus Kode Mati**: Menghapus fungsi `_legacySnapshot` di `closing/route.ts` (-325 baris), fungsi `getAccountBalance` di `ledger.ts` (-60 baris), dan berkas tidak terpakai `src/lib/settings.ts` (-155 baris).
+  * **Hapus Dependensi Tak Terpakai**: Menghapus paket redundan `date-fns` dari `package.json`.
+  * **Peningkatan Uji Mandiri (`tests/self-check.mjs`)**: Memperluas skenario pengujian mandiri menjadi 12 tes otomatis yang mencakup verifikasi saldo awal, pembersihan rate limiter, dan fungsi tanggal lokal.
+
 ## [1.4.1] - 2026-10-29
 
 ### Fixed & Improved - Cetak Register Aset Landscape, Hak Akses Hapus Admin, & Kop Kwitansi Dua Kolom

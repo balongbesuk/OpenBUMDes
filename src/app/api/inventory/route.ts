@@ -81,10 +81,13 @@ export async function GET(request: Request) {
       }
     })
 
-    // Agregasi Buku Besar untuk Akun Persediaan (1.1.04)
+    // Agregasi Buku Besar untuk Akun Persediaan (1.1.05 / 1.1.04)
     const invLines = await db.journalLine.findMany({
       where: {
-        accountCode: { startsWith: "1.1.04" }
+        OR: [
+          { accountCode: { startsWith: "1.1.05" } },
+          { accountCode: { startsWith: "1.1.04" } }
+        ]
       },
       select: { type: true, amount: true }
     })
@@ -106,7 +109,7 @@ export async function GET(request: Request) {
         ledgerBalance: ledgerInventoryBalance,
         difference,
         isReconciled: Math.abs(difference) < 1,
-        accountCode: "1.1.04",
+        accountCode: "1.1.05",
         accountName: "Persediaan Barang Dagangan"
       }
     }
@@ -158,7 +161,7 @@ export async function POST(request: Request) {
           initialCost: initC,
           currentQty: initQ,
           minStock: Math.max(0, parseFloat(minStock) || 5),
-          accountCode: accountCode?.trim() || "1.1.04.01",
+          accountCode: accountCode?.trim() || "1.1.05.01",
           notes: notes?.trim() || null
         }
       })
@@ -202,28 +205,39 @@ export async function POST(request: Request) {
       const unitCost = parseFloat(costPerUnit) || item.initialCost || 0
       const totalCost = numQty * unitCost
 
-      const movement = await db.inventoryMovement.create({
-        data: {
-          itemId,
-          date: date ? new Date(date) : new Date(),
-          type: type.toUpperCase(), // "IN", "OUT", "ADJUST"
-          qty: numQty,
-          costPerUnit: unitCost,
-          totalCost,
-          referenceProof: referenceProof?.trim() || null,
-          description: description?.trim() || (type === "IN" ? "Barang Masuk / Pembelian" : "Barang Keluar / Penjualan")
+      const movement = await db.$transaction(async (tx) => {
+        const m = await tx.inventoryMovement.create({
+          data: {
+            itemId,
+            date: date ? new Date(date) : new Date(),
+            type: type.toUpperCase(), // "IN", "OUT", "ADJUST"
+            qty: numQty,
+            costPerUnit: unitCost,
+            totalCost,
+            referenceProof: referenceProof?.trim() || null,
+            description: description?.trim() || (type === "IN" ? "Barang Masuk / Pembelian" : "Barang Keluar / Penjualan")
+          }
+        })
+
+        // Update currentQty pada item secara atomic
+        if (type === "IN") {
+          await tx.inventoryItem.update({
+            where: { id: itemId },
+            data: { currentQty: { increment: numQty } }
+          })
+        } else if (type === "OUT") {
+          await tx.inventoryItem.update({
+            where: { id: itemId },
+            data: { currentQty: { decrement: numQty } }
+          })
+        } else if (type === "ADJUST") {
+          await tx.inventoryItem.update({
+            where: { id: itemId },
+            data: { currentQty: numQty }
+          })
         }
-      })
 
-      // Update currentQty pada item
-      let newQty = item.currentQty
-      if (type === "IN") newQty += numQty
-      else if (type === "OUT") newQty = Math.max(0, newQty - numQty)
-      else if (type === "ADJUST") newQty = numQty
-
-      await db.inventoryItem.update({
-        where: { id: itemId },
-        data: { currentQty: newQty }
+        return m
       })
 
       return NextResponse.json({ success: true, message: "Mutasi stok barang berhasil dicatat.", data: movement })
@@ -238,8 +252,8 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const session = await getUserSession()
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Akses ditolak" }, { status: 401 })
+    if (!session || session.role !== "ADMIN") {
+      return NextResponse.json({ success: false, error: "Akses ditolak. Hanya Admin yang dapat menghapus barang inventaris." }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)

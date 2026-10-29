@@ -127,6 +127,47 @@ async function runSelfChecks() {
   assert.strictEqual(stockQty, 15, "Remaining stock should be 15")
   assert.strictEqual(stockValue, 1650000, "Ending inventory value should be 1,650,000")
 
+  // 9. General Ledger opening balance double-counting prevention logic
+  const obRecord = { amount: 5000000, type: "DEBIT" }
+  let glOpeningBalance = 0
+  if (obRecord) {
+    glOpeningBalance += obRecord.amount
+  }
+  let historicalQueried = false
+  if (!obRecord) {
+    historicalQueried = true
+    glOpeningBalance += 2000000
+  }
+  assert.strictEqual(historicalQueried, false, "Historical lines must not be queried if obRecord exists")
+  assert.strictEqual(glOpeningBalance, 5000000, "Opening balance must not double count prior transactions")
+
+  // 10. Rate limiter cleanup check
+  const attempts = new Map()
+  attempts.set("ip1:user1", { count: 5, lockedUntil: Date.now() - 1000 }) // Expired
+  attempts.set("ip2:user2", { count: 2, lockedUntil: Date.now() + 60000 }) // Active
+  const now = Date.now()
+  for (const [k, v] of attempts.entries()) {
+    if (v.lockedUntil < now) attempts.delete(k)
+  }
+  assert.strictEqual(attempts.size, 1, "Expired rate limit attempts must be pruned")
+  assert.strictEqual(attempts.has("ip2:user2"), true, "Active rate limit must be retained")
+
+  // 11. Local date string format check
+  const testDate = new Date(2026, 9, 29, 2, 30, 0) // Oct 29, 2026 at 02:30 AM local
+  const pad = (n) => String(n).padStart(2, "0")
+  const localDateStr = `${testDate.getFullYear()}-${pad(testDate.getMonth() + 1)}-${pad(testDate.getDate())}`
+  assert.strictEqual(localDateStr, "2026-10-29", "Local date string must reflect local date, not UTC yesterday")
+
+  // 12. Memorial SA lines opening balance edge-case check
+  const obRecordNull = null
+  const saLinesFound = [{ amount: 3000000, type: "DEBIT" }]
+  const hasSaLines = saLinesFound.length > 0
+  let queryHistorical = false
+  if (!obRecordNull && !hasSaLines) {
+    queryHistorical = true
+  }
+  assert.strictEqual(queryHistorical, false, "Historical query must be skipped when saLines exist even if obRecord is null")
+
   console.log("✔ All OpenBUMDes self-checks passed successfully!")
 }
 

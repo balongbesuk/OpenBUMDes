@@ -77,6 +77,7 @@ export async function GET(request: Request) {
       }
     })
 
+    let hasSaLines = false
     if (obRecord) {
       if (isNormalDebit) {
         openingBalance += obRecord.type === "DEBIT" ? obRecord.amount : -obRecord.amount
@@ -102,6 +103,7 @@ export async function GET(request: Request) {
         select: { type: true, amount: true }
       })
 
+      hasSaLines = saLines.length > 0
       saLines.forEach((l) => {
         if (isNormalDebit) {
           openingBalance += l.type === "DEBIT" ? l.amount : -l.amount
@@ -138,7 +140,7 @@ export async function GET(request: Request) {
           openingBalance += l.type === "CREDIT" ? l.amount : -l.amount
         }
       })
-    } else {
+    } else if (!obRecord && !hasSaLines) {
       // Jika terdapat mutasi riil bertanggal sebelum tahun berjalan (multi-tahun tanpa tutup buku)
       const historicalLines = await db.journalLine.findMany({
         where: {

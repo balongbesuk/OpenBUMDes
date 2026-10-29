@@ -17,7 +17,7 @@ import {
   CheckCircle2,
   AlertCircle
 } from "lucide-react"
-import { formatRupiah, safePrintElement } from "@/lib/utils"
+import { formatRupiah, safePrintElement, getLocalDateString } from "@/lib/utils"
 import { showAppAlert, showAppConfirm, showAppToast } from "@/components/ui/AppDialog"
 
 interface FixedAssetsTabProps {
@@ -62,7 +62,7 @@ export default function FixedAssetsTab({ settings = {}, currentUser }: FixedAsse
     code: "",
     name: "",
     category: "Peralatan & Mesin",
-    acquisitionDate: new Date().toISOString().split("T")[0],
+    acquisitionDate: getLocalDateString(),
     acquisitionCost: "",
     usefulLifeYears: "4",
     salvageValue: "0",
@@ -130,7 +130,7 @@ export default function FixedAssetsTab({ settings = {}, currentUser }: FixedAsse
           code: "",
           name: "",
           category: "Peralatan & Mesin",
-          acquisitionDate: new Date().toISOString().split("T")[0],
+          acquisitionDate: getLocalDateString(),
           acquisitionCost: "",
           usefulLifeYears: "4",
           salvageValue: "0",

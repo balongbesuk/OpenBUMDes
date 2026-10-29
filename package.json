@@ -1,6 +1,6 @@
 {
   "name": "openbumdes",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "private": true,
   "description": "Sistem Informasi Akuntansi dan Laporan Keuangan BUMDes Standar Kepmendes 136/2022",
   "scripts": {
@@ -19,7 +19,6 @@
     "@prisma/client": "^5.21.1",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
-    "date-fns": "^3.6.0",
     "html2pdf.js": "^0.14.0",
     "lucide-react": "^0.577.0",
     "next": "^15.5.28",

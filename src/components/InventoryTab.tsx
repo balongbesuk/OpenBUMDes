@@ -17,7 +17,7 @@ import {
   FileSpreadsheet,
   CheckCircle2
 } from "lucide-react"
-import { formatRupiah, safePrintElement } from "@/lib/utils"
+import { formatRupiah, safePrintElement, getLocalDateString } from "@/lib/utils"
 import { showAppAlert, showAppConfirm, showAppToast } from "@/components/ui/AppDialog"
 
 interface InventoryTabProps {
@@ -48,13 +48,13 @@ export default function InventoryTab({ settings = {} }: InventoryTabProps) {
     initialQty: "0",
     initialCost: "0",
     minStock: "5",
-    accountCode: "1.1.04.01",
+    accountCode: "1.1.05.01",
     notes: ""
   })
 
   // Form State Mutasi
   const [movementForm, setMovementForm] = useState({
-    date: new Date().toISOString().split("T")[0],
+    date: getLocalDateString(),
     type: "IN",
     qty: "1",
     costPerUnit: "",
@@ -113,7 +113,7 @@ export default function InventoryTab({ settings = {} }: InventoryTabProps) {
   const handleOpenMovement = (item: any, defaultType: "IN" | "OUT" = "IN") => {
     setActiveItem(item)
     setMovementForm({
-      date: new Date().toISOString().split("T")[0],
+      date: getLocalDateString(),
       type: defaultType,
       qty: "1",
       costPerUnit: `${item.avgCostPerUnit || item.initialCost || 0}`,
