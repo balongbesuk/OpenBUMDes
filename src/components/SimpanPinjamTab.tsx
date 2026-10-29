@@ -1545,34 +1545,56 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
                 </div>
               </div>
 
-              {/* LEMBAR PENGESAHAN & TANDA TANGAN 3 PIHAK */}
-              <div className="pt-4 border-t border-slate-200 break-inside-avoid">
-                <div className="text-right text-xs text-slate-700 mb-2 font-medium">
-                  {villageName}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-                </div>
-                <div className="grid grid-cols-3 gap-4 text-center text-xs">
-                  <div>
-                    <p className="text-slate-600 font-medium">Nasabah / Debitur,</p>
-                    <div className="h-16 flex items-end justify-center">
-                      <p className="font-bold underline text-slate-900">{selectedMember.name}</p>
-                    </div>
-                    <p className="text-[10px] text-slate-500 mt-0.5">NIK: {selectedMember.nik || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-600 font-medium">Pengelola Unit Simpan Pinjam,</p>
-                    <div className="h-16 flex items-end justify-center">
-                      <p className="font-bold underline text-slate-900">{treasurerName}</p>
-                    </div>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Bendahara / Kasir USP</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-600 font-medium">Mengetahui,</p>
-                    <div className="h-16 flex items-end justify-center">
-                      <p className="font-bold underline text-slate-900">{directorName}</p>
-                    </div>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Direktur BUMDes</p>
-                  </div>
-                </div>
+              {/* LEMBAR PENGESAHAN & TANDA TANGAN 3 PIHAK (Format Table Anti-Collapse di Print) */}
+              <div className="pt-4 border-t border-slate-200 break-inside-avoid" style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
+                <table className="w-full border-none text-xs" style={{ borderCollapse: "collapse", width: "100%", border: "none" }}>
+                  <tbody>
+                    <tr style={{ border: "none" }}>
+                      {/* Kolom 1: Nasabah / Debitur */}
+                      <td style={{ width: "33.33%", textAlign: "center", verticalAlign: "top", padding: "0 8px", border: "none" }}>
+                        <div style={{ height: "18px" }}></div>
+                        <p style={{ margin: 0, fontWeight: 600, color: "#334155" }}>Nasabah / Debitur,</p>
+                        <div style={{ height: "60px" }}></div>
+                        <p style={{ margin: 0, fontWeight: 700, textDecoration: "underline", color: "#0f172a" }}>
+                          {selectedMember.name}
+                        </p>
+                        <p style={{ margin: "2px 0 0 0", fontSize: "10px", color: "#64748b" }}>
+                          NIK: {selectedMember.nik || "-"}
+                        </p>
+                      </td>
+
+                      {/* Kolom 2: Kasir / Bendahara USP */}
+                      <td style={{ width: "33.33%", textAlign: "center", verticalAlign: "top", padding: "0 8px", border: "none" }}>
+                        <div style={{ height: "18px" }}></div>
+                        <p style={{ margin: 0, fontWeight: 600, color: "#334155" }}>Pengelola Unit Simpan Pinjam,</p>
+                        <p style={{ margin: 0, fontSize: "11px", color: "#64748b" }}>Bendahara / Kasir USP</p>
+                        <div style={{ height: "44px" }}></div>
+                        <p style={{ margin: 0, fontWeight: 700, textDecoration: "underline", color: "#0f172a" }}>
+                          {treasurerName}
+                        </p>
+                        <p style={{ margin: "2px 0 0 0", fontSize: "10px", color: "#64748b" }}>
+                          BUMDes {villageName}
+                        </p>
+                      </td>
+
+                      {/* Kolom 3: Mengetahui Direktur BUMDes */}
+                      <td style={{ width: "33.33%", textAlign: "center", verticalAlign: "top", padding: "0 8px", border: "none" }}>
+                        <p style={{ margin: "0 0 2px 0", fontSize: "11px", color: "#475569", fontWeight: 500 }}>
+                          {villageName}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                        </p>
+                        <p style={{ margin: 0, fontWeight: 600, color: "#334155" }}>Mengetahui,</p>
+                        <p style={{ margin: 0, fontSize: "11px", color: "#64748b" }}>Direktur BUMDes</p>
+                        <div style={{ height: "44px" }}></div>
+                        <p style={{ margin: 0, fontWeight: 700, textDecoration: "underline", color: "#0f172a" }}>
+                          {directorName}
+                        </p>
+                        <p style={{ margin: "2px 0 0 0", fontSize: "10px", color: "#64748b" }}>
+                          BUMDes {villageName}
+                        </p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
