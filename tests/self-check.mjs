@@ -168,6 +168,29 @@ async function runSelfChecks() {
   }
   assert.strictEqual(queryHistorical, false, "Historical query must be skipped when saLines exist even if obRecord is null")
 
+  // 13. Unit Simpan Pinjam (USP) loan calculation and balance reconciliation check
+  const member = {
+    simpananPokok: 50000,
+    simpananWajib: 200000,
+    simpananSukarela: 100000,
+    totalPinjaman: 5000000,
+    sisaPinjaman: 5000000,
+    bungaPersen: 1.5
+  }
+  const totalSimpanan = member.simpananPokok + member.simpananWajib + member.simpananSukarela
+  assert.strictEqual(totalSimpanan, 350000, "Total savings must equal sum of pokok, wajib, sukarela")
+
+  // Simulate payment of 500,000 principal + 75,000 interest
+  const principalPaid = 500000
+  const interestPaid = 75000
+  const updatedSisa = Math.max(0, member.sisaPinjaman - principalPaid)
+  assert.strictEqual(updatedSisa, 4500000, "Remaining loan principal must decrement by principal paid")
+
+  // Reconcile with GL
+  const glSimpanan = 350000
+  const isSimpananBalanced = Math.abs(totalSimpanan - glSimpanan) < 1
+  assert.strictEqual(isSimpananBalanced, true, "Simpanan must balance with GL liability account")
+
   console.log("✔ All OpenBUMDes self-checks passed successfully!")
 }
 

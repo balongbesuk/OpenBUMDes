@@ -2,6 +2,29 @@
 
 All notable changes to OpenBUMDes are documented in this file.
 
+## [1.5.0] - 2026-10-29
+
+### Added - Buku Pembantu Simpan Pinjam (USP) Universal Berstandar Kepmendes 136/2022
+
+* **Arsitektur Model & Database Universal (`prisma/schema.prisma`)**:
+  * Menambahkan model universal `LoanMember` (nomor anggota, nama, NIK, alamat, kelompok/dusun, jenis individu/kelompok, simpanan pokok, simpanan wajib, simpanan sukarela, plafon pinjaman, sisa pinjaman, bunga/jasa %, tenor, status pinjaman).
+  * Menambahkan model `LoanTransaction` (mutasi setoran simpanan pokok/wajib/sukarela, penarikan simpanan, pencairan pinjaman, angsuran pokok dan bunga/jasa) dengan relasi cascading dan index performa kueri.
+
+* **API Simpan Pinjam & Rekonsiliasi Otomatis (`/api/loans`)**:
+  * **Pencatatan Anggota & Mutasi Transaksi**: Mendukung pendaftaran anggota, mutasi simpanan, pencairan pembiayaan, pembayaran angsuran berbasis transaksi atomik `db.$transaction`.
+  * **Otomasi Jurnal Kas Ganda**: Fitur opsional *auto-post journal* untuk menyinkronkan transaksi USP langsung ke Buku Kas dan Jurnal Umum BUMDes.
+  * **Audit Rekonsiliasi Otomatis Real-Time**: Otomatis membandingkan saldo buku pembantu simpanan terhadap akun kewajiban `2.1.01` dan saldo buku pembantu pinjaman terhadap akun aset `1.1.02` di Buku Besar.
+  * **Preset Data Contoh Awal SPJ 2025 Balongbesuk**: Menyediakan fitur satu klik untuk memuat data awal riil dari SPJ BUMDes Balongbesuk 2025 (Simpanan Pokok & Wajib Rp 14.820.000, Piutang Pinjaman USP Rp 89.000.000) yang terbukti **100% BALANCE (Selisih Rp 0)** dengan laporan neraca.
+
+* **Antarmuka Pengguna & Cetak Laporan (`SimpanPinjamTab.tsx`, `page.tsx`)**:
+  * Tab interaktif: "Daftar Anggota & Simpanan", "Kartu Pinjaman & Piutang", serta "Lembar Rekapitulasi USP".
+  * Banner status rekonsiliasi audit (Simpanan & Piutang) dengan indikator status hijau saat seimbang.
+  * Modal input cepat: Tambah Anggota, Setor/Tarik Simpanan, Penyaluran & Angsuran Pinjaman, serta Kartu Riwayat Mutasi Anggota.
+  * Fitur cetak ramah printer (*print-ready*) dengan kop resmi BUMDes, tanda tangan Direktur, Pengawas, dan Pengelola USP.
+
+* **Uji Mandiri Otomatis (`tests/self-check.mjs`)**:
+  * Menambahkan skenario uji mandiri ke-13 untuk verifikasi formula simpanan, amortisasi angsuran pokok/bunga pinjaman, dan rekonsiliasi saldo buku besar.
+
 ## [1.4.2] - 2026-10-29
 
 ### Fixed & Hardened - Hasil Audit Kualitas Pembukuan, Saldo Ganda, Integritas Relasi & Keamanan

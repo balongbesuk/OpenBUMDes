@@ -155,3 +155,49 @@ model FixedAsset {
   notes            String?
   createdAt        DateTime @default(now())
 }
+
+model LoanMember {
+  id               String            @id @default(uuid())
+  memberNo         String            @unique
+  name             String
+  nik              String?
+  phone            String?
+  address          String?
+  groupName        String?
+  memberType       String            @default("INDIVIDU") // "INDIVIDU", "KELOMPOK"
+  joinDate         DateTime          @default(now())
+  status           String            @default("ACTIVE") // "ACTIVE", "INACTIVE"
+  simpananPokok    Float             @default(0)
+  simpananWajib    Float             @default(0)
+  simpananSukarela Float             @default(0)
+  totalPinjaman    Float             @default(0)
+  sisaPinjaman     Float             @default(0)
+  bungaPersen      Float             @default(1.5)
+  jangkaWaktuBulan Int               @default(12)
+  statusPinjaman   String            @default("LUNAS") // "LUNAS", "BERJALAN", "MACET"
+  notes            String?
+  createdAt        DateTime          @default(now())
+  transactions     LoanTransaction[]
+
+  @@index([status])
+  @@index([memberType])
+}
+
+model LoanTransaction {
+  id              String      @id @default(uuid())
+  memberId        String
+  member          LoanMember  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  date            DateTime    @default(now())
+  proofNumber     String?
+  type            String      // "SIMPANAN_POKOK", "SIMPANAN_WAJIB", "SIMPANAN_SUKARELA", "TARIK_SIMPANAN", "PENCAIRAN_PINJAMAN", "ANGSURAN_POKOK", "ANGSURAN_BUNGA"
+  amount          Float
+  principalAmount Float       @default(0)
+  interestAmount  Float       @default(0)
+  description     String
+  journalEntryId  String?
+  createdAt       DateTime    @default(now())
+
+  @@index([memberId])
+  @@index([date])
+  @@index([type])
+}

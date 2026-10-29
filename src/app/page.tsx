@@ -65,6 +65,8 @@ import SubsidiaryLedgerTab from "@/components/SubsidiaryLedgerTab"
 import InventoryTab from "@/components/InventoryTab"
 import FixedAssetsTab from "@/components/FixedAssetsTab"
 import EisHealthTab from "@/components/EisHealthTab"
+import SimpanPinjamTab from "@/components/SimpanPinjamTab"
+import { HandCoins } from "lucide-react"
 import { showAppAlert, showAppConfirm, showAppToast } from "@/components/ui/AppDialog"
 
 export default function StislaApp() {
@@ -1047,6 +1049,18 @@ export default function StislaApp() {
                 >
                   <Building2 className="w-4 h-4 shrink-0" />
                   <span className="text-left leading-tight">Register & Penyusutan Aset</span>
+                </button>
+
+                <button
+                  onClick={() => handleNavClick("simpan-pinjam")}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left transition-all ${
+                    activeTab === "simpan-pinjam"
+                      ? "bg-[#6777ef] text-white shadow-md shadow-indigo-200 font-semibold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                  }`}
+                >
+                  <HandCoins className="w-4 h-4 shrink-0" />
+                  <span className="text-left leading-tight">Buku Simpan Pinjam (USP)</span>
                 </button>
               </div>
             </div>
@@ -4390,6 +4404,10 @@ export default function StislaApp() {
 
             {activeTab === "fixed-assets" && (
               <FixedAssetsTab settings={settings} currentUser={currentUser} />
+            )}
+
+            {activeTab === "simpan-pinjam" && (
+              <SimpanPinjamTab settings={settings} currentUser={currentUser} />
             )}
 
             {/* TAB: EIS / KESEHATAN BUMDES */}
