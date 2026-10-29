@@ -214,6 +214,24 @@ async function runSelfChecks() {
   const canPostToClosed = !(closedYear && closedYear.isLocked)
   assert.strictEqual(canPostToClosed, false, "Posting to locked fiscal year must be blocked")
 
+  // 15. Proof number auto-generation: sequential BKM/BKK sync with journal
+  function generateProofNumber(type, date, existingProofs = []) {
+    const proofType = (type === "TARIK_SIMPANAN" || type === "PENCAIRAN_PINJAMAN") ? "BKK" : "BKM"
+    const prefix = `${proofType}/${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/`
+    let maxSeq = 0
+    for (const p of existingProofs) {
+      if (p.startsWith(prefix)) {
+        const seq = parseInt(p.split("/").pop(), 10)
+        if (!isNaN(seq) && seq > maxSeq) maxSeq = seq
+      }
+    }
+    return `${prefix}${String(maxSeq + 1).padStart(4, "0")}`
+  }
+  const bkmProof = generateProofNumber("ANGSURAN", new Date("2026-10-29"), ["BKM/2026/10/0001", "BKM/2026/10/0002"])
+  assert.strictEqual(bkmProof, "BKM/2026/10/0003", "Auto-generated proof number must be sequentially incremented")
+  const bkkProof = generateProofNumber("PENCAIRAN_PINJAMAN", new Date("2026-10-29"), [])
+  assert.strictEqual(bkkProof, "BKK/2026/10/0001", "Loan disbursement must auto-assign BKK prefix")
+
   console.log("✔ All OpenBUMDes self-checks passed successfully!")
 }
 

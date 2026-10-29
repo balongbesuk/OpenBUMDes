@@ -347,7 +347,24 @@ export async function POST(request: Request) {
           data: updatedMemberData
         })
 
-        const finalProofNumber = proofNumber || `USP/${txYear}/${crypto.randomBytes(3).toString("hex").toUpperCase()}`
+        // Penomoran bukti otomatis standar BUMDes (BKM untuk penerimaan, BKK untuk pengeluaran)
+        const autoProofType = (type === "TARIK_SIMPANAN" || type === "PENCAIRAN_PINJAMAN") ? "BKK" : "BKM"
+        let finalProofNumber = proofNumber ? String(proofNumber).trim() : ""
+        if (!finalProofNumber) {
+          const monthStr = String(txDate.getMonth() + 1).padStart(2, "0")
+          const prefix = `${autoProofType}/${txYear}/${monthStr}/`
+          const matching = await tx.journalEntry.findMany({
+            where: { proofNumber: { startsWith: prefix } },
+            select: { proofNumber: true }
+          })
+          let maxSeq = 0
+          for (const m of matching) {
+            const parts = m.proofNumber.split("/")
+            const seq = parseInt(parts[parts.length - 1], 10)
+            if (!isNaN(seq) && seq > maxSeq) maxSeq = seq
+          }
+          finalProofNumber = `${prefix}${String(maxSeq + 1).padStart(4, "0")}`
+        }
 
         // Create transaction record
         const txRecord = await tx.loanTransaction.create({
