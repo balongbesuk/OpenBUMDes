@@ -27,7 +27,7 @@ function getStandardCoaMap() {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const search = searchParams.get("search") || ""
+    const session = await getUserSession(); if (!session) return NextResponse.json({ success: false, error: "Akses ditolak" }, { status: 401 }); const search = searchParams.get("search") || ""
     const type = searchParams.get("type") || ""
 
     const where: any = {}
@@ -61,9 +61,9 @@ export async function GET(request: Request) {
 
 const STANDARD_GROUPS = [
   { prefix: "1.1.01", name: "Kas dan Setara Kas", type: "ASSET", normal: "Debit" },
-  { prefix: "1.1.02", name: "Piutang Usaha", type: "ASSET", normal: "Debit" },
-  { prefix: "1.1.03", name: "Persediaan", type: "ASSET", normal: "Debit" },
-  { prefix: "1.2.01", name: "Aset Tetap Berwujud", type: "ASSET", normal: "Debit" },
+  { prefix: "1.1.03", name: "Piutang Usaha", type: "ASSET", normal: "Debit" },
+  { prefix: "1.1.05", name: "Persediaan", type: "ASSET", normal: "Debit" },
+  { prefix: "1.3.01", name: "Aset Tetap Berwujud", type: "ASSET", normal: "Debit" },
   { prefix: "2.1.01", name: "Kewajiban Jangka Pendek", type: "LIABILITY", normal: "Credit" },
   { prefix: "3.1.01", name: "Ekuitas / Modal BUMDes", type: "EQUITY", normal: "Credit" },
   { prefix: "4.1.01", name: "Pendapatan Usaha Utama", type: "REVENUE", normal: "Credit" },

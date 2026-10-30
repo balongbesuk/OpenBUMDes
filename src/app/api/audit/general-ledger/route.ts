@@ -62,7 +62,26 @@ export async function GET(request: Request) {
       normal: targetCode.startsWith("1") || targetCode.startsWith("5") || targetCode.startsWith("6") || targetCode.startsWith("7") ? "DEBIT" : "CREDIT"
     }
 
-    const isNormalDebit = selectedAccount.normal === "DEBIT" || selectedAccount.type === "ASSET" || selectedAccount.type === "EXPENSE"
+    const normalUpper = (selectedAccount.normal || "").toUpperCase()
+    const isContraAsset =
+      normalUpper === "KREDIT" ||
+      normalUpper === "CREDIT" ||
+      selectedAccount.code.startsWith("1.3.07") ||
+      selectedAccount.code.startsWith("1.3.08") ||
+      selectedAccount.code.startsWith("1.1.04") ||
+      selectedAccount.code.startsWith("1.9.01.02") ||
+      (selectedAccount.name || "").toLowerCase().includes("akumulasi") ||
+      (selectedAccount.name || "").toLowerCase().includes("penyisihan")
+
+    const isNormalDebit =
+      !isContraAsset &&
+      (normalUpper === "DEBIT" ||
+        selectedAccount.type === "ASSET" ||
+        selectedAccount.type === "EXPENSE" ||
+        selectedAccount.code.startsWith("1") ||
+        selectedAccount.code.startsWith("5") ||
+        selectedAccount.code.startsWith("6") ||
+        selectedAccount.code.startsWith("7"))
 
     // 1. Hitung Saldo Awal Akun (Opening Balance)
     let openingBalance = 0

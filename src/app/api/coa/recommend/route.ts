@@ -138,11 +138,11 @@ export async function POST(request: Request) {
       lower.includes("kendaraan") ||
       lower.includes("peralatan")
     ) {
-      prefix = "1.3.01"
+      prefix = lower.includes("kendaraan") ? "1.3.02" : "1.3.03"
       type = "ASSET"
       normal = "Debit"
       suggestedName = `Aset Tetap Peralatan (${query})`
-      reason = "Berdasarkan Kepmendesa PDTT No. 136/2022, inventaris bernilai ekonomis lebih dari 1 tahun dialokasikan pada Aset Tetap Peralatan (Kode 1.3.01)."
+      reason = "Berdasarkan Kepmendesa PDTT No. 136/2022, inventaris bernilai ekonomis lebih dari 1 tahun dialokasikan pada Aset Tetap Kendaraan (1.3.02) atau Peralatan dan Mesin (1.3.03)."
     }
 
     // 2. Cari nomor urut berikutnya yang masih kosong di database

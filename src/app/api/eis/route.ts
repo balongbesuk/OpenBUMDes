@@ -23,12 +23,18 @@ export async function GET(request: Request) {
     const allAccounts = await db.ledgerAccount.findMany()
     const accountMap = new Map(allAccounts.map((a) => [a.code, a]))
 
-    // 2. Pendapatan & Beban Tahun Berjalan (Laba Rugi)
+    // 2. Pendapatan & Beban Tahun Berjalan (Laba Rugi, sertakan Memorial Penyusutan, kecualikan Jurnal Penutup JP/ & SA/)
     const revExpLines = await db.journalLine.findMany({
       where: {
         journalEntry: {
           date: { gte: startDate, lte: endDate },
-          proofType: { not: "MEMORIAL" } // jangan sertakan jurnal penutup akhir tahun
+          NOT: {
+            OR: [
+              { proofNumber: { startsWith: "JP/" } },
+              { proofNumber: { startsWith: "SA/" } },
+              { proofNumber: { startsWith: "SA-" } }
+            ]
+          }
         }
       }
     })

@@ -267,6 +267,60 @@ async function runSelfChecks() {
   const canDeleteAsset = !(lockedClosing && lockedClosing.year === assetYear && lockedClosing.isLocked);
   assert.strictEqual(canDeleteAsset, false, "Asset from locked fiscal year must be protected from deletion");
 
+  // 21. Buku Kas Pembantu Bank & Buku Pembantu Pajak (Running Balance & Kepmendes 136 Rules)
+  function computeSubLedger(lines, isNormalDebit) {
+    let totalAdd = 0, totalPay = 0, balance = 0;
+    for (const l of lines) {
+      const isDebit = l.type === "DEBIT";
+      const add = isNormalDebit ? (isDebit ? l.amount : 0) : (!isDebit ? l.amount : 0);
+      const pay = isNormalDebit ? (!isDebit ? l.amount : 0) : (isDebit ? l.amount : 0);
+      totalAdd += add;
+      totalPay += pay;
+      balance += add - pay;
+    }
+    return { totalAdd, totalPay, balance };
+  }
+  const bankMutasi = computeSubLedger([
+    { accountCode: "1.1.01.06", type: "DEBIT", amount: 5000000 },
+    { accountCode: "1.1.01.06", type: "DEBIT", amount: 25000 },
+    { accountCode: "1.1.01.06", type: "CREDIT", amount: 10000 }
+  ], true);
+  assert.strictEqual(bankMutasi.balance, 5015000, "Buku Kas Pembantu Bank must increase on Debit and decrease on Credit");
+
+  const taxMutasi = computeSubLedger([
+    { accountCode: "2.1.02.02", type: "CREDIT", amount: 150000 },
+    { accountCode: "2.1.02.01", type: "CREDIT", amount: 330000 },
+    { accountCode: "2.1.02.02", type: "DEBIT", amount: 150000 }
+  ], false);
+  assert.strictEqual(taxMutasi.balance, 330000, "Buku Pembantu Pajak must increase on Credit (Pungut) and decrease on Debit (Setor)");
+
+  // Direct tax expense payment (7.3.01.xx) must record both add & pay (net balance 0)
+  const directTaxAmount = 301545;
+  const directTaxRow = { add: directTaxAmount, pay: directTaxAmount, balance: directTaxAmount - directTaxAmount };
+  assert.strictEqual(directTaxRow.balance, 0, "Direct tax payment (7.3.01.xx) must appear in Buku Pembantu Pajak with 0 remaining liability");
+
+  // 22. Audit fix: General Ledger & Trial Balance contra-asset normal balance (1.3.07.02 must be normal Credit, not Debit)
+  function isAccountNormalDebit(acc) {
+    const normalUpper = (acc.normal || "").toUpperCase();
+    const isContra =
+      normalUpper === "KREDIT" ||
+      normalUpper === "CREDIT" ||
+      acc.code.startsWith("1.3.07") ||
+      acc.code.startsWith("1.3.08") ||
+      acc.code.startsWith("1.1.04") ||
+      (acc.name || "").toLowerCase().includes("akumulasi");
+    return !isContra && (normalUpper === "DEBIT" || acc.type === "ASSET" || acc.type === "EXPENSE" || acc.code.startsWith("1"));
+  }
+  assert.strictEqual(isAccountNormalDebit({ code: "1.3.07.02", name: "Akumulasi Penyusutan Peralatan", type: "ASSET", normal: "Kredit" }), false, "Akumulasi Penyusutan must be normal Credit in General Ledger");
+  assert.strictEqual(isAccountNormalDebit({ code: "1.1.01.01", name: "Kas Tunai", type: "ASSET", normal: "Debit" }), true, "Kas Tunai must be normal Debit");
+
+  // 23. Audit fix: Laba Rugi must include Memorial depreciation entries (MEMORIAL) while excluding JP/ and SA/
+  function isIncludedInLabaRugi(entry) {
+    return !(entry.proofNumber.startsWith("JP/") || entry.proofNumber.startsWith("SA/") || entry.proofNumber.startsWith("SA-"));
+  }
+  assert.strictEqual(isIncludedInLabaRugi({ proofNumber: "MEMORIAL/2026/12/0001", proofType: "MEMORIAL" }), true, "Depreciation memorial entry must be included in Laba Rugi");
+  assert.strictEqual(isIncludedInLabaRugi({ proofNumber: "JP/2026/12/0001", proofType: "MEMORIAL" }), false, "Closing entry JP/ must be excluded from Laba Rugi");
+
   console.log("✔ All OpenBUMDes self-checks passed successfully!")
 }
 

@@ -1037,7 +1037,7 @@ export default function StislaApp() {
                   }`}
                 >
                   <Users className="w-4 h-4 shrink-0" />
-                  <span className="text-left leading-tight">Buku Pembantu Piutang/Utang</span>
+                  <span className="text-left leading-tight">Buku Pembantu (Bank, Pajak, Piutang)</span>
                 </button>
 
                 <button

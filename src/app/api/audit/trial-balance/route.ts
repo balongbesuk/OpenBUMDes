@@ -77,14 +77,26 @@ export async function GET(request: Request) {
       totalGrossDebit += grossDeb
       totalGrossCredit += grossCred
 
+      const normalUpper = (acc.normal || "").toUpperCase()
+      const isContraAsset =
+        normalUpper === "KREDIT" ||
+        normalUpper === "CREDIT" ||
+        acc.code.startsWith("1.3.07") ||
+        acc.code.startsWith("1.3.08") ||
+        acc.code.startsWith("1.1.04") ||
+        acc.code.startsWith("1.9.01.02") ||
+        (acc.name || "").toLowerCase().includes("akumulasi") ||
+        (acc.name || "").toLowerCase().includes("penyisihan")
+
       const isNormalDebit =
-        acc.normal === "DEBIT" ||
-        acc.type === "ASSET" ||
-        acc.type === "EXPENSE" ||
-        acc.code.startsWith("1") ||
-        acc.code.startsWith("5") ||
-        acc.code.startsWith("6") ||
-        acc.code.startsWith("7")
+        !isContraAsset &&
+        (normalUpper === "DEBIT" ||
+          acc.type === "ASSET" ||
+          acc.type === "EXPENSE" ||
+          acc.code.startsWith("1") ||
+          acc.code.startsWith("5") ||
+          acc.code.startsWith("6") ||
+          acc.code.startsWith("7"))
 
       let netDebit = 0
       let netCredit = 0

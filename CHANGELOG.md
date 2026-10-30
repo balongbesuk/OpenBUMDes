@@ -2,6 +2,28 @@
 
 All notable changes to OpenBUMDes are documented in this file.
 
+## [1.6.1] - 2026-10-30
+
+### Added - Buku Kas Pembantu Bank & Buku Pembantu Pajak (Sub-Ledger Kepmendes 136)
+
+* **Buku Kas Pembantu Bank (`/api/audit/subsidiary-ledger?type=BANK`, `SubsidiaryLedgerTab.tsx`)**:
+  * Otomatis menarik mutasi rekening bank BUMDes (`1.1.01.02` BNI, `1.1.01.03` Mandiri, `1.1.01.04` BRI, `1.1.01.05` BCA, `1.1.01.06` Bank Jatim, dan Deposito `1.1.02.xx`) lengkap dengan opsi gabungan maupun per rekening.
+  * Modal **Catat Cepat Mutasi Bank (Auto-Jurnal)**: 1 klik menjurnal Pendapatan Bunga/Jasa Giro Bank (`7.1.01.01`), Biaya Admin Bank (`7.2.01.01`), Pajak Bunga Bank (`7.3.01.02`), Setor Tunai, dan Tarik Tunai.
+
+* **Buku Pembantu Pajak (`/api/audit/subsidiary-ledger?type=PAJAK`, `SubsidiaryLedgerTab.tsx`)**:
+  * Otomatis mendeteksi **Utang Pajak Pungut/Potong (`2.1.02.xx`)** (PPN Keluaran, PPh 21, PPh 23, PPh 29) sekaligus **Beban Pajak Badan/Final yang dibayar langsung (`7.3.01.xx`)** lengkap dengan tampilan lencana nomor **NTPN / ID Billing**.
+  * Modal **Catat Pungut / Setor / Bayar Pajak Langsung (Auto-Jurnal)** dengan dukungan input kode NTPN.
+
+### Fixed - Hasil Audit Akuntansi & Keamanan (Ponytail Audit)
+
+* **Saldo Normal Kontra-Aset (`1.3.07.xx` & `1.1.04.xx`)**: Memperbaiki perhitungan saldo normal Akumulasi Penyusutan dan Penyisihan Piutang di Buku Besar (`general-ledger`) dan Neraca Saldo (`trial-balance`) agar diakui sebagai normal Kredit (tidak negatif).
+* **Jurnal Memorial Penyusutan pada Laba Rugi & EIS (`reports.ts`, `eis/route.ts`)**: Mengikutsertakan jurnal `MEMORIAL` operasional/penyusutan dalam perhitungan Laba Rugi dan mengecualikan secara spesifik jurnal penutup (`JP/`) serta saldo awal (`SA/`).
+* **Disambiguasi Akun `1.1.02` (Deposito vs Piutang Pinjaman USP)**: Memisahkan saldo Piutang Pinjaman USP (`SA-USP`) agar tetap berada di Buku Pembantu Piutang dan tidak tercampur ke Buku Kas Pembantu Bank.
+* **Rekomendasi COA Aset Tetap (`/api/coa/recommend`)**: Memperbaiki rekomendasi kode akun kendaraan ke `1.3.02` dan peralatan/komputer/mesin ke `1.3.03` (sebelumnya `1.3.01` Tanah).
+* **Proteksi Upload Kwitansi pada Periode Terkunci (`/api/cash-book/upload`)**: Menolak unggah/ganti foto bukti fisik pada tahun buku yang sudah dikunci (`isLocked`).
+* **Otentikasi & Standarisasi Grup COA (`/api/keuangan/coa`)**: Menambahkan pemeriksaan sesi login pada `GET /api/keuangan/coa` dan menyelaraskan kode kepala `STANDARD_GROUPS` dengan Kepmendes 136.
+* **Zona Waktu UTC Ekspor Excel (`/api/cash-book/export-excel`)**: Menyeragamkan rentang tanggal tahun anggaran ke `Date.UTC`.
+
 ## [1.6.0] - 2026-10-30
 
 ### Added - Mobile AI Scanner, Sinkronisasi Bukti USP, & Favicon Dinamis

@@ -67,6 +67,19 @@ export async function POST(request: Request) {
       )
     }
 
+    // Proteksi Tutup Buku Tahunan
+    const txYear = new Date(existingEntry.date).getFullYear()
+    const closed = await db.annualClosing.findUnique({ where: { year: txYear } })
+    if (closed?.isLocked) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Unggah bukti ditolak. Tahun pembukuan ${txYear} telah ditutup buku dan berstatus Terkunci.`
+        },
+        { status: 403 }
+      )
+    }
+
     // Ekstrak ekstensi berkas
     const originalName = file.name || "bukti.jpg"
     const ext = path.extname(originalName).toLowerCase() || (file.type === "application/pdf" ? ".pdf" : ".jpg")

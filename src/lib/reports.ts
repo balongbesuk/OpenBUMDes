@@ -51,12 +51,18 @@ export async function calculateFinancialReports(year: number): Promise<Financial
   })
   const accountMap = new Map(allAccounts.map((a) => [a.code, a]))
 
-  // 1. LABA RUGI OPERASIONAL (tanpa jurnal penutup memorial)
+  // 1. LABA RUGI OPERASIONAL (sertakan Memorial Penyusutan/Penyesuaian, kecualikan Jurnal Penutup JP/ & Saldo Awal SA/)
   const revExpLines = await db.journalLine.findMany({
     where: {
       journalEntry: {
         date: { gte: startDate, lte: endDate },
-        proofType: { not: "MEMORIAL" }
+        NOT: {
+          OR: [
+            { proofNumber: { startsWith: "JP/" } },
+            { proofNumber: { startsWith: "SA/" } },
+            { proofNumber: { startsWith: "SA-" } }
+          ]
+        }
       }
     }
   })
