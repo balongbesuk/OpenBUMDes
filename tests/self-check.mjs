@@ -321,6 +321,13 @@ async function runSelfChecks() {
   assert.strictEqual(isIncludedInLabaRugi({ proofNumber: "MEMORIAL/2026/12/0001", proofType: "MEMORIAL" }), true, "Depreciation memorial entry must be included in Laba Rugi");
   assert.strictEqual(isIncludedInLabaRugi({ proofNumber: "JP/2026/12/0001", proofType: "MEMORIAL" }), false, "Closing entry JP/ must be excluded from Laba Rugi");
 
+  // 24. Audit fix: Inventory reconciliation only includes 1.1.05 & 1.1.06 (excludes 1.1.04 Penyisihan Piutang)
+  function isInventoryAccount(code) {
+    return code.startsWith("1.1.05") || code.startsWith("1.1.06");
+  }
+  assert.strictEqual(isInventoryAccount("1.1.04.01"), false, "1.1.04 Penyisihan Piutang must not be included in Inventory reconciliation");
+  assert.strictEqual(isInventoryAccount("1.1.05.01"), true, "1.1.05 Persediaan Barang Dagangan must be included in Inventory reconciliation");
+
   console.log("✔ All OpenBUMDes self-checks passed successfully!")
 }
 

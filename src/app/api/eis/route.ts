@@ -69,7 +69,8 @@ export async function GET(request: Request) {
         journalEntry: {
           date: hasOpeningJournal
             ? { gte: startDate, lte: endDate }
-            : { lte: endDate }
+            : { lte: endDate },
+          NOT: { proofNumber: { startsWith: `JP/${year}/` } }
         }
       }
     })

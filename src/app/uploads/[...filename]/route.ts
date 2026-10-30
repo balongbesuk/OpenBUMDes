@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server"
 import fs from "fs"
 import path from "path"
+import { getUserSession } from "@/lib/auth"
 
 export async function GET(
   request: Request,
   context: { params: Promise<{ filename: string[] }> }
 ) {
   try {
+    const session = await getUserSession()
+    if (!session) {
+      return new NextResponse("Unauthorized", { status: 401 })
+    }
     const { filename } = await context.params
     if (!filename || filename.length === 0) {
       return new NextResponse("Not Found", { status: 404 })
@@ -42,7 +47,7 @@ export async function GET(
     return new NextResponse(fileBuffer, {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=31536000, immutable"
+        "Cache-Control": "private, max-age=3600"
       }
     })
   } catch (error) {

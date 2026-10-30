@@ -178,17 +178,18 @@ export function safePrintElement(
   body.appendChild(element.cloneNode(true))
 
   // Trigger print cleanly
+  let printed = false
   printWindow.onload = () => {
     setTimeout(() => {
       try {
-        printWindow.print()
+        if (!printed) { printed = true; printWindow.print() }
       } catch {}
     }, 500)
   }
 
   setTimeout(() => {
     try {
-      printWindow.print()
+      if (!printed) { printed = true; printWindow.print() }
     } catch {}
   }, 1000)
 }

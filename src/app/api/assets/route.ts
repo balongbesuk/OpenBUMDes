@@ -240,15 +240,7 @@ export async function POST(request: Request) {
     }
 
     if (action === "UPDATE_CONDITION") {
-      const { id, condition } = body
-      if (!id || !["BAIK", "RUSAK RINGAN", "RUSAK BERAT"].includes(condition)) {
-        return NextResponse.json({ success: false, error: "ID dan status kondisi fisik valid wajib disertakan." }, { status: 400 })
-      }
-      const updated = await db.fixedAsset.update({
-        where: { id },
-        data: { condition }
-      })
-      return NextResponse.json({ success: true, message: `Kondisi fisik aset diperbarui menjadi ${condition}`, data: updated })
+      return PATCH(new Request(request.url, { method: "PATCH", headers: request.headers, body: JSON.stringify(body) }))
     }
 
     return NextResponse.json({ success: false, error: "Aksi tidak dikenali." }, { status: 400 })

@@ -81,13 +81,23 @@ export async function GET(request: Request) {
       }
     })
 
-    // Agregasi Buku Besar untuk Akun Persediaan (1.1.05 / 1.1.04)
+    // Agregasi Buku Besar untuk Akun Persediaan (1.1.05 & 1.1.06 Kepmendes 136)
+    const targetYear = parseInt(searchParams.get("year") || `${new Date().getFullYear()}`, 10)
+    const hasSa = await db.journalEntry.findFirst({
+      where: { proofNumber: { startsWith: `SA/${targetYear}/` } },
+      select: { id: true }
+    })
+    const invDateFilter = hasSa
+      ? { gte: new Date(Date.UTC(targetYear, 0, 1, 0, 0, 0)), lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999)) }
+      : { lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999)) }
+
     const invLines = await db.journalLine.findMany({
       where: {
         OR: [
           { accountCode: { startsWith: "1.1.05" } },
-          { accountCode: { startsWith: "1.1.04" } }
-        ]
+          { accountCode: { startsWith: "1.1.06" } }
+        ],
+        journalEntry: { date: invDateFilter }
       },
       select: { type: true, amount: true }
     })
@@ -209,6 +219,15 @@ export async function POST(request: Request) {
         }, { status: 400 })
       }
 
+      const txDate = date ? new Date(date) : new Date()
+      const closed = await db.annualClosing.findUnique({ where: { year: txDate.getFullYear() } })
+      if (closed?.isLocked) {
+        return NextResponse.json(
+          { success: false, error: `Mutasi ditolak. Tahun pembukuan ${txDate.getFullYear()} telah ditutup buku dan dikunci.` },
+          { status: 403 }
+        )
+      }
+
       const unitCost = parseFloat(costPerUnit) || item.initialCost || 0
       const totalCost = numQty * unitCost
 
@@ -216,7 +235,7 @@ export async function POST(request: Request) {
         const m = await tx.inventoryMovement.create({
           data: {
             itemId,
-            date: date ? new Date(date) : new Date(),
+            date: txDate,
             type: type.toUpperCase(), // "IN", "OUT", "ADJUST"
             qty: numQty,
             costPerUnit: unitCost,

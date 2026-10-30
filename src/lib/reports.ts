@@ -116,10 +116,13 @@ export async function calculateFinancialReports(year: number): Promise<Financial
   })
 
   // If SA entry exists for this year, start cumulative balance from this year's startDate
-  // to prevent double-counting prior year entries!
-  const balanceWhere: any = hasOpeningJournal
-    ? { journalEntry: { date: { gte: startDate, lte: endDate } } }
-    : { journalEntry: { date: { lte: endDate } } }
+  // to prevent double-counting prior year entries! Also exclude this year's closing entry (JP/{year}/).
+  const balanceWhere: any = {
+    journalEntry: {
+      date: hasOpeningJournal ? { gte: startDate, lte: endDate } : { lte: endDate },
+      NOT: { proofNumber: { startsWith: `JP/${year}/` } }
+    }
+  }
 
   const allBalanceLines = await db.journalLine.findMany({
     where: balanceWhere,
@@ -141,6 +144,7 @@ export async function calculateFinancialReports(year: number): Promise<Financial
   let eqModalMasy = 0
   let eqCadanganLabaDitahan = 0
   let bagiHasilDesaBerjalan = 0
+  let bagiHasilMasyBerjalan = 0
 
   allBalanceLines.forEach((l) => {
     const code = l.accountCode
@@ -187,7 +191,8 @@ export async function calculateFinancialReports(year: number): Promise<Financial
     } else if (code.startsWith("3.1.03") || code.startsWith("3.2") || code.startsWith("3.3")) {
       eqCadanganLabaDitahan += netCredit
       if (isDebit && l.journalEntry.date >= startDate && l.journalEntry.date <= endDate) {
-        bagiHasilDesaBerjalan += l.amount
+        if (code === "3.3.01.02") bagiHasilMasyBerjalan += l.amount
+        else bagiHasilDesaBerjalan += l.amount
       }
     }
   })
@@ -222,7 +227,7 @@ export async function calculateFinancialReports(year: number): Promise<Financial
   const totalLiabilitiesAndEquity = totalLiabilities + totalEquity
 
   // 3. LPE (Laporan Perubahan Ekuitas)
-  const saldoLabaAwalTahun = eqCadanganLabaDitahan + bagiHasilDesaBerjalan
+  const saldoLabaAwalTahun = eqCadanganLabaDitahan + bagiHasilDesaBerjalan + bagiHasilMasyBerjalan
   const saldoLabaAkhirTahun = eqCadanganLabaDitahan + netProfit
   const lpe = {
     modalAwalDesa: eqModalDesa,
@@ -233,7 +238,7 @@ export async function calculateFinancialReports(year: number): Promise<Financial
     saldoLabaAwal: saldoLabaAwalTahun,
     labaPeriodeBerjalan: netProfit,
     bagiHasilDesa: bagiHasilDesaBerjalan,
-    bagiHasilMasyarakat: 0,
+    bagiHasilMasyarakat: bagiHasilMasyBerjalan,
     saldoLabaAkhir: saldoLabaAkhirTahun,
     ekuitasAkhir: eqModalDesa + eqModalMasy + saldoLabaAkhirTahun
   }
