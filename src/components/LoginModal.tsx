@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { APP_VERSION } from "@/lib/version"
+import { APP_VERSION, APP_VERSION_RAW } from "@/lib/version"
 import {
   ShieldCheck,
   User,
@@ -209,7 +209,7 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
               <span>Kepatuhan Standar Akuntansi EMKM & Kepmendesa 136</span>
             </div>
             <div className="font-mono text-slate-500">
-              Versi 1.2.0 • Edisi Desa 2026
+              Versi {APP_VERSION_RAW} • Edisi Desa 2026
             </div>
           </div>
         </div>
