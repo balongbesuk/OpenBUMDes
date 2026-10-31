@@ -67,6 +67,7 @@ import InventoryTab from "@/components/InventoryTab"
 import FixedAssetsTab from "@/components/FixedAssetsTab"
 import EisHealthTab from "@/components/EisHealthTab"
 import SimpanPinjamTab from "@/components/SimpanPinjamTab"
+import { APP_VERSION } from "@/lib/version"
 import { HandCoins } from "lucide-react"
 import { showAppAlert, showAppConfirm, showAppToast } from "@/components/ui/AppDialog"
 
@@ -847,9 +848,12 @@ export default function StislaApp() {
                 </p>
 
                 {/* Tingkat 3: Regulasi Akuntansi Kepmendes */}
-                <div className="mt-1 flex items-center">
+                <div className="mt-1 flex items-center gap-1.5">
                   <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0 tracking-wide">
                     Kepmendes 136
+                  </span>
+                  <span className="text-[9.5px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 shrink-0">
+                    {APP_VERSION}
                   </span>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { APP_VERSION } from "@/lib/version"
 import {
   ShieldCheck,
   User,
@@ -351,7 +352,7 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
                 <span>Koneksi Aman Terenkripsi SSL & Sesi Dilindungi</span>
               </div>
               <p className="text-[10px] text-slate-400">
-                © 2026 OpenBUMDes • Keputusan Menteri Desa PDTT No. 136/2022
+                © 2026 OpenBUMDes {APP_VERSION} • Keputusan Menteri Desa PDTT No. 136/2022
               </p>
             </div>
 
