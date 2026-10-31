@@ -6,22 +6,23 @@
 </p>
 
 <p align="center">
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-v1.6.2-emerald.svg?style=flat-square" alt="Versi 1.6.2"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square" alt="Lisensi GPL v3"></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Framework-Next.js%2015-black?style=flat-square" alt="Next.js 15"></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/UI-React%2019-61dafb?style=flat-square" alt="React 19"></a>
   <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Styling-Tailwind%20CSS-38bdf8?style=flat-square" alt="Tailwind CSS"></a>
   <a href="https://www.sqlite.org/"><img src="https://img.shields.io/badge/Database-SQLite%20(WAL)-003b57?style=flat-square" alt="SQLite WAL"></a>
   <a href="https://www.prisma.io/"><img src="https://img.shields.io/badge/ORM-Prisma%205-2d3748?style=flat-square" alt="Prisma 5"></a>
-  <a href="https://aistudio.google.com/"><img src="https://img.shields.io/badge/AI-Google%20Gemini-orange?style=flat-square" alt="Google Gemini"></a>
+  <a href="https://aistudio.google.com/"><img src="https://img.shields.io/badge/AI-Google%20Gemini%203.5-orange?style=flat-square" alt="Google Gemini 3.5 Flash"></a>
 </p>
 
-<img width="1464" height="817" alt="image" src="https://github.com/user-attachments/assets/cd2b4de9-1dd6-45c8-aed8-e805cc5ed1c7" />
+<img width="1464" height="817" alt="Tampilan Antarmuka OpenBUMDes" src="https://github.com/user-attachments/assets/cd2b4de9-1dd6-45c8-aed8-e805cc5ed1c7" />
 
 ---
 
 ## 📌 Tentang OpenBUMDes
 
-**OpenBUMDes** adalah aplikasi akuntansi dan pelaporan keuangan berbasis web sumber terbuka (*open source*) yang dibangun khusus untuk memudahkan Badan Usaha Milik Desa (**BUMDes** maupun **BUMDesa Bersama**) di seluruh Indonesia dalam mengelola pembukuan kas harian dan menyusun laporan pertanggungjawaban tahunan.
+**OpenBUMDes** adalah aplikasi akuntansi dan pelaporan keuangan berbasis web sumber terbuka (*open source*) yang dibangun khusus untuk memudahkan Badan Usaha Milik Desa (**BUMDes** maupun **BUMDesa Bersama**) di seluruh Indonesia dalam mengelola pembukuan kas harian dan menyusun laporan pertanggungjawaban tahunan secara transparan, akuntabel, dan mandiri.
 
 Aplikasi ini patuh penuh terhadap dua regulasi akuntansi utama:
 1. **Keputusan Menteri Desa, PDTT No. 136 Tahun 2022** tentang Panduan Penyusunan Laporan Keuangan BUM Desa (PPAK BUMDesa).
@@ -36,6 +37,8 @@ Aplikasi ini patuh penuh terhadap dua regulasi akuntansi utama:
 | **Pencatatan Transaksi** | Input manual debit & kredit terpisah di baris spreadsheet | **Otomatis Berpasangan (*Double-Entry*)**: 1 input kas langsung menjurnal akun lawan |
 | **Keseimbangan Laporan** | Rumus sering terhapus/bergeser sehingga Neraca tidak seimbang | **Dijamin Seimbang 100%**: Neraca, Laba Rugi, dan Arus Kas dihitung dari basis data |
 | **Audit & Bukti Fisik** | Kwitansi tersimpan terpisah di binder, sulit diverifikasi | **Digital Audit Trail**: Status tanda tangan & foto bukti fisik tercatat langsung di BKU |
+| **Simpan Pinjam (USP)** | Kartu pinjaman manual terpisah dari neraca BUMDes | **Terintegrasi Penuh**: Simpanan & piutang anggota otomatis sinkron dengan akun kewajiban & aset Neraca |
+| **Pajak & Bukti Bank** | Rekap manual mutasi rekening dan pajak pungut/setor | **Sub-Ledger Otomatis**: Kontrol per rekening bank & pencatatan nomor NTPN / ID Billing pajak desa |
 | **Tutup Buku Akhir Tahun** | Saldo harus dipindahkan manual satu per satu ke file Excel baru | **Otomatis 1 Klik**: Menutup laba berjalan ke Laba Ditahan & membuka saldo awal tahun baru |
 | **Multi-Pengguna** | Rawan bentrok file (*file lock / conflicted copy*) | **Multi-Role**: Pemisahan hak akses antara Administrator dan Kasir/Operator |
 | **Ekspor Data** | Sulit diekspor secara terstruktur | **Ekspor Excel 1 Tahun Multi-Sheet**: Seluruh bulan Januari s.d. Desember dalam 1 file |
@@ -61,25 +64,42 @@ Aplikasi ini patuh penuh terhadap dua regulasi akuntansi utama:
   * Halaman 2–7 (5 Laporan Keuangan resmi & Rencana Alokasi SHU Musdes).
   * Halaman 8 (Lembar Pengesahan Resmi bertanda tangan 4 Pilar: Bendahara, Direktur Utama, Ketua Badan Pengawas/BPD, dan Kepala Desa).
 
-### 4. 🔍 Modul Audit Pemeriksaan & Buku Pembantu
-* **Buku Besar Umum (General Ledger) & Neraca Saldo (Trial Balance):** Rincian mutasi akun, saldo berjalan, rekonsiliasi saldo awal, dan cetak lembar kerja audit.
-* **Buku Pembantu Piutang & Utang (Subsidiary Ledger):** Pengawasan transaksi dan sisa tagihan per pelanggan/debitur dan kreditur/vendor desa.
-* **Buku Pembantu Persediaan & Kartu Stok:** Master SKU barang dagang, mutasi stok (Masuk/Keluar/Opname), kalkulasi biaya rata-rata bergerak (*Moving Average*), dan cetak Berita Acara Rekapitulasi Stok.
-* **Daftar Register & Jadwal Penyusutan Aset Tetap:** Pencatatan barang modal BUMDes, amortisasi otomatis metode garis lurus (*Straight-Line*), beban depresiasi berjalan, dan nilai buku bersih.
-* **Indikator Kontrol Rekonsiliasi Neraca Otomatis:** Banner audit visual *real-time* yang membandingkan fisik buku pembantu dengan saldo pembukuan di Neraca (Akun `1.1.05` Persediaan, Akun `1.3` Aset Tetap, dan Akun `1.3.07` Akumulasi Penyusutan).
+### 4. 🏦 Unit Simpan Pinjam (USP) & Kartu Anggota Digital
+* **Manajemen Simpanan & Pinjaman Anggota:** Pengawasan Simpanan Pokok, Simpanan Wajib, Simpanan Sukarela, dan kontrol sisa pokok pinjaman debitur.
+* **Penomoran Bukti Sekuensial Resmi:** Mutasi simpanan dan pinjaman otomatis tersinkronisasi dengan BKU menggunakan format sekuensial `BKM/YYYY/MM/XXXX` dan `BKK/YYYY/MM/XXXX`.
+* **Cetak Resmi Kartu Simpan Pinjam Anggota:** Lembar kontrol resmi 2 bagian (Rincian Simpanan & Tabel Angsuran) ber-kop surat resmi dengan 3 penandatangan (Peminjam/Debitur, Pengelola USP, dan Direktur Utama BUMDes).
+* **Validasi Anti-Overpayment:** Perlindungan otomatis agar pembayaran pokok angsuran tidak dapat melebihi sisa pinjaman anggota.
 
-### 5. 🔒 Tutup & Buka Buku Otomatis (Rollover 1 Januari)
-* **Otomasi Akhir Tahun:** Menutup laba/rugi berjalan ke Saldo Laba Ditahan per 31 Desember dengan 1 klik.
-* **Rollover Saldo Awal Otomatis:** Mentransfer saldo neraca penutupan menjadi saldo awal (*Opening Balance*) tahun baru yang otomatis terkoneksi ke BKU, Buku Besar, dan Laporan Arus Kas.
+### 5. 🔍 Modul Audit Pemeriksaan & Buku Pembantu (Sub-Ledger Kepmendes 136)
+* **Buku Besar Umum (General Ledger) & Neraca Saldo (Trial Balance):** Rincian mutasi akun, saldo berjalan, rekonsiliasi saldo awal, dan lembar kerja audit.
+* **Buku Kas Pembantu Bank:** Kontrol mutasi per rekening bank BUMDes (BNI, Mandiri, BRI, BCA, Bank Jatim) lengkap dengan fitur auto-jurnal cepat untuk bunga bank (`7.1.01`), admin bank (`7.2.01`), dan pajak bunga (`7.3.01`).
+* **Buku Pembantu Pajak (NTPN):** Pelaporan pajak potong/pungut desa (`2.1.02.xx`) dan beban pajak langsung (`7.3.01.xx`) disertai input lencana nomor **NTPN / ID Billing**.
+* **Buku Pembantu Persediaan & Kartu Stok:** Master SKU barang dagang, mutasi stok (Masuk/Keluar/Opname), kalkulasi biaya rata-rata bergerak (*Moving Average*), dan Berita Acara Rekapitulasi Stok.
+* **Register & Jadwal Penyusutan Aset Tetap:** Pencatatan barang modal BUMDes, penyusutan otomatis metode garis lurus (*Straight-Line*), dan filter perolehan tahun berjalan.
+* **Indikator Kontrol Rekonsiliasi Neraca:** Banner audit visual *real-time* yang memastikan fisik buku pembantu cocok 100% (selisih Rp 0) dengan akun terkait di Neraca.
 
-### 6. 🤖 Asisten Pintar Pencatatan Transaksi (Gemini AI & NLP)
+### 6. 📱 Mobile AI Receipt Scanner (`/scan`)
+* **Pindai Struk/Nota Kamera HP:** Rute mobile-first khusus `/scan` bagi operator lapangan untuk memotret nota belanja fisik langsung dari kamera smartphone.
+* **Client-Side Image Compression:** Kompresi gambar cerdas berbasis canvas HTML5 (max 1280px, format JPEG) untuk menghemat kuota internet dan mempercepat upload.
+* **Live Double-Entry Preview:** Kotak pratinjau jurnal berpasangan sebelum disimpan langsung ke Buku Kas Umum.
+
+### 7. 🔒 Tutup & Buka Buku Otomatis dengan Pra-Audit AI 7 Pilar
+* **Pra-Audit Kesehatan Keuangan AI:** Pengecekan 7 pilar kepatuhan otomatis sebelum penutupan buku (Likuiditas Kas, Rasio BOPO, Keseimbangan Jurnal, Persamaan Neraca Mutlak, Subledger USP, Register Aset, dan Konsistensi LAK vs Neraca).
+* **Otomasi Akhir Tahun (1 Klik):** Menutup laba/rugi berjalan ke Saldo Laba Ditahan per 31 Desember dan menghitung pembagian alokasi SHU Musdes (PADes 40%, Cadangan 20%, Pengurus 20%, Sosial 10%, Pendidikan 10%).
+* **Rollover Saldo Awal Aman:** Memindahkan saldo neraca penutupan menjadi saldo awal (*Opening Balance*) tahun baru tanpa menduplikasi transaksi masa lalu.
+
+### 8. 🤖 Asisten Pintar Gemini AI 3.5 & NLP Offline
 * **Natural Language Parser:** Ketik transaksi dengan bahasa santai sehari-hari (contoh: *"Beli bensin motor dinas 50rb"*), sistem otomatis menentukan akun debit-kredit, jenis BKM/BKK, dan pos Arus Kas.
 * **Mode Cerdas Offline:** Tetap dapat mencatat otomatis tanpa koneksi internet atau API key menggunakan mesin aturan NLP bawaan (0ms latency, hemat kuota).
+* **Generator Narasi LPJ Otomatis:** Sekali klik untuk menghasilkan teks pidato laporan pertanggungjawaban direktur pada forum Musyawarah Desa.
 
-### 7. 🛡️ Bagan Akun (COA Dinamis), Multi-User & Pemeliharaan
+### 9. 🛡️ Bagan Akun (COA Dinamis), Multi-User & Pemeliharaan
 * **Bagan Akun Resmi Kepmendes 136:** 220+ akun standar 5 level kodefikasi dengan paginasi dinamis dan fitur tambah akun bank/unit usaha kustom.
 * **Pemisahan Peran (Multi-Role):** Hak akses Administrator (pengaturan, pejabat, audit, backup/restore) dan Operator (kasir & BKU).
 * **Pencadangan Mandiri:** Backup basis data lokal SQLite WAL, restore instan, dan reset sistem berkeamanan tinggi.
+
+### 10. 🧠 Custom AI Skill Audit BUMDes (`.agents/skills/`)
+* **Kolaborasi Tim AI Terpadu:** Dilengkapi skill auditor mandiri di [`.agents/skills/bumdes-accounting-auditor/`](.agents/skills/bumdes-accounting-auditor/SKILL.md) yang dapat dijalankan melalui AI coding assistant dengan perintah `/bumdes-audit` untuk verifikasi kepatuhan SAK EMKM dan Kepmendes 136/2022.
 
 ---
 
@@ -92,7 +112,7 @@ Aplikasi ini patuh penuh terhadap dua regulasi akuntansi utama:
 * **Basis Data:** [SQLite 3](https://www.sqlite.org/) mode *Write-Ahead Logging* (WAL) – tanpa instalasi database server eksternal yang rumit
 * **ORM:** [Prisma ORM 5.21](https://www.prisma.io/)
 * **Ekspor Excel:** [SheetJS (xlsx 0.20.3)](https://docs.sheetjs.com/)
-* **Mesin AI:** [@google/genai](https://www.npmjs.com/package/@google/genai) (Google Gemini 2.5 Flash)
+* **Mesin AI:** [@google/genai](https://www.npmjs.com/package/@google/genai) (Google Gemini 3.5 Flash)
 * **Ikon:** [Lucide React](https://lucide.dev/)
 
 ---
@@ -172,9 +192,9 @@ Aplikasi siap diakses di port `3000` (atau sambungkan ke domain desa via reverse
 >   ```
 > * **Opsi Cepat & Aman (Untuk VPS Hemat RAM 512 MB – 1 GB):**  
 >   Kompilasi di PC lokal agar VPS tidak kehabisan memori (*out of memory / killed*):
->   1. Di PC: `npm run build` lalu kompres: `tar -czf next-build.tar.gz .next`
->   2. Kirim ke VPS: `scp next-build.tar.gz user@IP_VPS:/var/www/openbumdes/`
->   3. Di VPS: `git pull && npm install && npx prisma db push && tar -xzf next-build.tar.gz && rm next-build.tar.gz && pm2 restart openbumdes`
+>   1. Di PC lokal: Gunakan berkas `openbumdes-v1.6.2-prod.zip` siap pakai.
+>   2. Kirim ke VPS: `scp openbumdes-v1.6.2-prod.zip user@IP_VPS:/var/www/`
+>   3. Di VPS: `cd /var/www/openbumdes && unzip -o /var/www/openbumdes-v1.6.2-prod.zip -d . && npx prisma generate && npx prisma db push && pm2 restart openbumdes`
 
 ---
 
@@ -207,22 +227,26 @@ Sistem menyediakan 2 akun login bawaan (juga tersedia tombol **Akses Cepat** pad
 
 ```text
 OpenBUMDes/
+├── .agents/
+│   └── skills/
+│       └── bumdes-accounting-auditor/ # Custom skill audit Kepmendes 136 (AI Agent)
 ├── prisma/
 │   ├── coa_kemendes_136.json   # 130+ daftar akun standar Kepmendes 136/2022
 │   ├── schema.prisma           # Skema tabel database SQLite
 │   └── seed.ts                 # Skrip seeder akun bawaan & COA
-├── public/                     # Aset publik statis
+├── public/                     # Aset publik statis (logo, favicon)
 ├── src/
 │   ├── app/
-│   │   ├── api/                # REST API backend (cash-book, coa, closing, auth, ai, settings, system)
+│   │   ├── api/                # REST API backend (cash-book, coa, closing, auth, ai, loans, assets, etc.)
 │   │   ├── globals.css         # Styling global Tailwind CSS
 │   │   ├── layout.tsx          # Root layout & font metadata
 │   │   ├── page.tsx            # Antarmuka tunggal terpadu OpenBUMDes
+│   │   ├── scan/page.tsx       # Antarmuka khusus Mobile AI Receipt Scanner
 │   │   └── robots.ts           # Konfigurasi crawler robots.txt
-│   ├── components/             # Komponen UI modal & tab (BKU, Kwitansi, COA, Closing, Maintenance, dll.)
-│   └── lib/                    # Logika bisnis akuntansi (Double-Entry Ledger, Gemini AI, Auth, DB)
+│   ├── components/             # Komponen UI modal & tab (BKU, Kwitansi, USP, Aset, Closing, Subledger, dll.)
+│   └── lib/                    # Logika bisnis akuntansi (Double-Entry Ledger, Gemini AI, Auth, Reports, Version)
 ├── tests/
-│   └── self-check.mjs          # Pengujian otomatis rumus akuntansi & keamanan token
+│   └── self-check.mjs          # Pengujian otomatis rumus akuntansi & keamanan token (20 skenario)
 ├── CHANGELOG.md                # Catatan riwayat versi rilis
 ├── LICENSE                     # Lisensi GNU General Public License v3.0
 ├── package.json                # Dependensi dan script npm
