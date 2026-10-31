@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     ) {
       prefix = "4.1.04"
       type = "REVENUE"
-      normal = "Credit"
+      normal = "Kredit"
       suggestedName = `Pendapatan Sewa (${query})`
       reason = "Berdasarkan Kepmendesa PDTT No. 136/2022, pendapatan sewa properti dan aset desa dialokasikan pada Pendapatan Sewa (Kode 4.1.04)."
     } else if (
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     ) {
       prefix = "4.1.01"
       type = "REVENUE"
-      normal = "Credit"
+      normal = "Kredit"
       suggestedName = `Pendapatan Penjualan (${query})`
       reason = "Berdasarkan Kepmendesa PDTT No. 136/2022, penjualan barang dagangan unit usaha dialokasikan pada Pendapatan Usaha Perdagangan (Kode 4.1.01)."
     } else if (
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
     ) {
       prefix = "4.1.03"
       type = "REVENUE"
-      normal = "Credit"
+      normal = "Kredit"
       suggestedName = `Pendapatan Jasa (${query})`
       reason = "Berdasarkan Kepmendesa PDTT No. 136/2022, penerimaan dari jasa layanan masyarakat dialokasikan pada Pendapatan Jasa Layanan (Kode 4.1.03)."
     } else if (
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     ) {
       prefix = "2.1.01"
       type = "LIABILITY"
-      normal = "Credit"
+      normal = "Kredit"
       suggestedName = `Hutang Usaha (${query})`
       reason = "Berdasarkan Kepmendesa PDTT No. 136/2022, kewajiban jangka pendek operasional dialokasikan pada Kewajiban Lancar (Kode 2.1.01)."
     } else if (
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
     ) {
       prefix = "3.1.02"
       type = "EQUITY"
-      normal = "Credit"
+      normal = "Kredit"
       suggestedName = `Penyertaan Modal (${query})`
       reason = "Berdasarkan Kepmendesa PDTT No. 136/2022, modal tambahan pihak luar dialokasikan pada kelompok Ekuitas BUM Desa (Kode 3.1.02)."
     } else if (

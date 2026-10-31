@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { postJournalEntry } from "@/lib/ledger"
 import { getUserSession } from "@/lib/auth"
 import { calculateFinancialReports } from "@/lib/reports"
 
@@ -108,14 +107,6 @@ export async function POST(request: Request) {
     const closingDate = new Date(`${parsedYear}-12-31T23:59:59.000Z`)
     const closingProofNumber = `JP/${parsedYear}/12/0001`
 
-    // Hapus jurnal penutup lama jika ada (kasus proses ulang)
-    const oldEntry = await db.journalEntry.findUnique({
-      where: { proofNumber: closingProofNumber }
-    })
-    if (oldEntry) {
-      await db.journalEntry.delete({ where: { id: oldEntry.id } })
-    }
-
     const closingLines: { accountCode: string; type: "DEBIT" | "CREDIT"; amount: number }[] = []
 
     // Debit seluruh akun pendapatan (menolkan akun pendapatan)
@@ -143,61 +134,50 @@ export async function POST(request: Request) {
       closingLines.push({ accountCode: "3.1.03.01", type: "DEBIT", amount: Math.abs(netProfit) })
     }
 
-    // Pastikan akun 3.1.03.01 terdaftar di master
-    const ditahanAcc = await db.ledgerAccount.findUnique({ where: { code: "3.1.03.01" } })
-    if (!ditahanAcc) {
-      await db.ledgerAccount.create({
-        data: {
+    // 4. Eksekusi Jurnal Penutup & Simpan Record AnnualClosing secara atomik dalam satu transaksi
+    const closingRecord = await db.$transaction(async (tx) => {
+      // Pastikan akun 3.1.03.01 terdaftar di master
+      await tx.ledgerAccount.upsert({
+        where: { code: "3.1.03.01" },
+        update: {},
+        create: {
           code: "3.1.03.01",
           name: "Laba Ditahan / Sisa Hasil Usaha Ditahan",
           type: "EQUITY",
-          normal: "CREDIT"
+          normal: "Kredit"
         }
       })
-    }
 
-    let createdEntryId: string | null = null
-    if (closingLines.length > 0) {
-      const { entry } = await postJournalEntry(
-        closingDate,
-        "MEMORIAL",
-        `Jurnal Penutup (Closing Entries) Akhir Tahun Buku ${parsedYear} BUMDes`,
-        "Sistem Akuntansi BUMDes",
-        closingLines,
-        "Umum",
-        `Tutup buku tahun ${parsedYear} oleh ${closedBy}. Laba Bersih: Rp ${netProfit.toLocaleString("id-ID")}`,
-        null,
-        closingProofNumber
-      )
-      createdEntryId = entry.id
-    }
+      // Hapus jurnal penutup lama jika ada (kasus proses ulang)
+      await tx.journalEntry.deleteMany({
+        where: { proofNumber: closingProofNumber }
+      })
 
-    // 4. Simpan Record AnnualClosing lengkap dengan snapshot JSON
-    const closingRecord = await db.annualClosing.upsert({
-      where: { year: parsedYear },
-      create: {
-        year: parsedYear,
-        closedAt: new Date(),
-        closedBy,
-        totalRevenue,
-        totalExpense,
-        netProfit,
-        padesPercent: padesRate,
-        padesAmount,
-        cadanganPercent: cadanganRate,
-        cadanganAmount,
-        pengurusPercent: pengurusRate,
-        pengurusAmount,
-        sosialPercent: sosialRate,
-        sosialAmount,
-        pendidikanPercent: pendidikanRate,
-        pendidikanAmount,
-        journalEntryId: createdEntryId,
-        snapshotData: JSON.stringify(snapshot),
-        isLocked: true,
-        notes: notes || null
-      },
-      update: {
+      let createdEntryId: string | null = null
+      if (closingLines.length > 0) {
+        const entry = await tx.journalEntry.create({
+          data: {
+            proofNumber: closingProofNumber,
+            proofType: "MEMORIAL",
+            date: closingDate,
+            description: `Jurnal Penutup (Closing Entries) Akhir Tahun Buku ${parsedYear} BUMDes`,
+            payeeOrPayer: "Sistem Akuntansi BUMDes",
+            unitName: "Umum",
+            note: `Tutup buku tahun ${parsedYear} oleh ${closedBy}. Laba Bersih: Rp ${netProfit.toLocaleString("id-ID")}`,
+            verificationStatus: "VERIFIED",
+            lines: {
+              create: closingLines.map((l) => ({
+                accountCode: l.accountCode,
+                type: l.type,
+                amount: l.amount
+              }))
+            }
+          }
+        })
+        createdEntryId = entry.id
+      }
+
+      const closingData = {
         closedAt: new Date(),
         closedBy,
         totalRevenue,
@@ -218,6 +198,12 @@ export async function POST(request: Request) {
         isLocked: true,
         notes: notes || null
       }
+
+      return await tx.annualClosing.upsert({
+        where: { year: parsedYear },
+        create: { year: parsedYear, ...closingData },
+        update: closingData
+      })
     })
 
     return NextResponse.json({

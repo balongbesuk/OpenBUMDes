@@ -1198,7 +1198,7 @@ export default function ClosingTab({
                                 code.startsWith("1.3.07") ||
                                 code.startsWith("1.3.08") ||
 
-                                found?.normal === "Kredit" ||
+                                found?.normal === "Kredit" || found?.normal === "Credit" ||
                                 (found?.name || "").toLowerCase().includes("akumulasi")
                               const defaultSide = isContra
                                 ? "CREDIT"
@@ -1304,7 +1304,7 @@ export default function ClosingTab({
                     defaultAcc.code.startsWith("1.3.07") ||
                     defaultAcc.code.startsWith("1.3.08") ||
 
-                    defaultAcc.normal === "Kredit"
+                    defaultAcc.normal === "Kredit" || defaultAcc.normal === "Credit"
                   const defaultSide = isContra
                     ? "CREDIT"
                     : defaultAcc.code.startsWith("1.")

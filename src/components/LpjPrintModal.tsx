@@ -495,14 +495,15 @@ export default function LpjPrintModal({
     body.appendChild(toolbar)
     body.appendChild(printContainer)
 
+    let printed = false
     printWindow.onload = () => {
       setTimeout(() => {
-        try { printWindow.print() } catch {}
+        try { if (!printed) { printed = true; printWindow.print() } } catch {}
       }, 600)
     }
 
     setTimeout(() => {
-      try { printWindow.print() } catch {}
+      try { if (!printed) { printed = true; printWindow.print() } } catch {}
     }, 1200)
   }
 

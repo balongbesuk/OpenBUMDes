@@ -81,7 +81,7 @@ async function main() {
     { key: "village_head", value: "" },
     { key: "supervisor_name", value: "" },
     { key: "gemini_api_key", value: "" },
-    { key: "gemini_model", value: "gemini-2.5-flash" }
+    { key: "gemini_model", value: "gemini-3.5-flash" }
   ]
 
   for (const s of settings) {

@@ -10,31 +10,34 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const targetYear = parseInt(searchParams.get("year") || `${new Date().getFullYear()}`, 10)
+    const targetYear = parseInt(searchParams.get("year") || `${new Date().getUTCFullYear()}`, 10)
 
     const assets = await db.fixedAsset.findMany({
+      where: {
+        acquisitionDate: {
+          lte: new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999))
+        }
+      },
       orderBy: { acquisitionDate: "asc" }
     })
 
     const formatted = assets.map((asset) => {
       const acqDate = new Date(asset.acquisitionDate)
-      const acqYear = acqDate.getFullYear()
-      const acqMonth = acqDate.getMonth() + 1 // 1-12
+      const acqYear = acqDate.getUTCFullYear()
+      const acqMonth = acqDate.getUTCMonth() + 1 // 1-12
 
       const cost = asset.acquisitionCost
       const salvage = asset.salvageValue || 0
       const depreciableAmount = Math.max(0, cost - salvage)
       const usefulYears = Math.max(1, asset.usefulLifeYears)
 
-      // Metode Garis Lurus (Straight-Line Method)
       const annualDepreciation = depreciableAmount / usefulYears
       const monthlyDepreciation = annualDepreciation / 12
 
-      // Hitung akumulasi penyusutan hingga akhir tahun target
       let totalMonthsElapsed = 0
       if (targetYear >= acqYear) {
         if (targetYear === acqYear) {
-          totalMonthsElapsed = 12 - acqMonth + 1 // Bulan berjalan di tahun perolehan
+          totalMonthsElapsed = 12 - acqMonth + 1
         } else {
           const firstYearMonths = 12 - acqMonth + 1
           const fullYearsBetween = targetYear - acqYear - 1
@@ -47,7 +50,6 @@ export async function GET(request: Request) {
       const accumulatedDepreciation = Math.min(depreciableAmount, activeMonths * monthlyDepreciation)
       const bookValue = Math.max(salvage, cost - accumulatedDepreciation)
 
-      // Beban tahun berjalan
       let currentYearExpense = 0
       if (targetYear >= acqYear && totalMonthsElapsed > 0) {
         if (targetYear === acqYear) {
@@ -85,7 +87,7 @@ export async function GET(request: Request) {
       }
     })
 
-    // Agregasi Buku Besar untuk Aset Tetap (1.3.xx / 1.2.01) dan Akumulasi Penyusutan (1.3.07 / 1.2.02)
+    // Agregasi Buku Besar khusus Aset Tetap (1.3.xx) & Akumulasi Penyusutan/Amortisasi (1.3.07 & 1.3.08) sesuai Kepmendes 136/2022
     const hasOpeningJournal = await db.journalEntry.findFirst({
       where: { proofNumber: { startsWith: `SA/${targetYear}/` } },
       select: { id: true }
@@ -96,12 +98,10 @@ export async function GET(request: Request) {
 
     const assetLines = await db.journalLine.findMany({
       where: {
-        OR: [
-          { accountCode: { startsWith: "1.3." } },
-          { accountCode: { startsWith: "1.2.01" } }
-        ],
+        accountCode: { startsWith: "1.3." },
         NOT: [
-          { accountCode: { startsWith: "1.3.07" } }
+          { accountCode: { startsWith: "1.3.07" } },
+          { accountCode: { startsWith: "1.3.08" } }
         ],
         journalEntry: {
           date: assetDateCondition
@@ -119,7 +119,7 @@ export async function GET(request: Request) {
       where: {
         OR: [
           { accountCode: { startsWith: "1.3.07" } },
-          { accountCode: { startsWith: "1.2.02" } }
+          { accountCode: { startsWith: "1.3.08" } }
         ],
         journalEntry: {
           date: assetDateCondition
@@ -132,6 +132,19 @@ export async function GET(request: Request) {
       if (l.type === "CREDIT") ledgerDepr += l.amount
       else ledgerDepr -= l.amount
     })
+
+    if (ledgerAssetCost === 0 && ledgerDepr === 0) {
+      const archivedClosing = await db.annualClosing.findUnique({ where: { year: targetYear } })
+      if (archivedClosing?.isLocked && archivedClosing.snapshotData) {
+        try {
+          const snap = JSON.parse(archivedClosing.snapshotData)
+          if (snap?.neraca?.fixedAssets) {
+            ledgerAssetCost = snap.neraca.fixedAssets.peralatan || 0
+            ledgerDepr = snap.neraca.fixedAssets.akumulasiPenyusutan || 0
+          }
+        } catch {}
+      }
+    }
 
     const totalAcquisitionCost = formatted.reduce((acc, curr) => acc + curr.acquisitionCost, 0)
     const totalAccumulatedDepreciation = formatted.reduce((acc, curr) => acc + curr.accumulatedDepreciation, 0)
@@ -211,6 +224,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: "Nomor Registrasi, Nama Aset, Tanggal Beli, dan Harga Perolehan wajib diisi." }, { status: 400 })
       }
 
+      const acqDateObj = new Date(acquisitionDate)
+      const acqYear = acqDateObj.getUTCFullYear()
+      const closed = await db.annualClosing.findUnique({ where: { year: acqYear } })
+      if (closed?.isLocked) {
+        return NextResponse.json({
+          success: false,
+          error: `Pendaftaran ditolak. Tahun Anggaran ${acqYear} telah ditutup buku dan dikunci.`
+        }, { status: 403 })
+      }
+
       const existing = await db.fixedAsset.findUnique({
         where: { code: code.trim().toUpperCase() }
       })
@@ -223,7 +246,7 @@ export async function POST(request: Request) {
           code: code.trim().toUpperCase(),
           name: name.trim(),
           category: category?.trim() || "Peralatan & Mesin",
-          acquisitionDate: new Date(acquisitionDate),
+          acquisitionDate: acqDateObj,
           acquisitionCost: Math.max(0, parseFloat(acquisitionCost) || 0),
           usefulLifeYears: Math.max(1, parseInt(usefulLifeYears, 10) || 4),
           salvageValue: Math.max(0, parseFloat(salvageValue) || 0),
@@ -260,6 +283,20 @@ export async function PATCH(request: Request) {
     const { id, condition, location, notes } = body
     if (!id) {
       return NextResponse.json({ success: false, error: "ID aset tetap wajib disertakan." }, { status: 400 })
+    }
+
+    const existing = await db.fixedAsset.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ success: false, error: "Aset tetap tidak ditemukan." }, { status: 404 })
+    }
+
+    const acqYear = new Date(existing.acquisitionDate).getUTCFullYear()
+    const closed = await db.annualClosing.findUnique({ where: { year: acqYear } })
+    if (closed && closed.isLocked) {
+      return NextResponse.json({
+        success: false,
+        error: `Perubahan ditolak. Aset berada pada Tahun Anggaran ${acqYear} yang telah ditutup buku dan berstatus Terkunci (Arsip LPJ Resmi).`
+      }, { status: 403 })
     }
 
     const dataToUpdate: any = {}
@@ -306,7 +343,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "Aset tetap tidak ditemukan atau sudah dihapus." }, { status: 404 })
     }
 
-    const acqYear = new Date(existing.acquisitionDate).getFullYear()
+    const acqYear = new Date(existing.acquisitionDate).getUTCFullYear()
     const closed = await db.annualClosing.findUnique({ where: { year: acqYear } })
     if (closed && closed.isLocked) {
       return NextResponse.json({

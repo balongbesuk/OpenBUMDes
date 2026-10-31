@@ -2,6 +2,25 @@
 
 All notable changes to OpenBUMDes are documented in this file.
 
+## [1.6.2] - 2026-10-31
+
+### Fixed & Enhanced - Rekonsiliasi Data Riil, Subledger, & Arsip Tutup Buku
+
+* **Arsip Tutup Buku Historis pada Laporan & EIS (`src/lib/reports.ts`, `src/app/api/eis/route.ts`)**:
+  * `calculateFinancialReports(year)` memprioritaskan pembacaan `snapshotData` berstatus terkunci (`isLocked`) untuk tahun-tahun lampau (2024 & 2025) sehingga skor kesehatan EIS, rasio likuiditas, dan neraca historis tampil akurat sesuai laporan resmi LPJ Musdes.
+  * Agregasi akun lancar di EIS (`kasDanBank`, `piutangUsaha`) kini menangani multi-baris data neraca lampau secara case-insensitive.
+* **Rekonsiliasi Buku Besar Simpan Pinjam USP (`src/app/api/loans/route.ts`)**:
+  * Menyelaraskan rekonsiliasi Buku Besar USP dengan akun roll-forward `1.1.03.xx` (Piutang) dan `2.1.05.xx` (Simpanan Anggota) serta fallback ke arsip neraca lampau jika transaksi detail tahun tersebut sudah diarsipkan.
+  * Menambahkan validasi angsuran pinjaman (`validateLoanInstallment`) agar pembayaran pokok tidak dapat melebihi sisa pinjaman serta proteksi penguncian periode (`annualClosing.isLocked`) pada pendaftaran, transaksi, dan penghapusan anggota.
+* **Filter Register Aset Tetap Lintas Tahun (`src/app/api/assets/route.ts`)**:
+  * Register aset tetap memfilter item berdasarkan tanggal perolehan hingga akhir tahun target (`acquisitionDate <= 31 Des YYYY`) dan membaca arsip Neraca saat periode tersebut terkunci, memastikan nilai perolehan di register dan Neraca sinkron 100% (selisih Rp 0).
+  * Menambahkan pencegahan penambahan, pengubahan, dan penghapusan aset pada tahun anggaran yang telah ditutup buku dan berstatus terkunci.
+* **Koreksi Kartu Stok & Valuasi Persediaan (`src/lib/ledger.ts`, `src/app/api/inventory/route.ts`)**:
+  * Memperbaiki perhitungan moving average pada kartu stok dengan mengecualikan mutasi rekaman saldo awal (`referenceProof === "SALDO-AWAL"`) agar kuantitas awal tidak terhitung ganda.
+  * Menangani mutasi penyesuaian (ADJUST) stok opname ke 0 secara akurat.
+* **Pengujian Otomatis Inti Akuntansi (`tests/self-check.mjs`)**:
+  * Menambahkan 20 pengujian mandiri (*self-check*) otomatis berbasis Node.js yang memuat langsung modul produksi `src/` tanpa memerlukan server eksternal, mencakup pembagian arus kas LAK, eliminasi mutasi internal, validasi angsuran, depresiasi aset, dan pencegahan duplikasi saldo awal.
+
 ## [1.6.1] - 2026-10-30
 
 ### Added - Buku Kas Pembantu Bank & Buku Pembantu Pajak (Sub-Ledger Kepmendes 136)

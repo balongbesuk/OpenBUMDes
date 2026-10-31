@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import fs from "fs"
 import path from "path"
 import { db } from "@/lib/db"
-import { postJournalEntry } from "@/lib/ledger"
+import { postJournalEntry, nextAssetCode } from "@/lib/ledger"
 import { getUserSession } from "@/lib/auth"
 
 export async function GET(request: Request) {
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     }
 
     const txDate = date ? new Date(date) : new Date()
-    const txYear = txDate.getFullYear()
+    const txYear = txDate.getUTCFullYear()
 
     // Validasi apakah tahun transaksi telah ditutup buku dan terkunci
     const closed = await db.annualClosing.findUnique({
@@ -130,11 +130,15 @@ export async function POST(request: Request) {
 
       if (assetLine && body.autoRegisterAsset !== false) {
         try {
-          const codeYear = txDate.getFullYear()
-          const countExisting = await db.fixedAsset.count({
-            where: { code: { startsWith: `AST-${codeYear}-` } }
+          const codeYear = txDate.getUTCFullYear()
+          const existingAssets = await db.fixedAsset.findMany({
+            where: { code: { startsWith: `AST-${codeYear}-` } },
+            select: { code: true }
           })
-          const autoCode = `AST-${codeYear}-${String(countExisting + 1).padStart(3, "0")}`
+          const autoCode = nextAssetCode(
+            codeYear,
+            existingAssets.map((a) => a.code)
+          )
           const deprCode = assetLine.accountCode.startsWith("1.3.02")
             ? "1.3.07.01"
             : assetLine.accountCode.startsWith("1.3.04")
@@ -226,7 +230,7 @@ export async function DELETE(request: Request) {
     }
 
     // Cek apakah tahun transaksi sudah ditutup buku dan terkunci
-    const txYear = new Date(existing.date).getFullYear()
+    const txYear = new Date(existing.date).getUTCFullYear()
     const closed = await db.annualClosing.findUnique({
       where: { year: txYear }
     })
@@ -240,13 +244,16 @@ export async function DELETE(request: Request) {
       )
     }
 
-    // Hapus berkas lampiran fisik jika ada di public/uploads
+    // Hapus berkas lampiran fisik di storage/uploads maupun legacy public/uploads
     if (existing.attachmentUrl && existing.attachmentUrl.startsWith("/uploads/")) {
       try {
         const fileName = path.basename(existing.attachmentUrl)
-        const filePath = path.join(process.cwd(), "public", "uploads", fileName)
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath)
+        for (const dir of [
+          path.join(process.cwd(), "storage", "uploads"),
+          path.join(process.cwd(), "public", "uploads")
+        ]) {
+          const filePath = path.join(dir, fileName)
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
         }
       } catch (err) {
         console.warn("Gagal menghapus berkas lampiran fisik:", err)
@@ -303,7 +310,7 @@ export async function PATCH(request: Request) {
     }
 
     // Cek apakah tahun transaksi sudah ditutup buku dan terkunci
-    const txYear = new Date(existing.date).getFullYear()
+    const txYear = new Date(existing.date).getUTCFullYear()
     const closed = await db.annualClosing.findUnique({
       where: { year: txYear }
     })
@@ -338,5 +345,3 @@ export async function PATCH(request: Request) {
     )
   }
 }
-
-

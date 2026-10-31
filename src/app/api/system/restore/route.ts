@@ -18,6 +18,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Tidak ada berkas database yang dipilih." }, { status: 400 })
     }
 
+    const MAX_DB_SIZE = 50 * 1024 * 1024
+    if (file.size > MAX_DB_SIZE) {
+      return NextResponse.json(
+        { success: false, error: "Ukuran berkas backup terlalu besar (maksimal 50 MB)." },
+        { status: 400 }
+      )
+    }
+
     const fileBuffer = Buffer.from(await file.arrayBuffer())
 
     // Validasi signature header SQLite (16 byte pertama: "SQLite format 3\0")
@@ -31,20 +39,52 @@ export async function POST(request: Request) {
       )
     }
 
+    // Validasi keberadaan tabel inti OpenBUMDes tanpa alokasi string raksasa tambahan di RAM
+    const requiredTables = ["User", "LedgerAccount", "JournalEntry"]
+    const missingTable = requiredTables.find((t) => !fileBuffer.includes(t, 0, "latin1"))
+    if (missingTable) {
+      return NextResponse.json(
+        { success: false, error: `Berkas SQLite bukan backup OpenBUMDes yang sah (tabel ${missingTable} tidak ditemukan).` },
+        { status: 400 }
+      )
+    }
+
     let dbPath = path.join(process.cwd(), "prisma", "dev.db")
     if (!fs.existsSync(dbPath)) {
       dbPath = path.join(process.cwd(), "..", "bumdes-v2", "prisma", "dev.db")
     }
+    const backupPath = dbPath + ".bak"
 
-    // Disconnect Prisma Client sebelum menimpa berkas
+    // Disconnect Prisma Client dan salin cadangan darurat sebelum menimpa berkas
     await db.$disconnect()
+    if (fs.existsSync(dbPath)) {
+      fs.copyFileSync(dbPath, backupPath)
+    }
 
-    // Hapus berkas WAL & SHM lama jika ada agar tidak bentrok
-    try { if (fs.existsSync(dbPath + "-wal")) fs.unlinkSync(dbPath + "-wal") } catch {}
-    try { if (fs.existsSync(dbPath + "-shm")) fs.unlinkSync(dbPath + "-shm") } catch {}
+    try {
+      try { if (fs.existsSync(dbPath + "-wal")) fs.unlinkSync(dbPath + "-wal") } catch {}
+      try { if (fs.existsSync(dbPath + "-shm")) fs.unlinkSync(dbPath + "-shm") } catch {}
 
-    // Tulis berkas database baru
-    fs.writeFileSync(dbPath, fileBuffer)
+      fs.writeFileSync(dbPath, fileBuffer)
+
+      // Uji baca tabel inti & pastikan minimal ada 1 akun pengguna agar Admin tidak terkunci keluar
+      const userCount = await db.user.count()
+      await db.ledgerAccount.count()
+      if (userCount === 0) {
+        throw new Error("Berkas backup tidak memiliki akun pengguna aktif.")
+      }
+    } catch {
+      await db.$disconnect().catch(() => {})
+      if (fs.existsSync(backupPath)) {
+        fs.copyFileSync(backupPath, dbPath)
+      }
+      return NextResponse.json(
+        { success: false, error: "Berkas database rusak, kosong dari akun pengguna, atau skema tidak cocok. Database sebelumnya telah dipulihkan otomatis." },
+        { status: 400 }
+      )
+    } finally {
+      try { if (fs.existsSync(backupPath)) fs.unlinkSync(backupPath) } catch {}
+    }
 
     return NextResponse.json({
       success: true,

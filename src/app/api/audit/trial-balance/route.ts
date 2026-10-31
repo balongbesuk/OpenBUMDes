@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     const yearParam = searchParams.get("year")
     const monthParam = searchParams.get("month")
 
-    const year = yearParam ? parseInt(yearParam, 10) : new Date().getFullYear()
+    const year = yearParam ? parseInt(yearParam, 10) : new Date().getUTCFullYear()
     const month = monthParam && monthParam !== "all" ? parseInt(monthParam, 10) : null
 
     let endDate: Date
@@ -37,12 +37,13 @@ export async function GET(request: Request) {
       ? { gte: new Date(Date.UTC(year, 0, 1, 0, 0, 0)), lte: endDate }
       : { lte: endDate }
 
-    // Agregasi mutasi debit & kredit untuk semua akun hingga batas waktu endDate
+    // Agregasi mutasi debit & kredit sebelum jurnal penutup (JP/) agar Neraca Saldo tetap mencerminkan akun operasional 4..7
     const sums = await db.journalLine.groupBy({
       by: ["accountCode", "type"],
       where: {
         journalEntry: {
-          date: dateCondition
+          date: dateCondition,
+          NOT: { proofNumber: { startsWith: `JP/${year}/` } }
         }
       },
       _sum: { amount: true }
@@ -60,6 +61,23 @@ export async function GET(request: Request) {
       }
     })
 
+    // Sertakan akun yang memiliki mutasi jurnal meskipun belum terdaftar di master LedgerAccount agar Neraca Saldo tidak pernah pincang
+    const accountMap = new Map<string, { code: string; name: string; type: string; normal: string }>(
+      allAccounts.map((a) => [a.code, a])
+    )
+    for (const code of new Set([...debitMap.keys(), ...creditMap.keys()])) {
+      if (!accountMap.has(code)) {
+        const isNormalDeb = code.startsWith("1") || code.startsWith("5") || code.startsWith("6") || code.startsWith("7")
+        accountMap.set(code, {
+          code,
+          name: `Akun ${code} (Belum Terdaftar COA)`,
+          type: code.startsWith("1") ? "ASSET" : code.startsWith("2") ? "LIABILITY" : code.startsWith("3") ? "EQUITY" : code.startsWith("4") ? "REVENUE" : "EXPENSE",
+          normal: isNormalDeb ? "Debit" : "Kredit"
+        })
+      }
+    }
+    const mergedAccounts = Array.from(accountMap.values()).sort((a, b) => a.code.localeCompare(b.code))
+
     let totalDebitBalance = 0
     let totalCreditBalance = 0
     let totalGrossDebit = 0
@@ -67,11 +85,10 @@ export async function GET(request: Request) {
 
     const rows: any[] = []
 
-    allAccounts.forEach((acc) => {
+    mergedAccounts.forEach((acc) => {
       const grossDeb = debitMap.get(acc.code) || 0
       const grossCred = creditMap.get(acc.code) || 0
 
-      // Jika tidak pernah ada mutasi, lewati untuk menjaga lembar kerja tetap bersih (kecuali dibutuhkan)
       if (grossDeb === 0 && grossCred === 0) return
 
       totalGrossDebit += grossDeb

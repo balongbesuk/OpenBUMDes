@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { postJournalEntry } from "@/lib/ledger"
 import { getUserSession } from "@/lib/auth"
+import { computeRollForwardPreview } from "@/lib/reports"
 
 // GET: Ambil saldo awal tahun buku baru (atau pratinjau roll-forward dari tahun lalu)
 export async function GET(request: Request) {
@@ -50,62 +50,22 @@ export async function GET(request: Request) {
 
     // 2. Jika belum ada, otomatis hitung Saldo Akhir Neraca per 31 Desember tahun sebelumnya (prevYear)
     const prevClosingDate = new Date(`${prevYear}-12-31T23:59:59.999Z`)
+    const hasPrevOpeningJournal = await db.journalEntry.findFirst({
+      where: { proofNumber: { startsWith: `SA/${prevYear}/` } },
+      select: { id: true }
+    })
 
-    // Ambil seluruh akun neraca (Kepala 1: Aset, Kepala 2: Kewajiban, Kepala 3: Ekuitas)
     const lines = await db.journalLine.findMany({
       where: {
-        journalEntry: { date: { lte: prevClosingDate } }
+        journalEntry: {
+          date: hasPrevOpeningJournal
+            ? { gte: new Date(Date.UTC(prevYear, 0, 1, 0, 0, 0)), lte: prevClosingDate }
+            : { lte: prevClosingDate }
+        }
       }
     })
 
-    const balanceMap = new Map<string, { debit: number; credit: number }>()
-    lines.forEach((l) => {
-      const firstChar = l.accountCode.charAt(0)
-      if (["1", "2", "3"].includes(firstChar)) {
-        const cur = balanceMap.get(l.accountCode) || { debit: 0, credit: 0 }
-        if (l.type === "DEBIT") cur.debit += l.amount
-        else cur.credit += l.amount
-        balanceMap.set(l.accountCode, cur)
-      }
-    })
-
-    const previewAccounts: { accountCode: string; name: string; type: "DEBIT" | "CREDIT"; amount: number }[] = []
-
-    balanceMap.forEach((val, code) => {
-      const acc = accountMap.get(code)
-      const firstChar = code.charAt(0)
-      let netBal = 0
-      let side: "DEBIT" | "CREDIT" = "DEBIT"
-
-      // Kontra aset seperti 1.3.07 (Akumulasi Penyusutan) bersaldo normal Kredit
-      const isAccPenyusutan =
-        code.startsWith("1.3.07") ||
-        code.startsWith("1.3.08") ||
-
-        acc?.normal === "Kredit" ||
-        (acc?.name || "").toLowerCase().includes("akumulasi")
-
-      if (isAccPenyusutan) {
-        netBal = val.credit - val.debit
-        side = "CREDIT"
-      } else if (firstChar === "1") {
-        netBal = val.debit - val.credit
-        side = "DEBIT"
-      } else {
-        // Kewajiban & Ekuitas bersaldo normal Kredit
-        netBal = val.credit - val.debit
-        side = "CREDIT"
-      }
-
-      if (netBal > 0) {
-        previewAccounts.push({
-          accountCode: code,
-          name: acc?.name || `Akun ${code}`,
-          type: side,
-          amount: netBal
-        })
-      }
-    })
+    const previewAccounts = computeRollForwardPreview(lines, accountMap)
 
     // Pastikan Kas (1.1.01.01) dan Modal Desa (3.1.01.01) ada di daftar pratinjau
     if (!previewAccounts.some((a) => a.accountCode === "1.1.01.01")) {
@@ -156,6 +116,17 @@ export async function POST(request: Request) {
 
     const parsedYear = parseInt(String(year), 10)
 
+    const closed = await db.annualClosing.findUnique({ where: { year: parsedYear } })
+    if (closed && closed.isLocked) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Perubahan ditolak. Tahun pembukuan ${parsedYear} telah ditutup buku dan berstatus Terkunci (Arsip LPJ Resmi).`
+        },
+        { status: 403 }
+      )
+    }
+
     // Validasi data akun
     const validLines: { accountCode: string; type: "DEBIT" | "CREDIT"; amount: number }[] = []
     let totalDebit = 0
@@ -183,7 +154,6 @@ export async function POST(request: Request) {
 
     // 1. Simpan ke database OpeningBalance
     await db.$transaction(async (tx) => {
-      // Hapus data lama jika ada
       await tx.openingBalance.deleteMany({ where: { year: parsedYear } })
 
       for (const line of validLines) {
@@ -201,7 +171,6 @@ export async function POST(request: Request) {
       const openingDate = new Date(`${parsedYear}-01-01T00:00:01.000Z`)
       const openingProofNumber = `SA/${parsedYear}/01/0001`
 
-      // Hapus jurnal buka buku lama jika ada
       const oldEntry = await tx.journalEntry.findUnique({ where: { proofNumber: openingProofNumber } })
       if (oldEntry) {
         await tx.journalEntry.delete({ where: { id: oldEntry.id } })

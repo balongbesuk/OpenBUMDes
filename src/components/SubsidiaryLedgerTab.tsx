@@ -16,7 +16,7 @@ import {
   X,
   CheckCircle2
 } from "lucide-react"
-import { formatRupiah, safePrintElement } from "@/lib/utils"
+import { formatRupiah, safePrintElement, getLocalDateString } from "@/lib/utils"
 
 interface SubsidiaryLedgerTabProps {
   settings?: Record<string, string>
@@ -38,7 +38,7 @@ export default function SubsidiaryLedgerTab({ settings = {} }: SubsidiaryLedgerT
   // Modal Quick Action (Bank & Pajak)
   const [showQuickModal, setShowQuickModal] = useState<boolean>(false)
   const [submitting, setSubmitting] = useState<boolean>(false)
-  const [txDate, setTxDate] = useState<string>(new Date().toISOString().slice(0, 10))
+  const [txDate, setTxDate] = useState<string>(getLocalDateString())
   const [txAmount, setTxAmount] = useState<string>("")
   const [txDesc, setTxDesc] = useState<string>("")
   const [txPayee, setTxPayee] = useState<string>("")
@@ -100,7 +100,7 @@ export default function SubsidiaryLedgerTab({ settings = {} }: SubsidiaryLedgerT
   }
 
   const openQuickModal = () => {
-    setTxDate(new Date().toISOString().slice(0, 10))
+    setTxDate(getLocalDateString())
     setTxAmount("")
     setTxDesc("")
     setTaxNtpn("")

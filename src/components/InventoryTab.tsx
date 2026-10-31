@@ -146,7 +146,7 @@ export default function InventoryTab({ settings = {} }: InventoryTabProps) {
           initialQty: "0",
           initialCost: "0",
           minStock: "5",
-          accountCode: "1.1.04.01",
+          accountCode: "1.1.05.01",
           notes: ""
         })
         loadData()
@@ -276,7 +276,7 @@ export default function InventoryTab({ settings = {} }: InventoryTabProps) {
             <TrendingUp className="w-4 h-4 text-[#6777ef]" />
           </div>
           <div className="mt-2 text-2xl font-bold text-[#6777ef]">{formatRupiah(summary.totalInventoryValue)}</div>
-          <p className="text-[11px] text-slate-400 mt-1">Nilai aset lancar (COA Akun 1.1.04)</p>
+          <p className="text-[11px] text-slate-400 mt-1">Nilai aset lancar (COA Akun 1.1.05)</p>
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
@@ -446,7 +446,7 @@ export default function InventoryTab({ settings = {} }: InventoryTabProps) {
               BUKU PEMBANTU PERSEDIAAN & REKAPITULASI STOK BARANG DAGANG
             </h2>
             <div className="inline-block mt-1 px-3 py-0.5 rounded-full bg-slate-100 text-slate-800 text-xs font-bold border border-slate-300">
-              Standar Akuntansi Kepmendesa No. 136/2022 & SAK EMKM (Akun 1.1.04)
+              Standar Akuntansi Kepmendesa No. 136/2022 & SAK EMKM (Akun 1.1.05)
             </div>
             <p className="text-xs text-slate-500 mt-1 italic">
               Posisi Saldo Fisik & Nilai Buku Persediaan per {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
@@ -940,7 +940,7 @@ export default function InventoryTab({ settings = {} }: InventoryTabProps) {
                           {m.description}
                         </td>
                         <td className="py-2 px-3 border-r border-slate-300 text-right font-bold text-emerald-700">
-                          {m.type === "IN" ? `+${m.qty}` : "-"}
+                          {m.type === "IN" ? `+${m.qty}` : m.type === "ADJUST" ? `=${m.qty}` : "-"}
                         </td>
                         <td className="py-2 px-3 border-r border-slate-300 text-right font-bold text-rose-700">
                           {m.type === "OUT" ? `-${m.qty}` : "-"}

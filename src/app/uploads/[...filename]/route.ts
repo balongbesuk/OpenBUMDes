@@ -23,9 +23,12 @@ export async function GET(
       return new NextResponse("Forbidden", { status: 403 })
     }
 
-    const filePath = path.join(process.cwd(), "public", "uploads", safePath)
+    // Utamakan folder privat storage/uploads, fallback ke public/uploads untuk lampiran lama
+    const privatePath = path.join(process.cwd(), "storage", "uploads", safePath)
+    const legacyPath = path.join(process.cwd(), "public", "uploads", safePath)
+    const filePath = fs.existsSync(privatePath) ? privatePath : fs.existsSync(legacyPath) ? legacyPath : null
 
-    if (!fs.existsSync(filePath)) {
+    if (!filePath) {
       return new NextResponse("File Not Found", { status: 404 })
     }
 
@@ -38,7 +41,6 @@ export async function GET(
       ".png": "image/png",
       ".webp": "image/webp",
       ".gif": "image/gif",
-      ".svg": "image/svg+xml",
       ".pdf": "application/pdf"
     }
 
@@ -47,6 +49,7 @@ export async function GET(
     return new NextResponse(fileBuffer, {
       headers: {
         "Content-Type": contentType,
+        "X-Content-Type-Options": "nosniff",
         "Cache-Control": "private, max-age=3600"
       }
     })

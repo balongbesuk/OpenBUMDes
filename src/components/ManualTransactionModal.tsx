@@ -86,8 +86,8 @@ export function ManualTransactionModal({
     const q = coaSearch.toLowerCase().trim()
     return coaList.filter((c) => {
       // Category filter
-      if (filterCategory === "EXPENSE" && !c.code.startsWith("6.") && !c.code.startsWith("5.")) return false
-      if (filterCategory === "REVENUE" && !c.code.startsWith("4.")) return false
+      if (filterCategory === "EXPENSE" && !c.code.startsWith("6.") && !c.code.startsWith("5.") && !c.code.startsWith("7.2.") && !c.code.startsWith("7.3.")) return false
+      if (filterCategory === "REVENUE" && !c.code.startsWith("4.") && !c.code.startsWith("7.1.")) return false
       if (filterCategory === "ASSET" && !c.code.startsWith("1.3.") && !c.code.startsWith("1.2.")) return false
 
       // Search query

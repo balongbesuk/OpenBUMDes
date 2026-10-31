@@ -24,7 +24,6 @@ export default function GeneralLedgerTab({ settings = {} }: GeneralLedgerTabProp
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState<string>("all")
   const [selectedAccountCode, setSelectedAccountCode] = useState<string>("")
-  const [searchQuery, setSearchQuery] = useState<string>("")
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -77,13 +76,6 @@ export default function GeneralLedgerTab({ settings = {} }: GeneralLedgerTabProp
     setSelectedAccountCode(code)
     loadData(code)
   }
-
-  // Filter akun untuk dropdown pencarian
-  const filteredAccounts = accounts.filter(
-    (a) =>
-      a.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
 
   // Cetak Dokumen Bersih (Aman dari DOM XSS)
   const handlePrint = () => {

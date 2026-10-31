@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getUserSession } from "@/lib/auth"
+import path from "path"
+import fs from "fs"
 
 export async function POST(request: Request) {
   try {
@@ -38,8 +40,6 @@ export async function POST(request: Request) {
       // Safeguard: Jika karena alasan apa pun tabel ledgerAccount kosong, otomatis isi kembali dengan COA standar Kemendes 136
       const count = await tx.ledgerAccount.count()
       if (count === 0) {
-        const path = await import("path")
-        const fs = await import("fs")
         const coaPath = path.join(process.cwd(), "prisma", "coa_kemendes_136.json")
         if (fs.existsSync(coaPath)) {
           const raw = fs.readFileSync(coaPath, "utf-8")
@@ -50,6 +50,23 @@ export async function POST(request: Request) {
         }
       }
     })
+
+    for (const dir of [
+      path.join(process.cwd(), "storage", "uploads"),
+      path.join(process.cwd(), "public", "uploads")
+    ]) {
+      try {
+        if (fs.existsSync(dir)) {
+          for (const file of fs.readdirSync(dir)) {
+            if (file.startsWith("kwitansi_")) {
+              try {
+                fs.unlinkSync(path.join(dir, file))
+              } catch {}
+            }
+          }
+        }
+      } catch {}
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,9 +1,20 @@
 import { NextResponse } from "next/server"
 import { GoogleGenAI } from "@google/genai"
 import { db } from "@/lib/db"
+import { getUserSession } from "@/lib/auth"
+
+let cachedValidation: { apiKey: string; keyValid: boolean; testError: string | null; checkedAt: number } | null = null
 
 export async function GET() {
   try {
+    const session = await getUserSession()
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Akses ditolak. Silakan login terlebih dahulu." },
+        { status: 401 }
+      )
+    }
+
     const keySetting = await db.setting.findUnique({ where: { key: "gemini_api_key" } })
     const apiKey = keySetting?.value?.trim() || process.env.GEMINI_API_KEY
 
@@ -18,21 +29,27 @@ export async function GET() {
       })
     }
 
-    // Ping / validasi kunci ke Google AI Studio
+    // Ping / validasi kunci ke Google AI Studio (cache 5 menit agar tidak menguras kuota 15 RPM)
     let keyValid = false
-    let testError = null
-    try {
-      const ai = new GoogleGenAI({ apiKey })
-      // Ambil iterasi pertama dari model list untuk cek validitas API Key
-      const list = await ai.models.list()
-      for await (const m of list) {
-        if (m.name) {
-          keyValid = true
-          break
+    let testError: string | null = null
+    const now = Date.now()
+    if (cachedValidation && cachedValidation.apiKey === apiKey && now - cachedValidation.checkedAt < 5 * 60 * 1000) {
+      keyValid = cachedValidation.keyValid
+      testError = cachedValidation.testError
+    } else {
+      try {
+        const ai = new GoogleGenAI({ apiKey })
+        const list = await ai.models.list()
+        for await (const m of list) {
+          if (m.name) {
+            keyValid = true
+            break
+          }
         }
+      } catch (err: any) {
+        testError = err.message || "Gagal memverifikasi API Key"
       }
-    } catch (err: any) {
-      testError = err.message || "Gagal memverifikasi API Key"
+      cachedValidation = { apiKey, keyValid, testError, checkedAt: now }
     }
 
     // Hitung perkiraan penggunaan harian dari jurnal yang dibuat hari ini

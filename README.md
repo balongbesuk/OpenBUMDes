@@ -66,7 +66,7 @@ Aplikasi ini patuh penuh terhadap dua regulasi akuntansi utama:
 * **Buku Pembantu Piutang & Utang (Subsidiary Ledger):** Pengawasan transaksi dan sisa tagihan per pelanggan/debitur dan kreditur/vendor desa.
 * **Buku Pembantu Persediaan & Kartu Stok:** Master SKU barang dagang, mutasi stok (Masuk/Keluar/Opname), kalkulasi biaya rata-rata bergerak (*Moving Average*), dan cetak Berita Acara Rekapitulasi Stok.
 * **Daftar Register & Jadwal Penyusutan Aset Tetap:** Pencatatan barang modal BUMDes, amortisasi otomatis metode garis lurus (*Straight-Line*), beban depresiasi berjalan, dan nilai buku bersih.
-* **Indikator Kontrol Rekonsiliasi Neraca Otomatis:** Banner audit visual *real-time* yang membandingkan fisik buku pembantu dengan saldo pembukuan di Neraca (Akun `1.1.04` Persediaan, Akun `1.2.01` Aset Tetap, dan Akun `1.2.02` Akumulasi Penyusutan).
+* **Indikator Kontrol Rekonsiliasi Neraca Otomatis:** Banner audit visual *real-time* yang membandingkan fisik buku pembantu dengan saldo pembukuan di Neraca (Akun `1.1.05` Persediaan, Akun `1.3` Aset Tetap, dan Akun `1.3.07` Akumulasi Penyusutan).
 
 ### 5. 🔒 Tutup & Buka Buku Otomatis (Rollover 1 Januari)
 * **Otomasi Akhir Tahun:** Menutup laba/rugi berjalan ke Saldo Laba Ditahan per 31 Desember dengan 1 klik.
@@ -129,7 +129,7 @@ npm run dev
 Buka peramban (browser) dan akses: 👉 **http://localhost:3000**
 
 > [!NOTE]
-> Perintah `npm run db:setup` otomatis menjalankan migrasi skema database SQLite, seeder Bagan Akun Standar (COA), dan template transaksi kas.
+> Perintah `npm run db:setup` otomatis menjalankan migrasi skema database SQLite dan seeder Bagan Akun Standar (COA) beserta akun default.
 
 ---
 
@@ -210,8 +210,7 @@ OpenBUMDes/
 ├── prisma/
 │   ├── coa_kemendes_136.json   # 130+ daftar akun standar Kepmendes 136/2022
 │   ├── schema.prisma           # Skema tabel database SQLite
-│   ├── seed.ts                 # Skrip seeder akun bawaan & COA
-│   └── seed_templates.ts       # Template transaksi kas harian BUMDes
+│   └── seed.ts                 # Skrip seeder akun bawaan & COA
 ├── public/                     # Aset publik statis
 ├── src/
 │   ├── app/

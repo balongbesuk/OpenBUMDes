@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     const monthParam = searchParams.get("month")
     const accountCode = searchParams.get("accountCode")
 
-    const year = yearParam ? parseInt(yearParam, 10) : new Date().getFullYear()
+    const year = yearParam ? parseInt(yearParam, 10) : new Date().getUTCFullYear()
     const month = monthParam && monthParam !== "all" ? parseInt(monthParam, 10) : null
 
     let startDate: Date
@@ -28,28 +28,40 @@ export async function GET(request: Request) {
       endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999))
     }
 
-    // Ambil daftar seluruh akun dari database
     const allAccounts = await db.ledgerAccount.findMany({
       orderBy: { code: "asc" }
     })
-    const accountMap = new Map(allAccounts.map((a) => [a.code, a]))
+    const accountMap = new Map<string, { code: string; name: string; type: string; normal: string }>(
+      allAccounts.map((a) => [a.code, a])
+    )
 
-    // Cari akun-akun yang pernah memiliki transaksi
     const distinctCodes = await db.journalLine.findMany({
       select: { accountCode: true },
       distinct: ["accountCode"]
     })
     const activeCodeSet = new Set(distinctCodes.map((d) => d.accountCode))
+    for (const code of activeCodeSet) {
+      if (!accountMap.has(code)) {
+        const isNormalDeb = code.startsWith("1") || code.startsWith("5") || code.startsWith("6") || code.startsWith("7")
+        accountMap.set(code, {
+          code,
+          name: `Akun ${code} (Belum Terdaftar COA)`,
+          type: code.startsWith("1") ? "ASSET" : code.startsWith("2") ? "LIABILITY" : code.startsWith("3") ? "EQUITY" : code.startsWith("4") ? "REVENUE" : "EXPENSE",
+          normal: isNormalDeb ? "Debit" : "Kredit"
+        })
+      }
+    }
 
-    const accountsList = allAccounts.map((acc) => ({
-      code: acc.code,
-      name: acc.name,
-      type: acc.type,
-      normal: acc.normal,
-      hasTransactions: activeCodeSet.has(acc.code)
-    }))
+    const accountsList = Array.from(accountMap.values())
+      .sort((a, b) => a.code.localeCompare(b.code))
+      .map((acc) => ({
+        code: acc.code,
+        name: acc.name,
+        type: acc.type,
+        normal: acc.normal,
+        hasTransactions: activeCodeSet.has(acc.code)
+      }))
 
-    // Jika tidak ada accountCode yang dipilih, gunakan akun pertama yang aktif atau 1.1.01.01 (Kas Tunai)
     const targetCode =
       accountCode ||
       accountsList.find((a) => a.hasTransactions)?.code ||
@@ -86,7 +98,6 @@ export async function GET(request: Request) {
     // 1. Hitung Saldo Awal Akun (Opening Balance)
     let openingBalance = 0
 
-    // Cek apakah ada record resmi di tabel OpeningBalance untuk tahun ini
     const obRecord = await db.openingBalance.findUnique({
       where: {
         year_accountCode: {
@@ -104,7 +115,6 @@ export async function GET(request: Request) {
         openingBalance += obRecord.type === "CREDIT" ? obRecord.amount : -obRecord.amount
       }
     } else {
-      // Jika belum di tabel OpeningBalance, cari di jurnal Memorial Saldo Awal (SA/...) tahun berjalan
       const saLines = await db.journalLine.findMany({
         where: {
           accountCode: targetCode,
@@ -132,8 +142,6 @@ export async function GET(request: Request) {
       })
     }
 
-    // Jika filter bulan dipilih dan bulan > 1 (Februari dst.),
-    // tambahkan akumulasi mutasi transaksi dari 1 Jan s.d. sebelum awal bulan berjalan (kecuali jurnal SA)
     if (month && month > 1) {
       const startOfYear = new Date(Date.UTC(year, 0, 1, 0, 0, 0))
       const priorMonthLines = await db.journalLine.findMany({
@@ -144,6 +152,7 @@ export async function GET(request: Request) {
             NOT: {
               OR: [
                 { proofNumber: { startsWith: "SA/" } },
+                { proofNumber: { startsWith: `JP/${year}/` } },
                 { description: { contains: "Saldo Awal" } }
               ]
             }
@@ -160,27 +169,30 @@ export async function GET(request: Request) {
         }
       })
     } else if (!obRecord && !hasSaLines) {
-      // Jika terdapat mutasi riil bertanggal sebelum tahun berjalan (multi-tahun tanpa tutup buku)
-      const historicalLines = await db.journalLine.findMany({
-        where: {
-          accountCode: targetCode,
-          journalEntry: {
-            date: { lt: new Date(Date.UTC(year, 0, 1, 0, 0, 0)) }
+      // Akun Neraca (1, 2, 3) mewarisi saldo historis lintas tahun termasuk hasil jurnal penutup JP/ tahun lalu
+      const isBalanceSheetAccount =
+        targetCode.startsWith("1") || targetCode.startsWith("2") || targetCode.startsWith("3")
+      if (isBalanceSheetAccount) {
+        const historicalLines = await db.journalLine.findMany({
+          where: {
+            accountCode: targetCode,
+            journalEntry: {
+              date: { lt: new Date(Date.UTC(year, 0, 1, 0, 0, 0)) }
+            }
+          },
+          select: { type: true, amount: true }
+        })
+        historicalLines.forEach((l) => {
+          if (isNormalDebit) {
+            openingBalance += l.type === "DEBIT" ? l.amount : -l.amount
+          } else {
+            openingBalance += l.type === "CREDIT" ? l.amount : -l.amount
           }
-        },
-        select: { type: true, amount: true }
-      })
-      historicalLines.forEach((l) => {
-        if (isNormalDebit) {
-          openingBalance += l.type === "DEBIT" ? l.amount : -l.amount
-        } else {
-          openingBalance += l.type === "CREDIT" ? l.amount : -l.amount
-        }
-      })
+        })
+      }
     }
 
-    // 2. Ambil mutasi transaksi pada periode berjalan (startDate s.d. endDate)
-    // Jurnal Saldo Awal (SA/...) dikecualikan karena sudah tertuang di baris SALDO AWAL PERIODE
+    // 2. Ambil mutasi operasional periode berjalan (kecualikan SA/... & JP/{year}/...)
     const currentLines = await db.journalLine.findMany({
       where: {
         accountCode: targetCode,
@@ -189,6 +201,7 @@ export async function GET(request: Request) {
           NOT: {
             OR: [
               { proofNumber: { startsWith: "SA/" } },
+              { proofNumber: { startsWith: `JP/${year}/` } },
               { description: { contains: "Saldo Awal" } }
             ]
           }
@@ -225,7 +238,6 @@ export async function GET(request: Request) {
         runningBalance += creditAmt - debitAmt
       }
 
-      // Cari lawan akun (contra account)
       const contraLines = entry.lines.filter((l) => l.accountCode !== targetCode)
       const contraNames = contraLines
         .map((l) => {

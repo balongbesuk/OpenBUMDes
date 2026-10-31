@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getUserSession } from "@/lib/auth"
+import { calculateFinancialReports } from "@/lib/reports"
 
 export async function GET(request: Request) {
   try {
@@ -14,118 +15,71 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const yearParam = searchParams.get("year")
-    const year = yearParam ? parseInt(yearParam, 10) : new Date().getFullYear()
+    const year = yearParam ? parseInt(yearParam, 10) : new Date().getUTCFullYear()
 
-    const startDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0))
-    const endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999))
+    const [reports, totalTransactions, totalOpeningBalances] = await Promise.all([
+      calculateFinancialReports(year),
+      db.journalEntry.count(),
+      db.openingBalance.count()
+    ])
 
-    // 1. Ambil seluruh akun COA
-    const allAccounts = await db.ledgerAccount.findMany()
-    const accountMap = new Map(allAccounts.map((a) => [a.code, a]))
+    const totalPendapatanUsaha = reports.labaRugi.totalRevenue
+    const totalBeban = reports.labaRugi.totalExpense
+    const labaBersih = reports.labaRugi.netProfit
 
-    // 2. Pendapatan & Beban Tahun Berjalan (Laba Rugi, sertakan Memorial Penyusutan, kecualikan Jurnal Penutup JP/ & SA/)
-    const revExpLines = await db.journalLine.findMany({
-      where: {
-        journalEntry: {
-          date: { gte: startDate, lte: endDate },
-          NOT: {
-            OR: [
-              { proofNumber: { startsWith: "JP/" } },
-              { proofNumber: { startsWith: "SA/" } },
-              { proofNumber: { startsWith: "SA-" } }
-            ]
-          }
-        }
-      }
-    })
-
-    let totalPendapatanUsaha = 0
-    let totalBeban = 0
-
-    revExpLines.forEach((l) => {
-      const code = l.accountCode
-      const acc = accountMap.get(code)
-      const firstChar = code.charAt(0)
-
-      const isRev = firstChar === "4" || acc?.type === "REVENUE"
-      const isExp = ["5", "6", "7"].includes(firstChar) || acc?.type === "EXPENSE"
-
-      if (isRev) {
-        totalPendapatanUsaha += l.type === "CREDIT" ? l.amount : -l.amount
-      } else if (isExp) {
-        totalBeban += l.type === "DEBIT" ? l.amount : -l.amount
-      }
-    })
-
-    const labaBersih = totalPendapatanUsaha - totalBeban
-
-    // 3. Neraca per 31 Desember (Cek jurnal SA agar tidak menduplikasi saldo multi-tahun)
-    const hasOpeningJournal = await db.journalEntry.findFirst({
-      where: { proofNumber: { startsWith: `SA/${year}/` } },
-      select: { id: true }
-    })
-    const neracaLines = await db.journalLine.findMany({
-      where: {
-        journalEntry: {
-          date: hasOpeningJournal
-            ? { gte: startDate, lte: endDate }
-            : { lte: endDate },
-          NOT: { proofNumber: { startsWith: `JP/${year}/` } }
-        }
-      }
-    })
-
-    let kasDanBank = 0
-    let piutangUsaha = 0
-    let persediaan = 0
-    let asetLancarLain = 0
-    let asetTetap = 0
-    let akumulasiPenyusutan = 0
-    let utangLancar = 0
-    let utangJkPanjang = 0
-    let modalAwal = 0
-    let cadanganModal = 0
-
-    neracaLines.forEach((l) => {
-      const code = l.accountCode
-      const amt = l.amount
-      const isDebit = l.type === "DEBIT"
-      const netDebit = isDebit ? amt : -amt
-      const netCredit = !isDebit ? amt : -amt
-      const acc = accountMap.get(code)
-      const isAccPenyusutan = code.startsWith("1.3.07") || code.startsWith("1.3.08") || acc?.normal === "Kredit" || (acc?.name || "").toLowerCase().includes("akumulasi")
-
-      if (code.startsWith("1.1.01")) kasDanBank += netDebit
-      else if (code.startsWith("1.1.02") || code.startsWith("1.1.03") || code.startsWith("1.1.04")) piutangUsaha += netDebit
-      else if (code.startsWith("1.1.05") || code.startsWith("1.1.06")) persediaan += netDebit
-      else if (code.startsWith("1.1")) asetLancarLain += netDebit
-      else if (code.startsWith("1.3")) {
-        if (isAccPenyusutan) akumulasiPenyusutan += netCredit
-        else asetTetap += netDebit
-      }
-      else if (code.startsWith("2.1")) utangLancar += netCredit
-      else if (code.startsWith("2.2")) utangJkPanjang += netCredit
-      else if (code.startsWith("3.1.01") || code.startsWith("3.1.02")) modalAwal += netCredit
-      else if (code.startsWith("3.1.03") || code.startsWith("3.2") || code.startsWith("3.3")) cadanganModal += netCredit
-    })
-
-    kasDanBank = Math.max(0, kasDanBank)
-    piutangUsaha = Math.max(0, piutangUsaha)
-    persediaan = Math.max(0, persediaan)
-    asetLancarLain = Math.max(0, asetLancarLain)
-    asetTetap = Math.max(0, asetTetap)
-    akumulasiPenyusutan = Math.max(0, akumulasiPenyusutan)
-    utangLancar = Math.max(0, utangLancar)
-    utangJkPanjang = Math.max(0, utangJkPanjang)
+    const kasDanBank = Math.max(
+      0,
+      reports.lak?.saldoKasAkhir ??
+        reports.neraca.currentAssets
+          .filter((a) => a.name.toLowerCase().includes("kas") || a.name.toLowerCase().includes("bank"))
+          .reduce((s, a) => s + a.amount, 0)
+    )
+    const piutangUsaha = Math.max(
+      0,
+      reports.neraca.currentAssets
+        .filter((a) => a.name.toLowerCase().includes("piutang"))
+        .reduce((s, a) => s + a.amount, 0)
+    )
+    const persediaan = Math.max(
+      0,
+      reports.neraca.currentAssets
+        .filter((a) => a.name.toLowerCase().includes("persediaan") || a.name.toLowerCase().includes("perlengkapan"))
+        .reduce((s, a) => s + a.amount, 0)
+    )
+    const asetLancarLain = Math.max(
+      0,
+      reports.neraca.currentAssets
+        .filter(
+          (a) =>
+            !a.name.toLowerCase().includes("kas") &&
+            !a.name.toLowerCase().includes("bank") &&
+            !a.name.toLowerCase().includes("piutang") &&
+            !a.name.toLowerCase().includes("persediaan") &&
+            !a.name.toLowerCase().includes("perlengkapan")
+        )
+        .reduce((s, a) => s + a.amount, 0)
+    )
+    const asetTetap = Math.max(0, reports.neraca.fixedAssets.peralatan)
+    const akumulasiPenyusutan = Math.max(0, reports.neraca.fixedAssets.akumulasiPenyusutan)
+    const utangLancar = Math.max(0, reports.neraca.totalCurrentLiabilities)
+    const utangJkPanjang = Math.max(0, reports.neraca.totalLiabilities - reports.neraca.totalCurrentLiabilities)
+    const rawEquityExProfit = reports.neraca.totalEquity - labaBersih
 
     const asetTetapNet = Math.max(0, asetTetap - akumulasiPenyusutan)
     const asetLancar = kasDanBank + piutangUsaha + persediaan + asetLancarLain
 
-    // Cek apakah ada data di database (transaksi kas, saldo awal, atau mutasi)
-    const totalTransactions = await db.journalEntry.count()
-    const totalOpeningBalances = await db.openingBalance.count()
-    const hasAnyRecord = (totalTransactions > 0 || totalOpeningBalances > 0 || revExpLines.length > 0 || neracaLines.length > 0) &&
-      (totalPendapatanUsaha !== 0 || totalBeban !== 0 || kasDanBank !== 0 || piutangUsaha !== 0 || persediaan !== 0 || asetTetap !== 0 || utangLancar !== 0 || utangJkPanjang !== 0 || modalAwal !== 0 || cadanganModal !== 0)
+    const hasAnyRecord =
+      (totalTransactions > 0 || totalOpeningBalances > 0) &&
+      (totalPendapatanUsaha !== 0 ||
+        totalBeban !== 0 ||
+        kasDanBank !== 0 ||
+        piutangUsaha !== 0 ||
+        persediaan !== 0 ||
+        asetLancarLain !== 0 ||
+        asetTetap !== 0 ||
+        utangLancar !== 0 ||
+        utangJkPanjang !== 0 ||
+        rawEquityExProfit !== 0)
 
     if (!hasAnyRecord) {
       const emptyIndicators = [
@@ -245,16 +199,10 @@ export async function GET(request: Request) {
     }
 
     const totalAset = Math.max(1, asetLancar + asetTetapNet)
-
-    // Modal Pemilik = Modal Disetor + Cadangan & Laba Ditahan + Laba Bersih Berjalan
-    const modalPemilik = Math.max(1, modalAwal + cadanganModal + labaBersih)
-
-    // ==========================================
-    // KALKULASI 8 INDIKATOR EIS (PPAK 4.5)
-    // ==========================================
+    const modalPemilik = Math.max(1, reports.neraca.totalEquity)
 
     // 1. ROE (Return on Equity) - Max 29
-    const roeVal = modalPemilik > 0 ? (labaBersih / modalPemilik) : 0
+    const roeVal = modalPemilik > 0 ? labaBersih / modalPemilik : 0
     let roeScore = 0
     if (roeVal >= 0.15) roeScore = 29
     else if (roeVal >= 0.13) roeScore = 26
@@ -270,8 +218,8 @@ export async function GET(request: Request) {
     else roeScore = 0
 
     // 2. ROI (Return on Investment) - Max 22
-    const ebit = labaBersih // Estimasi operasional
-    const roiVal = totalAset > 0 ? ((ebit + akumulasiPenyusutan) / totalAset) : 0
+    const ebit = labaBersih
+    const roiVal = totalAset > 0 ? (ebit + akumulasiPenyusutan) / totalAset : 0
     let roiScore = 0
     if (roiVal >= 0.18) roiScore = 22
     else if (roiVal >= 0.15) roiScore = 19
@@ -298,7 +246,7 @@ export async function GET(request: Request) {
       else if (cashRatioVal >= 0.05) cashRatioScore = 1
       else cashRatioScore = 0
     } else {
-      cashRatioVal = 9.99 // Bebas utang lancar
+      cashRatioVal = 9.99
       cashRatioScore = 7
     }
 
@@ -309,9 +257,9 @@ export async function GET(request: Request) {
       currentRatioVal = asetLancar / utangLancar
       if (currentRatioVal >= 1.25) currentRatioScore = 7
       else if (currentRatioVal >= 1.10) currentRatioScore = 6
-      else if (currentRatioVal >= 1.00) currentRatioScore = 4
+      else if (currentRatioVal >= 1.0) currentRatioScore = 4
       else if (currentRatioVal >= 0.95) currentRatioScore = 3
-      else if (currentRatioVal >= 0.90) currentRatioScore = 1
+      else if (currentRatioVal >= 0.9) currentRatioScore = 1
       else currentRatioScore = 0
     } else {
       currentRatioVal = 9.99
@@ -360,32 +308,32 @@ export async function GET(request: Request) {
     }
 
     // 7. Perputaran Total Aset (TATO) - Max 7
-    const tatoVal = totalAset > 0 ? (totalPendapatanUsaha / totalAset) : 0
+    const tatoVal = totalAset > 0 ? totalPendapatanUsaha / totalAset : 0
     let tatoScore = 0
-    if (tatoVal >= 1.20) tatoScore = 7
+    if (tatoVal >= 1.2) tatoScore = 7
     else if (tatoVal >= 1.05) tatoScore = 6
-    else if (tatoVal >= 0.90) tatoScore = 5.5
+    else if (tatoVal >= 0.9) tatoScore = 5.5
     else if (tatoVal >= 0.75) tatoScore = 5
-    else if (tatoVal >= 0.60) tatoScore = 4
-    else if (tatoVal >= 0.40) tatoScore = 3
-    else if (tatoVal >= 0.20) tatoScore = 2
+    else if (tatoVal >= 0.6) tatoScore = 4
+    else if (tatoVal >= 0.4) tatoScore = 3
+    else if (tatoVal >= 0.2) tatoScore = 2
     else tatoScore = 1
 
     // 8. Rasio Total Modal Pemilik thd Total Aset - Max 14
-    const solVal = totalAset > 0 ? (modalPemilik / totalAset) : 0
+    const solVal = totalAset > 0 ? modalPemilik / totalAset : 0
     let solScore = 0
-    if (solVal >= 0.80) solScore = 14
-    else if (solVal >= 0.70) solScore = 13
-    else if (solVal >= 0.60) solScore = 12
-    else if (solVal >= 0.50) solScore = 11
-    else if (solVal >= 0.40) solScore = 10
-    else if (solVal >= 0.30) solScore = 8
-    else if (solVal >= 0.20) solScore = 6
-    else if (solVal >= 0.10) solScore = 4
+    if (solVal >= 0.8) solScore = 14
+    else if (solVal >= 0.7) solScore = 13
+    else if (solVal >= 0.6) solScore = 12
+    else if (solVal >= 0.5) solScore = 11
+    else if (solVal >= 0.4) solScore = 10
+    else if (solVal >= 0.3) solScore = 8
+    else if (solVal >= 0.2) solScore = 6
+    else if (solVal >= 0.1) solScore = 4
     else solScore = 2
 
-    // TOTAL SKOR AKHIR
-    const totalScore = Math.round((roeScore + roiScore + cashRatioScore + currentRatioScore + cpScore + ppScore + tatoScore + solScore) * 10) / 10
+    const totalScore =
+      Math.round((roeScore + roiScore + cashRatioScore + currentRatioScore + cpScore + ppScore + tatoScore + solScore) * 10) / 10
 
     let category = "TIDAK SEHAT"
     let categoryBadge = "bg-rose-50 text-rose-700 border-rose-300"
@@ -484,7 +432,7 @@ export async function GET(request: Request) {
         valueDisplay: `${(solVal * 100).toFixed(1)}%`,
         score: solScore,
         components: `Modal Sendiri: Rp ${modalPemilik.toLocaleString("id-ID")} | Total Aset: Rp ${totalAset.toLocaleString("id-ID")}`,
-        notes: solVal >= 0.70 ? "Kemandirian Modal Tinggi (Aman dari Utang)" : "Porsi Modal Perlu Diperkuat"
+        notes: solVal >= 0.7 ? "Kemandirian Modal Tinggi (Aman dari Utang)" : "Porsi Modal Perlu Diperkuat"
       }
     ]
 

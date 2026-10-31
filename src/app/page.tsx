@@ -339,12 +339,11 @@ export default function StislaApp() {
   const loadData = async (targetYear = selectedYear) => {
     setLoading(true)
     try {
-      const [resEntries, resCoa, resRep, resSet, resGroups, resAiStatus, resClosing, resEis] = await Promise.all([
+      const [resEntries, resCoa, resRep, resSet, resAiStatus, resClosing, resEis] = await Promise.all([
         fetch(`/api/cash-book?month=${selectedMonth}&year=${targetYear}&proofType=${proofTypeFilter}`).then(r => r.json()),
         fetch("/api/keuangan/coa").then(r => r.json()).catch(() => ({ success: false, data: [] })),
         fetch(`/api/reports?year=${targetYear}`).then(r => r.json()),
         fetch("/api/settings").then(r => r.json()),
-        fetch("/api/keuangan/coa").then(r => r.json()).catch(() => ({ success: false, data: [] })),
         fetch("/api/ai/status").then(r => r.json()).catch(() => null),
         fetch("/api/closing").then(r => r.json()).catch(() => ({ success: false, data: [] })),
         fetch(`/api/eis?year=${targetYear}`).then(r => r.json()).catch(() => null)
@@ -361,7 +360,6 @@ export default function StislaApp() {
         }
       }
       if (resCoa.groups) setStandardGroups(resCoa.groups)
-      else if (resGroups.success && resGroups.data?.groups) setStandardGroups(resGroups.data.groups)
       if (resAiStatus && resAiStatus.success) setAiStatus(resAiStatus)
       if (resClosing && resClosing.success) setClosingList(resClosing.data)
     } catch (e) {
@@ -512,7 +510,7 @@ export default function StislaApp() {
           description: aiResult.description,
           payeeOrPayer: aiResult.payeeOrPayer,
           unitName: aiResult.unitName || "Umum",
-          lines: aiResult.lines
+          lines: aiResult.lines.map((l: any) => l.accountCode?.startsWith("1.1.01") && !l.cashFlowGroup ? { ...l, cashFlowGroup: aiResult.cashFlowGroup } : l)
         })
       })
       const json = await res.json()

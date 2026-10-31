@@ -296,7 +296,7 @@ export default function FixedAssetsTab({ settings = {}, currentUser }: FixedAsse
             <TrendingDown className="w-4 h-4 text-rose-500" />
           </div>
           <div className="mt-2 text-xl font-bold text-rose-600">{formatRupiah(summary.totalAccumulatedDepreciation)}</div>
-          <p className="text-[11px] text-slate-400 mt-1">Hingga 31 Des {selectedYear} (COA 1.2.02)</p>
+          <p className="text-[11px] text-slate-400 mt-1">Hingga 31 Des {selectedYear} (COA 1.3.07)</p>
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">

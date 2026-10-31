@@ -32,7 +32,6 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validasi tipe file (hanya gambar dan PDF)
     const allowedMimeTypes = [
       "image/jpeg",
       "image/png",
@@ -47,7 +46,6 @@ export async function POST(request: Request) {
       )
     }
 
-    // Batas ukuran berkas 10MB
     const MAX_SIZE = 10 * 1024 * 1024
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
@@ -67,8 +65,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // Proteksi Tutup Buku Tahunan
-    const txYear = new Date(existingEntry.date).getFullYear()
+    // Proteksi Tutup Buku Tahunan (UTC)
+    const txYear = new Date(existingEntry.date).getUTCFullYear()
     const closed = await db.annualClosing.findUnique({ where: { year: txYear } })
     if (closed?.isLocked) {
       return NextResponse.json(
@@ -80,18 +78,16 @@ export async function POST(request: Request) {
       )
     }
 
-    // Ekstrak ekstensi berkas
     const originalName = file.name || "bukti.jpg"
     const ext = path.extname(originalName).toLowerCase() || (file.type === "application/pdf" ? ".pdf" : ".jpg")
-    const cleanExt = [".jpg", ".jpeg", ".png", ".webp", ".pdf"].includes(ext) ? ext : ".jpg"
+    const cleanExt = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf"].includes(ext) ? ext : ".jpg"
 
-    // Pastikan direktori public/uploads ada
-    const uploadDir = path.join(process.cwd(), "public", "uploads")
+    // Simpan di storage/uploads (luar folder statis public/ agar wajib melewati autentikasi route /uploads/[...filename])
+    const uploadDir = path.join(process.cwd(), "storage", "uploads")
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true })
     }
 
-    // Nama berkas unik
     const fileName = `kwitansi_${entryId}_${Date.now()}${cleanExt}`
     const filePath = path.join(uploadDir, fileName)
 
@@ -100,20 +96,19 @@ export async function POST(request: Request) {
 
     const publicUrl = `/uploads/${fileName}`
 
-    // Hapus berkas lama jika ada di public/uploads
+    // Hapus berkas lama jika ada di storage/uploads maupun warisan public/uploads
     if (existingEntry.attachmentUrl && existingEntry.attachmentUrl.startsWith("/uploads/")) {
       const oldFileName = path.basename(existingEntry.attachmentUrl)
-      const oldFilePath = path.join(uploadDir, oldFileName)
-      if (fs.existsSync(oldFilePath) && oldFileName !== fileName) {
-        try {
-          fs.unlinkSync(oldFilePath)
-        } catch {
-          // Abaikan jika berkas lama tidak dapat dihapus
+      if (oldFileName !== fileName) {
+        for (const baseDir of [uploadDir, path.join(process.cwd(), "public", "uploads")]) {
+          const oldFilePath = path.join(baseDir, oldFileName)
+          if (fs.existsSync(oldFilePath)) {
+            try { fs.unlinkSync(oldFilePath) } catch {}
+          }
         }
       }
     }
 
-    // Perbarui entri transaksi di basis data
     await db.journalEntry.update({
       where: { id: entryId },
       data: {

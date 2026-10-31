@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getUserSession } from "@/lib/auth"
+import { calculateInventoryValuation } from "@/lib/ledger"
 
 export async function GET(request: Request) {
   try {
@@ -34,32 +35,8 @@ export async function GET(request: Request) {
       orderBy: { code: "asc" }
     })
 
-    // Hitung ringkasan per barang
     const formatted = items.map((item) => {
-      let qty = item.initialQty
-      let totalCost = item.initialQty * item.initialCost
-
-      // Urutkan per tanggal untuk tracking saldo mutasi
-      const sortedMovements = [...item.movements].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      )
-
-      sortedMovements.forEach((m) => {
-        if (m.type === "IN") {
-          qty += m.qty
-          totalCost += m.totalCost || m.qty * (m.costPerUnit || item.initialCost)
-        } else if (m.type === "OUT") {
-          const avgCost = qty > 0 ? totalCost / qty : item.initialCost
-          qty -= m.qty
-          totalCost -= m.qty * avgCost
-        } else if (m.type === "ADJUST") {
-          qty = m.qty
-          totalCost = m.qty * (m.costPerUnit || item.initialCost)
-        }
-      })
-
-      const finalQty = Math.max(0, qty)
-      const avgCostPerUnit = finalQty > 0 ? Math.max(0, totalCost / finalQty) : item.initialCost
+      const { currentQty, avgCostPerUnit, totalValue } = calculateInventoryValuation(item)
 
       return {
         id: item.id,
@@ -69,11 +46,11 @@ export async function GET(request: Request) {
         category: item.category || "Barang Dagangan",
         initialQty: item.initialQty,
         initialCost: item.initialCost,
-        currentQty: finalQty,
+        currentQty,
         avgCostPerUnit,
-        totalValue: finalQty * avgCostPerUnit,
+        totalValue,
         minStock: item.minStock,
-        isLowStock: finalQty <= item.minStock,
+        isLowStock: currentQty <= item.minStock,
         accountCode: item.accountCode,
         notes: item.notes,
         movementCount: item.movements.length,
@@ -81,8 +58,7 @@ export async function GET(request: Request) {
       }
     })
 
-    // Agregasi Buku Besar untuk Akun Persediaan (1.1.05 & 1.1.06 Kepmendes 136)
-    const targetYear = parseInt(searchParams.get("year") || `${new Date().getFullYear()}`, 10)
+    const targetYear = parseInt(searchParams.get("year") || `${new Date().getUTCFullYear()}`, 10)
     const hasSa = await db.journalEntry.findFirst({
       where: { proofNumber: { startsWith: `SA/${targetYear}/` } },
       select: { id: true }
@@ -161,44 +137,59 @@ export async function POST(request: Request) {
       const initQ = Math.max(0, parseFloat(initialQty) || 0)
       const initC = Math.max(0, parseFloat(initialCost) || 0)
 
-      const newItem = await db.inventoryItem.create({
-        data: {
-          code: code.trim().toUpperCase(),
-          name: name.trim(),
-          unit: unit?.trim() || "Pcs",
-          category: category?.trim() || "Barang Dagangan",
-          initialQty: initQ,
-          initialCost: initC,
-          currentQty: initQ,
-          minStock: Math.max(0, parseFloat(minStock) || 5),
-          accountCode: accountCode?.trim() || "1.1.05.01",
-          notes: notes?.trim() || null
-        }
-      })
-
-      // Jika ada stok awal > 0, buat movement record pertama
       if (initQ > 0) {
-        await db.inventoryMovement.create({
+        const curYear = new Date().getUTCFullYear()
+        const closed = await db.annualClosing.findUnique({ where: { year: curYear } })
+        if (closed?.isLocked) {
+          return NextResponse.json(
+            { success: false, error: `Pendaftaran stok awal ditolak. Tahun pembukuan ${curYear} telah ditutup buku dan dikunci.` },
+            { status: 403 }
+          )
+        }
+      }
+
+      const newItem = await db.$transaction(async (tx) => {
+        const created = await tx.inventoryItem.create({
           data: {
-            itemId: newItem.id,
-            date: new Date(),
-            type: "IN",
-            qty: initQ,
-            costPerUnit: initC,
-            totalCost: initQ * initC,
-            description: "Saldo Stok Awal Barang",
-            referenceProof: "SALDO-AWAL"
+            code: code.trim().toUpperCase(),
+            name: name.trim(),
+            unit: unit?.trim() || "Pcs",
+            category: category?.trim() || "Barang Dagangan",
+            initialQty: initQ,
+            initialCost: initC,
+            currentQty: initQ,
+            minStock: Math.max(0, parseFloat(minStock) || 5),
+            accountCode: accountCode?.trim() || "1.1.05.01",
+            notes: notes?.trim() || null
           }
         })
-      }
+
+        if (initQ > 0) {
+          await tx.inventoryMovement.create({
+            data: {
+              itemId: created.id,
+              date: new Date(),
+              type: "IN",
+              qty: initQ,
+              costPerUnit: initC,
+              totalCost: initQ * initC,
+              description: "Saldo Stok Awal Barang",
+              referenceProof: "SALDO-AWAL"
+            }
+          })
+        }
+
+        return created
+      })
 
       return NextResponse.json({ success: true, message: "Barang persediaan berhasil ditambahkan.", data: newItem })
     }
 
     if (action === "ADD_MOVEMENT") {
       const { itemId, date, type, qty, costPerUnit, referenceProof, description } = body
+      const normType = String(type || "").toUpperCase()
 
-      if (!itemId || !type || !qty) {
+      if (!itemId || !["IN", "OUT", "ADJUST"].includes(normType) || qty === undefined || qty === null || qty === "") {
         return NextResponse.json({ success: false, error: "Data mutasi barang tidak lengkap." }, { status: 400 })
       }
 
@@ -208,11 +199,14 @@ export async function POST(request: Request) {
       }
 
       const numQty = parseFloat(qty)
-      if (isNaN(numQty) || numQty <= 0) {
-        return NextResponse.json({ success: false, error: "Jumlah mutasi harus lebih dari 0." }, { status: 400 })
+      if (isNaN(numQty) || (normType === "ADJUST" ? numQty < 0 : numQty <= 0)) {
+        return NextResponse.json(
+          { success: false, error: normType === "ADJUST" ? "Jumlah stok opname tidak boleh negatif." : "Jumlah mutasi harus lebih dari 0." },
+          { status: 400 }
+        )
       }
 
-      if (type.toUpperCase() === "OUT" && item.currentQty < numQty) {
+      if (normType === "OUT" && item.currentQty < numQty) {
         return NextResponse.json({
           success: false,
           error: `Stok barang tidak mencukupi untuk dikeluarkan. Tersedia: ${item.currentQty} ${item.unit}, diminta: ${numQty} ${item.unit}.`
@@ -220,10 +214,11 @@ export async function POST(request: Request) {
       }
 
       const txDate = date ? new Date(date) : new Date()
-      const closed = await db.annualClosing.findUnique({ where: { year: txDate.getFullYear() } })
+      const txYear = txDate.getUTCFullYear()
+      const closed = await db.annualClosing.findUnique({ where: { year: txYear } })
       if (closed?.isLocked) {
         return NextResponse.json(
-          { success: false, error: `Mutasi ditolak. Tahun pembukuan ${txDate.getFullYear()} telah ditutup buku dan dikunci.` },
+          { success: false, error: `Mutasi ditolak. Tahun pembukuan ${txYear} telah ditutup buku dan dikunci.` },
           { status: 403 }
         )
       }
@@ -236,27 +231,28 @@ export async function POST(request: Request) {
           data: {
             itemId,
             date: txDate,
-            type: type.toUpperCase(), // "IN", "OUT", "ADJUST"
+            type: normType,
             qty: numQty,
             costPerUnit: unitCost,
             totalCost,
             referenceProof: referenceProof?.trim() || null,
-            description: description?.trim() || (type === "IN" ? "Barang Masuk / Pembelian" : "Barang Keluar / Penjualan")
+            description:
+              description?.trim() ||
+              (normType === "IN" ? "Barang Masuk / Pembelian" : normType === "OUT" ? "Barang Keluar / Penjualan" : "Penyesuaian Stok Opname")
           }
         })
 
-        // Update currentQty pada item secara atomic
-        if (type === "IN") {
+        if (normType === "IN") {
           await tx.inventoryItem.update({
             where: { id: itemId },
             data: { currentQty: { increment: numQty } }
           })
-        } else if (type === "OUT") {
+        } else if (normType === "OUT") {
           await tx.inventoryItem.update({
             where: { id: itemId },
             data: { currentQty: { decrement: numQty } }
           })
-        } else if (type === "ADJUST") {
+        } else if (normType === "ADJUST") {
           await tx.inventoryItem.update({
             where: { id: itemId },
             data: { currentQty: numQty }
@@ -289,9 +285,24 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "ID barang wajib disertakan" }, { status: 400 })
     }
 
-    const item = await db.inventoryItem.findUnique({ where: { id } })
+    const item = await db.inventoryItem.findUnique({
+      where: { id },
+      include: { movements: { select: { date: true } } }
+    })
     if (!item) {
       return NextResponse.json({ success: false, error: "Barang tidak ditemukan atau sudah dihapus." }, { status: 404 })
+    }
+
+    const lockedClosings = await db.annualClosing.findMany({ where: { isLocked: true }, select: { year: true } })
+    const lockedYears = new Set(lockedClosings.map((c) => c.year))
+    const mutLockedYear = item.movements
+      .map((m) => new Date(m.date).getUTCFullYear())
+      .find((y) => lockedYears.has(y))
+    if (mutLockedYear) {
+      return NextResponse.json({
+        success: false,
+        error: `Penghapusan ditolak. Barang "${item.name}" memiliki riwayat mutasi pada Tahun Anggaran ${mutLockedYear} yang telah ditutup buku dan berstatus Terkunci (Arsip LPJ Resmi).`
+      }, { status: 403 })
     }
 
     if (item.currentQty > 0) {

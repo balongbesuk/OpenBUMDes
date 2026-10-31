@@ -90,11 +90,11 @@ export async function GET(request: Request) {
 
     entries.forEach((entry) => {
       const entryDate = new Date(entry.date)
-      const d = String(entryDate.getDate()).padStart(2, "0")
-      const m = String(entryDate.getMonth() + 1).padStart(2, "0")
-      const y = entryDate.getFullYear()
+      const d = String(entryDate.getUTCDate()).padStart(2, "0")
+      const m = String(entryDate.getUTCMonth() + 1).padStart(2, "0")
+      const y = entryDate.getUTCFullYear()
       const formattedDate = `${d}/${m}/${y}`
-      const monthNum = entryDate.getMonth() + 1
+      const monthNum = entryDate.getUTCMonth() + 1
 
       const statusFisik =
         entry.verificationStatus === "SIGNED_UPLOADED" || !!entry.attachmentUrl
@@ -114,7 +114,7 @@ export async function GET(request: Request) {
         totalKredit += kreditAmt
 
         // Count cash flow amounts for BKM / BKK (from cash account 1.1.01.xx)
-        if (line.accountCode.startsWith("1.1.01.")) {
+        if (line.accountCode.startsWith("1.1.01.") && !(entry.lines.length >= 2 && entry.lines.every((x) => x.accountCode.startsWith("1.1.01.")))) {
           if (entry.proofType === "BKM" && isDebit) {
             entryBkm += line.amount
           } else if (entry.proofType === "BKK" && !isDebit) {

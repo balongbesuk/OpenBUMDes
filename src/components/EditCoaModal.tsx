@@ -38,7 +38,10 @@ export default function EditCoaModal({
         code: account.code || "",
         name: account.name || "",
         type: account.type || "ASSET",
-        normal: account.normal || (account.type === "ASSET" || account.type === "EXPENSE" ? "Debit" : "Kredit")
+        normal:
+          account.normal === "Credit"
+            ? "Kredit"
+            : account.normal || (account.type === "ASSET" || account.type === "EXPENSE" ? "Debit" : "Kredit")
       })
       setErrorMsg("")
     }
@@ -175,7 +178,6 @@ export default function EditCoaModal({
               >
                 <option value="Debit">Debit (Aset & Beban)</option>
                 <option value="Kredit">Kredit (Pendapatan & Modal)</option>
-                <option value="Credit">Credit</option>
               </select>
             </div>
           </div>

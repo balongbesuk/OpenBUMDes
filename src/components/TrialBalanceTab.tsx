@@ -20,7 +20,6 @@ interface TrialBalanceTabProps {
 export default function TrialBalanceTab({ settings = {} }: TrialBalanceTabProps) {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState<string>("all")
-  const [showAllAccounts, setShowAllAccounts] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 

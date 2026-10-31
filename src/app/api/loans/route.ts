@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server"
-import crypto from "crypto"
 import { db } from "@/lib/db"
 import { getUserSession } from "@/lib/auth"
+import { getFiscalYearMonth, validateLoanInstallment } from "@/lib/ledger"
+
+const USP_STANDARD_ACCOUNTS = [
+  { code: "1.1.01.01", name: "Kas Tunai", type: "ASSET", normal: "Debit" },
+  { code: "1.1.02.01", name: "Piutang Pinjaman Masyarakat", type: "ASSET", normal: "Debit" },
+  { code: "1.1.02.02", name: "Piutang Pinjaman Poktan/Kelompok", type: "ASSET", normal: "Debit" },
+  { code: "2.1.01.01", name: "Simpanan Pokok Anggota", type: "LIABILITY", normal: "Kredit" },
+  { code: "2.1.01.02", name: "Simpanan Wajib Anggota", type: "LIABILITY", normal: "Kredit" },
+  { code: "2.1.01.03", name: "Simpanan Sukarela Anggota", type: "LIABILITY", normal: "Kredit" },
+  { code: "3.1.01.01", name: "Penyertaan Modal Desa", type: "EQUITY", normal: "Kredit" },
+  { code: "4.1.01.02", name: "Pendapatan Jasa Pinjaman USP", type: "REVENUE", normal: "Kredit" }
+]
 
 export async function GET(request: Request) {
   try {
@@ -16,7 +27,6 @@ export async function GET(request: Request) {
     const statusPinjaman = searchParams.get("loanStatus") || "ALL"
     const memberId = searchParams.get("memberId")
 
-    // If specific member requested
     if (memberId) {
       const member = await db.loanMember.findUnique({
         where: { id: memberId },
@@ -32,7 +42,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, data: member })
     }
 
-    // Build filter
     const where: any = {}
     if (memberType !== "ALL") {
       where.memberType = memberType
@@ -61,7 +70,6 @@ export async function GET(request: Request) {
       orderBy: [{ statusPinjaman: "asc" }, { memberNo: "asc" }]
     })
 
-    // Calculate aggregated stats using native database aggregation
     const [totalMembers, totalActiveBorrowers, sums] = await Promise.all([
       db.loanMember.count(),
       db.loanMember.count({ where: { sisaPinjaman: { gt: 0 } } }),
@@ -88,12 +96,9 @@ export async function GET(request: Request) {
     }
     summary.totalSimpanan = summary.totalSimpananPokok + summary.totalSimpananWajib + summary.totalSimpananSukarela
 
-    // Reconcile with General Ledger (Kepmendes 136/2022 Accounts)
-    // 2.1.01 for Simpanan Anggota, 1.1.02 for Piutang Pinjaman USP
     const yearParam = searchParams.get("year")
-    const targetYear = yearParam ? parseInt(yearParam, 10) : null
+    const targetYear = parseInt(yearParam || `${new Date().getUTCFullYear()}`, 10)
 
-    // Cek apakah ada jurnal saldo awal (SA) di tahun target untuk mencegah saldo ganda lintas tahun
     let dateCondition: any = undefined
     if (targetYear) {
       const saEntry = await db.journalEntry.findFirst({
@@ -125,7 +130,9 @@ export async function GET(request: Request) {
       where: {
         OR: [
           { accountCode: { startsWith: "2.1.01" } },
-          { accountCode: { startsWith: "1.1.02" } }
+          { accountCode: { startsWith: "2.1.05" } },
+          { accountCode: { startsWith: "1.1.02" } },
+          { accountCode: { startsWith: "1.1.03" } }
         ],
         ...(dateCondition ? { journalEntry: { date: dateCondition } } : {})
       }
@@ -135,14 +142,27 @@ export async function GET(request: Request) {
     let glPiutangTotal = 0
 
     glLines.forEach((l) => {
-      if (l.accountCode.startsWith("2.1.01")) {
-        // Liability normal Credit
-        glSimpananTotal += (l.type === "CREDIT" ? l.amount : -l.amount)
-      } else if (l.accountCode.startsWith("1.1.02")) {
-        // Asset normal Debit
-        glPiutangTotal += (l.type === "DEBIT" ? l.amount : -l.amount)
+      if (l.accountCode.startsWith("2.1.01") || l.accountCode.startsWith("2.1.05")) {
+        glSimpananTotal += l.type === "CREDIT" ? l.amount : -l.amount
+      } else if (l.accountCode.startsWith("1.1.02") || l.accountCode.startsWith("1.1.03")) {
+        glPiutangTotal += l.type === "DEBIT" ? l.amount : -l.amount
       }
     })
+
+    if (glSimpananTotal === 0 && glPiutangTotal === 0 && targetYear) {
+      const archivedClosing = await db.annualClosing.findUnique({ where: { year: targetYear } })
+      if (archivedClosing?.isLocked && archivedClosing.snapshotData) {
+        try {
+          const snap = JSON.parse(archivedClosing.snapshotData)
+          if (snap?.neraca) {
+            glSimpananTotal = snap.neraca.totalLiabilities || 0
+            glPiutangTotal = (snap.neraca.currentAssets || [])
+              .filter((a: any) => String(a.name || "").toLowerCase().includes("piutang"))
+              .reduce((s: number, a: any) => s + (a.amount || 0), 0)
+          }
+        } catch {}
+      }
+    }
 
     const reconciliation = {
       subsidiarySimpanan: summary.totalSimpanan,
@@ -206,6 +226,19 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: `Nomor anggota ${memberNo} sudah terdaftar` }, { status: 400 })
       }
 
+      const hasInitialBalances =
+        Number(simpananPokok) > 0 || Number(simpananWajib) > 0 || Number(simpananSukarela) > 0 || Number(initialLoan) > 0
+      if (hasInitialBalances) {
+        const curYear = new Date().getUTCFullYear()
+        const closed = await db.annualClosing.findUnique({ where: { year: curYear } })
+        if (closed?.isLocked) {
+          return NextResponse.json(
+            { success: false, error: `Tahun pembukuan ${curYear} telah ditutup buku dan dikunci.` },
+            { status: 403 }
+          )
+        }
+      }
+
       const member = await db.$transaction(async (tx) => {
         const created = await tx.loanMember.create({
           data: {
@@ -228,7 +261,6 @@ export async function POST(request: Request) {
           }
         })
 
-        // Initial transactions if provided
         if (Number(simpananPokok) > 0) {
           await tx.loanTransaction.create({
             data: {
@@ -246,6 +278,16 @@ export async function POST(request: Request) {
               type: "SIMPANAN_WAJIB",
               amount: Number(simpananWajib),
               description: "Setoran Saldo Awal Simpanan Wajib"
+            }
+          })
+        }
+        if (Number(simpananSukarela) > 0) {
+          await tx.loanTransaction.create({
+            data: {
+              memberId: created.id,
+              type: "SIMPANAN_SUKARELA",
+              amount: Number(simpananSukarela),
+              description: "Setoran Saldo Awal Simpanan Sukarela"
             }
           })
         }
@@ -271,7 +313,7 @@ export async function POST(request: Request) {
     if (action === "ADD_TRANSACTION") {
       const {
         memberId,
-        type, // SIMPANAN_POKOK, SIMPANAN_WAJIB, SIMPANAN_SUKARELA, TARIK_SIMPANAN, PENCAIRAN_PINJAMAN, ANGSURAN
+        type,
         date = new Date().toISOString(),
         amount,
         principalAmount = 0,
@@ -294,51 +336,50 @@ export async function POST(request: Request) {
       const numPrincipal = Math.max(0, Number(principalAmount))
       const numInterest = Math.max(0, Number(interestAmount))
 
-      const result = await db.$transaction(async (tx) => {
-        // Check if fiscal year is closed before recording journal
-        const txDate = new Date(date)
-        const txYear = txDate.getFullYear()
-        if (autoPostJournal) {
-          const closed = await tx.annualClosing.findUnique({ where: { year: txYear } })
-          if (closed && closed.isLocked) {
-            throw new Error(`Tahun pembukuan ${txYear} telah ditutup buku dan dikunci secara permanen.`)
-          }
-        }
+      if (numAmount <= 0 && numPrincipal + numInterest <= 0) {
+        return NextResponse.json({ success: false, error: "Nominal transaksi harus lebih dari 0" }, { status: 400 })
+      }
 
+      const txDate = new Date(date)
+      const { year: txYear, month: monthStr } = getFiscalYearMonth(txDate)
+
+      const closed = await db.annualClosing.findUnique({ where: { year: txYear } })
+      if (closed && closed.isLocked) {
+        return NextResponse.json(
+          { success: false, error: `Tahun pembukuan ${txYear} telah ditutup buku dan dikunci secara permanen.` },
+          { status: 403 }
+        )
+      }
+
+      const inst =
+        type === "ANGSURAN"
+          ? validateLoanInstallment(member.sisaPinjaman, numAmount, numPrincipal, numInterest)
+          : null
+
+      const result = await db.$transaction(async (tx) => {
         let updatedMemberData: any = {}
 
         if (type === "SIMPANAN_POKOK") {
-          updatedMemberData = {
-            simpananPokok: { increment: numAmount }
-          }
+          updatedMemberData = { simpananPokok: { increment: numAmount } }
         } else if (type === "SIMPANAN_WAJIB") {
-          updatedMemberData = {
-            simpananWajib: { increment: numAmount }
-          }
+          updatedMemberData = { simpananWajib: { increment: numAmount } }
         } else if (type === "SIMPANAN_SUKARELA") {
-          updatedMemberData = {
-            simpananSukarela: { increment: numAmount }
-          }
+          updatedMemberData = { simpananSukarela: { increment: numAmount } }
         } else if (type === "TARIK_SIMPANAN") {
           if (member.simpananSukarela < numAmount) {
             throw new Error(`Saldo simpanan sukarela tidak mencukupi (Tersedia: Rp ${member.simpananSukarela.toLocaleString("id-ID")})`)
           }
-          updatedMemberData = {
-            simpananSukarela: { decrement: numAmount }
-          }
+          updatedMemberData = { simpananSukarela: { decrement: numAmount } }
         } else if (type === "PENCAIRAN_PINJAMAN") {
           updatedMemberData = {
             totalPinjaman: { increment: numAmount },
             sisaPinjaman: { increment: numAmount },
             statusPinjaman: "BERJALAN"
           }
-        } else if (type === "ANGSURAN") {
-          const actualPrincipalPaid = numPrincipal > 0 ? numPrincipal : Math.min(member.sisaPinjaman, numAmount)
-          const newSisa = Math.max(0, member.sisaPinjaman - actualPrincipalPaid)
-
+        } else if (type === "ANGSURAN" && inst) {
           updatedMemberData = {
-            sisaPinjaman: newSisa,
-            statusPinjaman: newSisa <= 0 ? "LUNAS" : "BERJALAN"
+            sisaPinjaman: inst.newSisa,
+            statusPinjaman: inst.newStatus
           }
         }
 
@@ -347,68 +388,80 @@ export async function POST(request: Request) {
           data: updatedMemberData
         })
 
-        // Penomoran bukti otomatis standar BUMDes (BKM untuk penerimaan, BKK untuk pengeluaran)
-        const autoProofType = (type === "TARIK_SIMPANAN" || type === "PENCAIRAN_PINJAMAN") ? "BKK" : "BKM"
+        // Penomoran bukti otomatis cek gabungan JournalEntry + LoanTransaction agar tidak pernah kembar
+        const autoProofType = type === "TARIK_SIMPANAN" || type === "PENCAIRAN_PINJAMAN" ? "BKK" : "BKM"
         let finalProofNumber = proofNumber ? String(proofNumber).trim() : ""
         if (!finalProofNumber) {
-          const monthStr = String(txDate.getMonth() + 1).padStart(2, "0")
           const prefix = `${autoProofType}/${txYear}/${monthStr}/`
-          const matching = await tx.journalEntry.findMany({
-            where: { proofNumber: { startsWith: prefix } },
-            select: { proofNumber: true }
-          })
+          const [matchingJournals, matchingLoans] = await Promise.all([
+            tx.journalEntry.findMany({ where: { proofNumber: { startsWith: prefix } }, select: { proofNumber: true } }),
+            tx.loanTransaction.findMany({ where: { proofNumber: { startsWith: prefix } }, select: { proofNumber: true } })
+          ])
           let maxSeq = 0
-          for (const m of matching) {
+          for (const m of [...matchingJournals, ...matchingLoans]) {
+            if (!m.proofNumber) continue
             const parts = m.proofNumber.split("/")
             const seq = parseInt(parts[parts.length - 1], 10)
             if (!isNaN(seq) && seq > maxSeq) maxSeq = seq
           }
           finalProofNumber = `${prefix}${String(maxSeq + 1).padStart(4, "0")}`
+        } else if (autoPostJournal) {
+          const duplicateJournal = await tx.journalEntry.findUnique({
+            where: { proofNumber: finalProofNumber },
+            select: { id: true }
+          })
+          if (duplicateJournal) {
+            throw new Error(`Nomor bukti ${finalProofNumber} sudah digunakan pada Buku Kas Umum.`)
+          }
         }
 
-        // Create transaction record
         const txRecord = await tx.loanTransaction.create({
           data: {
             memberId,
             date: txDate,
             type,
-            amount: type === "ANGSURAN" && (numPrincipal > 0 || numInterest > 0) ? (numPrincipal + numInterest) : numAmount,
-            principalAmount: numPrincipal,
-            interestAmount: numInterest,
+            amount: inst ? inst.totalCash : numAmount,
+            principalAmount: inst ? inst.actualPrincipal : numPrincipal,
+            interestAmount: inst ? inst.numInterest : numInterest,
             proofNumber: finalProofNumber,
             description: description || `Transaksi ${type} anggota ${member.name}`
           }
         })
 
-        // Optional: Auto post to General Journal Entry if requested
         if (autoPostJournal) {
-          const autoProofNumber = finalProofNumber
-          let debitCode = "1.1.01.01" // Kas Tunai
+          for (const acc of USP_STANDARD_ACCOUNTS) {
+            await tx.ledgerAccount.upsert({
+              where: { code: acc.code },
+              update: {},
+              create: acc
+            })
+          }
+
+          let debitCode = "1.1.01.01"
           let creditCode = "1.1.01.01"
-          let entryDesc = description || `Transaksi Simpan Pinjam: ${member.name}`
+          const entryDesc = description || `Transaksi Simpan Pinjam: ${member.name}`
 
           if (type === "SIMPANAN_POKOK") {
-            debitCode = "1.1.01.01" // Kas Tunai
-            creditCode = "2.1.01.01" // Simpanan Pokok Anggota
+            debitCode = "1.1.01.01"
+            creditCode = "2.1.01.01"
           } else if (type === "SIMPANAN_WAJIB") {
             debitCode = "1.1.01.01"
-            creditCode = "2.1.01.02" // Simpanan Wajib Anggota
+            creditCode = "2.1.01.02"
           } else if (type === "SIMPANAN_SUKARELA") {
             debitCode = "1.1.01.01"
-            creditCode = "2.1.01.03" // Simpanan Sukarela
+            creditCode = "2.1.01.03"
           } else if (type === "TARIK_SIMPANAN") {
             debitCode = "2.1.01.03"
             creditCode = "1.1.01.01"
           } else if (type === "PENCAIRAN_PINJAMAN") {
-            debitCode = member.memberType === "KELOMPOK" ? "1.1.02.02" : "1.1.02.01" // Piutang Pinjaman
-            creditCode = "1.1.01.01" // Kas Keluar
+            debitCode = member.memberType === "KELOMPOK" ? "1.1.02.02" : "1.1.02.01"
+            creditCode = "1.1.01.01"
           }
 
-          // Simple single/double posting
           if (type !== "ANGSURAN") {
             const entry = await tx.journalEntry.create({
               data: {
-                proofNumber: autoProofNumber,
+                proofNumber: finalProofNumber,
                 proofType: type === "TARIK_SIMPANAN" || type === "PENCAIRAN_PINJAMAN" ? "BKK" : "BKM",
                 date: txDate,
                 description: entryDesc,
@@ -417,8 +470,18 @@ export async function POST(request: Request) {
                 verificationStatus: "VERIFIED",
                 lines: {
                   create: [
-                    { accountCode: debitCode, type: "DEBIT", amount: numAmount },
-                    { accountCode: creditCode, type: "CREDIT", amount: numAmount }
+                    {
+                      accountCode: debitCode,
+                      type: "DEBIT",
+                      amount: numAmount,
+                      cashFlowGroup: debitCode.startsWith("1.1.01") ? "Aktivitas Operasi" : null
+                    },
+                    {
+                      accountCode: creditCode,
+                      type: "CREDIT",
+                      amount: numAmount,
+                      cashFlowGroup: creditCode.startsWith("1.1.01") ? "Aktivitas Operasi" : null
+                    }
                   ]
                 }
               }
@@ -427,35 +490,27 @@ export async function POST(request: Request) {
               where: { id: txRecord.id },
               data: { journalEntryId: entry.id }
             })
-          } else {
-            // ANGSURAN: Enforce exact double-entry balance between Cash debit and (Principal + Interest) credits
-            const totalCash = (numPrincipal > 0 || numInterest > 0) ? (numPrincipal + numInterest) : numAmount
+          } else if (inst) {
             const piutangCode = member.memberType === "KELOMPOK" ? "1.1.02.02" : "1.1.02.01"
-
             const lines: any[] = [
-              { accountCode: "1.1.01.01", type: "DEBIT", amount: totalCash }
+              { accountCode: "1.1.01.01", type: "DEBIT", amount: inst.totalCash, cashFlowGroup: "Aktivitas Operasi" }
             ]
-            if (numPrincipal > 0) {
-              lines.push({ accountCode: piutangCode, type: "CREDIT", amount: numPrincipal })
+            if (inst.actualPrincipal > 0) {
+              lines.push({ accountCode: piutangCode, type: "CREDIT", amount: inst.actualPrincipal })
             }
-            if (numInterest > 0) {
-              lines.push({ accountCode: "4.1.01.02", type: "CREDIT", amount: numInterest })
-            }
-            // fallback if neither principal nor interest was split
-            if (lines.length === 1) {
-              lines.push({ accountCode: piutangCode, type: "CREDIT", amount: totalCash })
+            if (inst.numInterest > 0) {
+              lines.push({ accountCode: "4.1.01.02", type: "CREDIT", amount: inst.numInterest })
             }
 
-            // Verify strict double-entry equality
-            const debits = lines.filter(l => l.type === "DEBIT").reduce((s, l) => s + l.amount, 0)
-            const credits = lines.filter(l => l.type === "CREDIT").reduce((s, l) => s + l.amount, 0)
+            const debits = lines.filter((l) => l.type === "DEBIT").reduce((s, l) => s + l.amount, 0)
+            const credits = lines.filter((l) => l.type === "CREDIT").reduce((s, l) => s + l.amount, 0)
             if (Math.abs(debits - credits) >= 0.01) {
               throw new Error(`Jurnal tidak seimbang: Total Debit (Rp ${debits}) != Total Kredit (Rp ${credits})`)
             }
 
             const entry = await tx.journalEntry.create({
               data: {
-                proofNumber: autoProofNumber,
+                proofNumber: finalProofNumber,
                 proofType: "BKM",
                 date: txDate,
                 description: entryDesc,
@@ -487,7 +542,14 @@ export async function POST(request: Request) {
         }, { status: 403 })
       }
 
-      // Load all 66 real detailed members from SPJ 2025 Balongbesuk (no collective placeholders)
+      const closed2025 = await db.annualClosing.findUnique({ where: { year: 2025 } })
+      if (closed2025?.isLocked) {
+        return NextResponse.json({
+          success: false,
+          error: "Tahun pembukuan 2025 telah ditutup buku dan dikunci secara permanen."
+        }, { status: 403 })
+      }
+
       const path = await import("path")
       const fs = await import("fs")
       const membersFilePath = path.join(process.cwd(), "prisma", "spj_2025_members.json")
@@ -496,7 +558,6 @@ export async function POST(request: Request) {
         sampleMembers = JSON.parse(fs.readFileSync(membersFilePath, "utf-8"))
       }
 
-      // Guard: Abort if file is missing to prevent creating unbalanced phantom journals
       if (!sampleMembers || sampleMembers.length === 0) {
         return NextResponse.json({
           success: false,
@@ -504,7 +565,6 @@ export async function POST(request: Request) {
         }, { status: 404 })
       }
 
-      // Check if data already exists
       const count = await db.loanMember.count()
       if (count > 0 && !body.force) {
         return NextResponse.json({
@@ -513,34 +573,20 @@ export async function POST(request: Request) {
         }, { status: 400 })
       }
 
-      // If force, clear existing
-      if (body.force) {
-        await db.loanTransaction.deleteMany()
-        await db.loanMember.deleteMany()
-      }
-
       await db.$transaction(async (tx) => {
-        // Ensure Ledger Accounts exist for Kepmendes 136 standard
-        const accountsToEnsure = [
-          { code: "1.1.02.01", name: "Piutang Pinjaman Masyarakat", type: "ASSET", normal: "Debit" },
-          { code: "1.1.02.02", name: "Piutang Pinjaman Poktan/Kelompok", type: "ASSET", normal: "Debit" },
-          { code: "2.1.01.01", name: "Simpanan Pokok Anggota", type: "LIABILITY", normal: "Credit" },
-          { code: "2.1.01.02", name: "Simpanan Wajib Anggota", type: "LIABILITY", normal: "Credit" },
-          { code: "2.1.01.03", name: "Simpanan Sukarela Anggota", type: "LIABILITY", normal: "Credit" },
-          { code: "3.1.01.01", name: "Penyertaan Modal Desa", type: "EQUITY", normal: "Credit" },
-          { code: "4.1.01.02", name: "Pendapatan Jasa Pinjaman USP", type: "REVENUE", normal: "Credit" }
-        ]
-
-        for (const acc of accountsToEnsure) {
-          const accExist = await tx.ledgerAccount.findUnique({ where: { code: acc.code } })
-          if (!accExist) {
-            await tx.ledgerAccount.create({ data: acc })
-          }
+        if (body.force) {
+          await tx.loanTransaction.deleteMany()
+          await tx.loanMember.deleteMany()
         }
 
-        // Reconciled Opening Journal Entry for USP matching SPJ 2025 Neraca exactly
-        // Total Simpanan: Rp 17.840.000 (Pokok: 2.750.000, Wajib: 15.090.000)
-        // Total Piutang: Rp 89.000.000 (Masyarakat: 61.000.000, Gapoktan: 28.000.000)
+        for (const acc of USP_STANDARD_ACCOUNTS) {
+          await tx.ledgerAccount.upsert({
+            where: { code: acc.code },
+            update: {},
+            create: acc
+          })
+        }
+
         const saProofNumber = "SA-USP-2025"
         await tx.journalEntry.deleteMany({ where: { proofNumber: saProofNumber } })
         await tx.journalEntry.create({
@@ -567,7 +613,6 @@ export async function POST(request: Request) {
         for (const m of sampleMembers) {
           const created = await tx.loanMember.create({ data: m })
 
-          // Create transactions for history
           if (m.simpananPokok > 0) {
             await tx.loanTransaction.create({
               data: {
@@ -614,7 +659,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "Aksi tidak dikenali" }, { status: 400 })
   } catch (error: any) {
     console.error("POST /api/loans error:", error)
-    return NextResponse.json({ success: false, error: error.message || "Gagal memproses permintaan" }, { status: 500 })
+    const msg = error.message || "Gagal memproses permintaan"
+    const isValidation = /melebihi|tidak mencukupi|lebih dari 0|tidak seimbang|sudah digunakan/i.test(msg)
+    return NextResponse.json({ success: false, error: msg }, { status: isValidation ? 400 : 500 })
   }
 }
 
@@ -635,9 +682,24 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "ID anggota wajib disertakan" }, { status: 400 })
     }
 
-    const member = await db.loanMember.findUnique({ where: { id } })
+    const member = await db.loanMember.findUnique({
+      where: { id },
+      include: { transactions: { select: { date: true } } }
+    })
     if (!member) {
       return NextResponse.json({ success: false, error: "Anggota tidak ditemukan" }, { status: 404 })
+    }
+
+    const lockedClosings = await db.annualClosing.findMany({ where: { isLocked: true }, select: { year: true } })
+    const lockedYears = new Set(lockedClosings.map((c) => c.year))
+    const txLockedYear = member.transactions
+      .map((t) => new Date(t.date).getUTCFullYear())
+      .find((y) => lockedYears.has(y))
+    if (txLockedYear) {
+      return NextResponse.json({
+        success: false,
+        error: `Penghapusan ditolak. Anggota memiliki riwayat transaksi pada Tahun Anggaran ${txLockedYear} yang telah ditutup buku dan berstatus Terkunci (Arsip LPJ Resmi).`
+      }, { status: 403 })
     }
 
     const totalSimpanan = (member.simpananPokok || 0) + (member.simpananWajib || 0) + (member.simpananSukarela || 0)

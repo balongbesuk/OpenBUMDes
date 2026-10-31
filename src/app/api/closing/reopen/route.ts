@@ -30,30 +30,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: `Arsip tutup buku tahun ${parsedYear} tidak ditemukan.` }, { status: 404 })
     }
 
-    // Hapus jurnal penutup JP jika ada
-    if (closing.journalEntryId) {
-      try {
-        await db.journalEntry.delete({
-          where: { id: closing.journalEntryId }
-        })
-      } catch (e) {
-        console.warn("Could not delete closing journal entry:", e)
-      }
-    } else {
+    const updated = await db.$transaction(async (tx) => {
+      // Hapus jurnal penutup JP secara atomik
       const jpProof = `JP/${parsedYear}/12/0001`
-      await db.journalEntry.deleteMany({
-        where: { proofNumber: jpProof }
+      await tx.journalEntry.deleteMany({
+        where: {
+          OR: [
+            ...(closing.journalEntryId ? [{ id: closing.journalEntryId }] : []),
+            { proofNumber: jpProof }
+          ]
+        }
       })
-    }
 
-    // Update status isLocked menjadi false
-    const updated = await db.annualClosing.update({
-      where: { year: parsedYear },
-      data: {
-        isLocked: false,
-        journalEntryId: null,
-        notes: closing.notes ? `${closing.notes} | Dibuka kembali: ${reason}` : `Dibuka kembali: ${reason}`
-      }
+      return await tx.annualClosing.update({
+        where: { year: parsedYear },
+        data: {
+          isLocked: false,
+          journalEntryId: null,
+          notes: closing.notes ? `${closing.notes} | Dibuka kembali: ${reason}` : `Dibuka kembali: ${reason}`
+        }
+      })
     })
 
     return NextResponse.json({

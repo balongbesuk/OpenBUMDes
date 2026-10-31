@@ -72,3 +72,7 @@ scripts/parse_sp.py
 .gemini/
 .agents/
 scratch/
+
+# Uploaded private receipt files
+/storage/
+/public/uploads/

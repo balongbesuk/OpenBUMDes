@@ -114,8 +114,8 @@ export default function KwitansiModal({
     "1.1.01.06": "Kas Rekening Bank Jatim",
     "1.1.03.01": "Piutang Usaha GSG & Sewa",
     "1.1.03.99": "Piutang Lain-lain (SPP / Pinjaman)",
-    "1.1.04.01": "Persediaan Barang Dagangan",
-    "1.1.05.01": "Uang Muka Operasional",
+    "1.1.04.01": "Penyisihan Piutang Usaha Tak Tertagih",
+    "1.1.05.01": "Persediaan Barang Dagangan", "1.1.06.01": "Sewa Dibayar Dimuka",
     "1.3.01.01": "Tanah / Lahan Usaha",
     "1.3.02.01": "Gedung & Bangunan Serbaguna",
     "1.3.03.01": "Peralatan & Inventaris Kantor",
@@ -413,7 +413,7 @@ export default function KwitansiModal({
                           {it.accountCode}
                         </td>
                         <td className="py-1.5 px-3 text-slate-800 border-r border-slate-200">
-                          {ACCOUNT_NAMES[it.accountCode] || entry.description}
+                          {it.accountName || ACCOUNT_NAMES[it.accountCode] || entry.description}
                         </td>
                         <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">
                           {formatRupiah(it.amount)}

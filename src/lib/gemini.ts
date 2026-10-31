@@ -537,7 +537,7 @@ Buat output JSON:
   try {
     const ai = new GoogleGenAI({ apiKey })
     const modelSetting = await db.setting.findUnique({ where: { key: "gemini_model" } })
-    const chosenModel = modelSetting?.value?.trim() || "gemini-3.5-flash"
+    const rawModel = modelSetting?.value?.trim() || "gemini-3.5-flash"; const chosenModel = rawModel.includes("2.5") ? "gemini-3.5-flash" : rawModel
     const response = await ai.models.generateContent({
       model: chosenModel,
       contents: prompt,
@@ -584,7 +584,7 @@ export async function runFinancialHealthAudit(year: number) {
   const netProfit = labaRugi.netProfit
   const cashEnd = lak.saldoKasAkhir
   const currentAssets = neraca.totalCurrentAssets
-  const currentLiabilities = neraca.totalLiabilities
+  const currentLiabilities = neraca.totalCurrentLiabilities
 
   // 1. Indikator Keuangan Kunci
   const bopo = totalRev > 0 ? (totalExp / totalRev) * 100 : totalExp > 0 ? 150 : 0
@@ -597,8 +597,8 @@ export async function runFinancialHealthAudit(year: number) {
 
   const entries = await db.journalEntry.findMany({
     where: {
-      date: { gte: startDate, lte: endDate },
-      proofType: { not: "MEMORIAL" }
+      date: { gte: startDate, lte: endDate }
+
     },
     include: { lines: true }
   })
@@ -647,7 +647,7 @@ export async function runFinancialHealthAudit(year: number) {
   }
 
   // Check 3: Transaksi dengan Keterangan Terlalu Pendek / Ambigu
-  const vagueEntries = entries.filter(e => e.description.trim().length <= 4 || e.payeeOrPayer === "-" || !e.payeeOrPayer)
+  const vagueEntries = entries.filter(e => e.proofType !== "MEMORIAL" && (e.description.trim().length <= 4 || e.payeeOrPayer === "-" || !e.payeeOrPayer))
   if (vagueEntries.length > 0) {
     issues.push({
       type: "warning",

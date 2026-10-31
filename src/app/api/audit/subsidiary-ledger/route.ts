@@ -28,15 +28,9 @@ export async function GET(request: Request) {
       where: { proofNumber: { startsWith: `SA/${year}/` } }
     })
 
-    const dateFilter =
-      hasSaCount > 0
-        ? {
-            gte: new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0)),
-            lte: new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999))
-          }
-        : {
-            lte: new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999))
-          }
+    const startOfYear = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0))
+    const endOfYear = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999))
+    const dateFilter = hasSaCount > 0 ? { gte: startOfYear, lte: endOfYear } : { lte: endOfYear }
 
     // Tentukan kriteria filter akun berdasarkan jenis buku pembantu
     let whereAccount: any = {}
@@ -73,7 +67,8 @@ export async function GET(request: Request) {
       where: {
         ...whereAccount,
         journalEntry: {
-          date: dateFilter
+          date: dateFilter,
+          NOT: { proofNumber: { startsWith: "JP/" } }
         }
       },
       include: {
@@ -89,8 +84,9 @@ export async function GET(request: Request) {
       ]
     })
 
-    // Disambiguasi kode 1.1.02 (Deposito Bank vs Piutang USP):
+    // Disambiguasi kode 1.1.02 (Deposito Bank vs Piutang USP) & batasi beban pajak 7.3.01 di tahun berjalan:
     const lines = rawLines.filter((l) => {
+      if (l.accountCode.startsWith("7.3.01") && new Date(l.journalEntry.date) < startOfYear) return false
       if (!l.accountCode.startsWith("1.1.02")) return true
       const accName = (accountMap.get(l.accountCode)?.name || "").toLowerCase()
       const desc = (l.journalEntry.description || "").toLowerCase()
@@ -333,7 +329,7 @@ export async function POST(request: Request) {
     }
 
     const txDate = date ? new Date(date) : new Date()
-    const txYear = txDate.getFullYear()
+    const txYear = txDate.getUTCFullYear()
 
     // Proteksi Tutup Buku Tahunan
     const lockedYear = await db.annualClosing.findUnique({ where: { year: txYear } })

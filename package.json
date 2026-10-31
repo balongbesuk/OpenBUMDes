@@ -1,6 +1,6 @@
 {
   "name": "openbumdes",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "private": true,
   "description": "Sistem Informasi Akuntansi dan Laporan Keuangan BUMDes Standar Kepmendes 136/2022",
   "scripts": {
@@ -9,24 +9,20 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "db:setup": "prisma db push && prisma db seed && npm run db:seed-templates",
+    "db:setup": "prisma db push && prisma db seed",
     "db:seed": "prisma db seed",
-    "test": "node tests/self-check.mjs",
-    "db:seed-templates": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed_templates.ts"
+    "test": "node tests/self-check.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.31.0",
     "@prisma/client": "^5.21.1",
-    "@types/three": "^0.186.0",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.577.0",
     "next": "^15.5.28",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "recharts": "^2.13.0",
     "tailwind-merge": "^2.5.4",
-    "three": "^0.186.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {

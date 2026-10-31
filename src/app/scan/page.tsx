@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
+import { getLocalDateString } from "@/lib/utils"
 import {
   Camera,
   FileText,
@@ -94,7 +95,7 @@ export default function MobileScanPage() {
     description: string
     amount: string
     contraAccount: string
-    unitName: string
+    unitName: string; cashFlowGroup?: string
   } | null>(null)
 
   // Chart of Accounts for dropdown
@@ -132,7 +133,7 @@ export default function MobileScanPage() {
         const relevant = json.data.filter((a: any) => !a.code.startsWith("1.1.01"))
         setAccounts(relevant.length > 0 ? relevant : json.data)
       }
-    } catch {}
+    } catch { }
   }
 
   const loadRecentEntries = async () => {
@@ -143,7 +144,7 @@ export default function MobileScanPage() {
       if (json.success && Array.isArray(json.data)) {
         setRecentEntries(json.data.slice(0, 5))
       }
-    } catch {}
+    } catch { }
   }
 
   useEffect(() => {
@@ -254,7 +255,7 @@ export default function MobileScanPage() {
         })
       }
 
-      const todayStr = new Date().toISOString().split("T")[0]
+      const todayStr = getLocalDateString()
 
       setParsedData({
         proofType: d.proofType === "BKM" ? "BKM" : "BKK",
@@ -263,7 +264,7 @@ export default function MobileScanPage() {
         description: d.description || (inputMode === "text" ? textPrompt : "Transaksi via Mobile Scanner"),
         amount: String(d.totalAmount || "0"),
         contraAccount: contra,
-        unitName: d.unitName || "Umum"
+        unitName: d.unitName || "Umum", cashFlowGroup: d.cashFlowGroup || undefined
       })
     } catch (err: any) {
       setErrorMessage(err.message || "Gagal memproses dengan AI")
@@ -292,13 +293,13 @@ export default function MobileScanPage() {
       // Double-entry lines
       const lines = isOut
         ? [
-            { accountCode: parsedData.contraAccount, type: "DEBIT", amount: amt },
-            { accountCode: cashCode, type: "CREDIT", amount: amt }
-          ]
+          { accountCode: parsedData.contraAccount, type: "DEBIT", amount: amt },
+          { accountCode: cashCode, type: "CREDIT", amount: amt, cashFlowGroup: parsedData.cashFlowGroup || null }
+        ]
         : [
-            { accountCode: cashCode, type: "DEBIT", amount: amt },
-            { accountCode: parsedData.contraAccount, type: "CREDIT", amount: amt }
-          ]
+          { accountCode: cashCode, type: "DEBIT", amount: amt, cashFlowGroup: parsedData.cashFlowGroup || null },
+          { accountCode: parsedData.contraAccount, type: "CREDIT", amount: amt }
+        ]
 
       const res = await fetch("/api/cash-book", {
         method: "POST",
@@ -319,7 +320,7 @@ export default function MobileScanPage() {
         throw new Error(json.error || "Gagal menyimpan ke Buku Kas")
       }
 
-      const proof = json.data?.proofNumber || parsedData.proofType
+      const proof = json.data?.entry?.proofNumber || json.data?.proofNumber || parsedData.proofType
       setSuccessMessage(`Berhasil dicatat ke Jurnal & Buku Kas! No. Bukti: ${proof}`)
       setParsedData(null)
       setImagePreview(null)
@@ -496,11 +497,10 @@ export default function MobileScanPage() {
               setInputMode("camera")
               setErrorMessage("")
             }}
-            className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-              inputMode === "camera"
+            className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${inputMode === "camera"
                 ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/50"
                 : "text-slate-400 hover:text-white"
-            }`}
+              }`}
           >
             <Camera className="w-4 h-4" />
             Foto Nota / Struk
@@ -510,11 +510,10 @@ export default function MobileScanPage() {
               setInputMode("text")
               setErrorMessage("")
             }}
-            className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-              inputMode === "text"
+            className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${inputMode === "text"
                 ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/50"
                 : "text-slate-400 hover:text-white"
-            }`}
+              }`}
           >
             <FileText className="w-4 h-4" />
             Catatan Tanpa Nota
@@ -703,22 +702,20 @@ export default function MobileScanPage() {
                 <button
                   type="button"
                   onClick={() => setParsedData({ ...parsedData, proofType: "BKK" })}
-                  className={`py-2 text-xs font-bold rounded-xl border text-center transition-all ${
-                    parsedData.proofType === "BKK"
+                  className={`py-2 text-xs font-bold rounded-xl border text-center transition-all ${parsedData.proofType === "BKK"
                       ? "bg-rose-600/30 border-rose-500 text-rose-300 font-extrabold"
                       : "bg-slate-900/70 border-slate-700 text-slate-400"
-                  }`}
+                    }`}
                 >
                   BKK (Kas Keluar)
                 </button>
                 <button
                   type="button"
                   onClick={() => setParsedData({ ...parsedData, proofType: "BKM" })}
-                  className={`py-2 text-xs font-bold rounded-xl border text-center transition-all ${
-                    parsedData.proofType === "BKM"
+                  className={`py-2 text-xs font-bold rounded-xl border text-center transition-all ${parsedData.proofType === "BKM"
                       ? "bg-emerald-600/30 border-emerald-500 text-emerald-300 font-extrabold"
                       : "bg-slate-900/70 border-slate-700 text-slate-400"
-                  }`}
+                    }`}
                 >
                   BKM (Kas Masuk)
                 </button>
@@ -891,11 +888,10 @@ export default function MobileScanPage() {
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5">
                       <span
-                        className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded ${
-                          e.proofType === "BKK"
+                        className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded ${e.proofType === "BKK"
                             ? "bg-rose-500/20 text-rose-300"
                             : "bg-emerald-500/20 text-emerald-300"
-                        }`}
+                          }`}
                       >
                         {e.proofType}
                       </span>

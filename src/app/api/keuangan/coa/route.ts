@@ -23,11 +23,29 @@ function getStandardCoaMap() {
   return standardCoaCache
 }
 
+const STANDARD_GROUPS = [
+  { prefix: "1.1.01", name: "Kas dan Setara Kas", type: "ASSET", normal: "Debit" },
+  { prefix: "1.1.03", name: "Piutang Usaha", type: "ASSET", normal: "Debit" },
+  { prefix: "1.1.05", name: "Persediaan", type: "ASSET", normal: "Debit" },
+  { prefix: "1.3.01", name: "Aset Tetap Berwujud", type: "ASSET", normal: "Debit" },
+  { prefix: "2.1.01", name: "Kewajiban Jangka Pendek", type: "LIABILITY", normal: "Kredit" },
+  { prefix: "3.1.01", name: "Ekuitas / Modal BUMDes", type: "EQUITY", normal: "Kredit" },
+  { prefix: "4.1.01", name: "Pendapatan Usaha Utama", type: "REVENUE", normal: "Kredit" },
+  { prefix: "4.1.02", name: "Pendapatan Jasa & Sewa", type: "REVENUE", normal: "Kredit" },
+  { prefix: "6.1.01", name: "Beban Operasional SDM", type: "EXPENSE", normal: "Debit" },
+  { prefix: "6.1.04", name: "Beban Operasional Lainnya", type: "EXPENSE", normal: "Debit" }
+]
+
 // GET: List all Chart of Accounts (COA) with optional filtering/search
 export async function GET(request: Request) {
   try {
+    const session = await getUserSession()
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Akses ditolak" }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
-    const session = await getUserSession(); if (!session) return NextResponse.json({ success: false, error: "Akses ditolak" }, { status: 401 }); const search = searchParams.get("search") || ""
+    const search = searchParams.get("search") || ""
     const type = searchParams.get("type") || ""
 
     const where: any = {}
@@ -59,19 +77,6 @@ export async function GET(request: Request) {
       }
     })
 
-const STANDARD_GROUPS = [
-  { prefix: "1.1.01", name: "Kas dan Setara Kas", type: "ASSET", normal: "Debit" },
-  { prefix: "1.1.03", name: "Piutang Usaha", type: "ASSET", normal: "Debit" },
-  { prefix: "1.1.05", name: "Persediaan", type: "ASSET", normal: "Debit" },
-  { prefix: "1.3.01", name: "Aset Tetap Berwujud", type: "ASSET", normal: "Debit" },
-  { prefix: "2.1.01", name: "Kewajiban Jangka Pendek", type: "LIABILITY", normal: "Credit" },
-  { prefix: "3.1.01", name: "Ekuitas / Modal BUMDes", type: "EQUITY", normal: "Credit" },
-  { prefix: "4.1.01", name: "Pendapatan Usaha Utama", type: "REVENUE", normal: "Credit" },
-  { prefix: "4.1.02", name: "Pendapatan Jasa & Sewa", type: "REVENUE", normal: "Credit" },
-  { prefix: "6.1.01", name: "Beban Operasional SDM", type: "EXPENSE", normal: "Debit" },
-  { prefix: "6.1.04", name: "Beban Operasional Lainnya", type: "EXPENSE", normal: "Debit" }
-]
-
     return NextResponse.json({ success: true, data: enriched, groups: STANDARD_GROUPS })
   } catch (error: any) {
     return NextResponse.json(
@@ -99,7 +104,6 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if account code already exists
     const existing = await db.ledgerAccount.findUnique({
       where: { code: code.trim() }
     })
@@ -118,35 +122,6 @@ export async function POST(request: Request) {
         normal: normal || (type === "ASSET" || type === "EXPENSE" ? "Debit" : "Kredit")
       }
     })
-
-    // Also auto-create a friendly Transaction Template for this new account!
-    let templateCategory = "BKM"
-    let defaultCashAcc = "1.1.01.01"
-    let cashFlowGroup = "Penerimaan kas dari penjualan jasa"
-
-    if (type === "EXPENSE") {
-      templateCategory = "BKK"
-      cashFlowGroup = "Pengeluaran kas untuk pembayaran beban-beban yang lain"
-    } else if (type === "REVENUE") {
-      templateCategory = "BKM"
-      cashFlowGroup = "Penerimaan kas dari penjualan jasa"
-    } else if (type === "ASSET" && code.startsWith("1.1.01")) {
-      // It's a new bank or cash account
-      templateCategory = "BKM"
-      defaultCashAcc = code.trim()
-    }
-
-    await db.transactionTemplate.create({
-      data: {
-        category: templateCategory,
-        name: name.trim(),
-        targetAccount: code.trim(),
-        cashAccount: defaultCashAcc,
-        cashFlowGroup,
-        description: `Transaksi ${name.trim()}`
-      }
-    })
-
 
     return NextResponse.json({ success: true, data: created })
   } catch (error: any) {
@@ -171,8 +146,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "Kode akun wajib dicantumkan" }, { status: 400 })
     }
 
-    // Check if account has been used in transactions or referenced in inventory/assets
-    const [usedCount, invCount, assetCount] = await Promise.all([
+    const [usedCount, invCount, assetCount, obCount] = await Promise.all([
       db.journalLine.count({ where: { accountCode: code } }),
       db.inventoryItem.count({ where: { accountCode: code } }),
       db.fixedAsset.count({
@@ -183,14 +157,16 @@ export async function DELETE(request: Request) {
             { expAccountCode: code }
           ]
         }
-      })
+      }),
+      db.openingBalance.count({ where: { accountCode: code } })
     ])
 
-    if (usedCount > 0 || invCount > 0 || assetCount > 0) {
+    if (usedCount > 0 || invCount > 0 || assetCount > 0 || obCount > 0) {
       const reasons: string[] = []
       if (usedCount > 0) reasons.push(`${usedCount} riwayat transaksi jurnal`)
       if (invCount > 0) reasons.push(`${invCount} barang inventaris`)
       if (assetCount > 0) reasons.push(`${assetCount} register aset tetap`)
+      if (obCount > 0) reasons.push(`${obCount} catatan saldo awal`)
       return NextResponse.json(
         {
           success: false,
@@ -203,12 +179,6 @@ export async function DELETE(request: Request) {
     await db.ledgerAccount.delete({
       where: { code }
     })
-
-    // Remove associated template if any
-    await db.transactionTemplate.deleteMany({
-      where: { targetAccount: code }
-    })
-
 
     return NextResponse.json({ success: true, message: `Akun ${code} berhasil dihapus.` })
   } catch (error: any) {
@@ -258,15 +228,6 @@ export async function PUT(request: Request) {
       data: updateData
     })
 
-    // Also update any associated transaction templates
-    await db.transactionTemplate.updateMany({
-      where: { targetAccount: code.trim() },
-      data: {
-        name: name.trim(),
-        description: `Transaksi ${name.trim()}`
-      }
-    })
-
     return NextResponse.json({ success: true, data: updated })
   } catch (error: any) {
     return NextResponse.json(
@@ -275,4 +236,3 @@ export async function PUT(request: Request) {
     )
   }
 }
-

@@ -1,5 +1,4 @@
 import crypto from "crypto"
-import { cookies } from "next/headers"
 
 const SECRET = process.env.AUTH_SECRET || process.env.JWT_SECRET || (
   process.env.NODE_ENV === "production"
@@ -67,10 +66,19 @@ export function verifyToken(token: string): { id: string; username: string; name
 
 export async function getUserSession() {
   try {
+    const { cookies } = await import("next/headers")
     const cookieStore = await cookies()
     const token = cookieStore.get(AUTH_COOKIE_NAME)
     if (!token) return null
-    return verifyToken(token.value)
+    const payload = verifyToken(token.value)
+    if (!payload?.id) return null
+
+    const { db } = await import("./db")
+    const user = await db.user.findUnique({
+      where: { id: payload.id },
+      select: { id: true, username: true, name: true, role: true }
+    })
+    return user || null
   } catch {
     return null
   }

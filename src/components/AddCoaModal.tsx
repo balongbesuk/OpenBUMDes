@@ -31,7 +31,7 @@ export default function AddCoaModal({
     code: "",
     name: "",
     type: "REVENUE",
-    normal: "Credit"
+    normal: "Kredit"
   })
   const [saving, setSaving] = useState(false)
 
@@ -165,7 +165,7 @@ export default function AddCoaModal({
         throw new Error("Server mengembalikan respons non-JSON saat menyimpan akun.")
       }
       if (json.success) {
-        setForm({ code: "", name: "", type: "REVENUE", normal: "Credit" })
+        setForm({ code: "", name: "", type: "REVENUE", normal: "Kredit" })
         setQuery("")
         setRecommendation(null)
         onSuccess()
@@ -383,7 +383,7 @@ export default function AddCoaModal({
                 className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#6777ef]"
               >
                 <option value="Debit">Debit (Aset & Beban)</option>
-                <option value="Credit">Credit (Pendapatan & Modal)</option>
+                <option value="Kredit">Kredit (Pendapatan & Modal)</option>
               </select>
             </div>
           </div>
