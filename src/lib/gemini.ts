@@ -679,6 +679,108 @@ export async function runFinancialHealthAudit(year: number) {
     })
   }
 
+  // Check 5: Keseimbangan Neraca (Total Aset == Total Pasiva)
+  const totalAset = neraca.totalAssets
+  const totalPasiva = neraca.totalLiabilitiesAndEquity
+  const diffNeraca = Math.abs(totalAset - totalPasiva)
+  if (diffNeraca > 1) {
+    issues.push({
+      type: "critical",
+      title: "Persamaan Neraca Tidak Seimbang",
+      detail: `Total Aset (Rp ${Math.round(totalAset).toLocaleString("id-ID")}) tidak sama dengan Total Pasiva (Rp ${Math.round(totalPasiva).toLocaleString("id-ID")}). Selisih: Rp ${Math.round(diffNeraca).toLocaleString("id-ID")}.`,
+      recommendation: "Periksa kembali jurnal penyesuaian atau saldo awal untuk memastikan Aset = Kewajiban + Ekuitas."
+    })
+  } else {
+    issues.push({
+      type: "healthy",
+      title: "Persamaan Neraca 100% Seimbang",
+      detail: `Total Aset (Rp ${Math.round(totalAset).toLocaleString("id-ID")}) seimbang sempurna dengan Total Pasiva (Kewajiban + Ekuitas).`,
+      recommendation: "Neraca telah memenuhi standar pelaporan Kepmendes 136/2022."
+    })
+  }
+
+  // Check 6: Rekonsiliasi Subledger Simpan Pinjam USP
+  const members = await db.loanMember.findMany()
+  if (members.length > 0) {
+    const totalSimpanan = members.reduce(
+      (s, m) => s + (m.simpananPokok || 0) + (m.simpananWajib || 0) + (m.simpananSukarela || 0),
+      0
+    )
+    const totalPiutang = members.reduce((s, m) => s + (m.sisaPinjaman || 0), 0)
+
+    const neracaLiabUSP = (neraca.liabilities || [])
+      .filter((l: any) => /simpanan|pihak ketiga/i.test(l.name))
+      .reduce((s: number, l: any) => s + (l.amount || 0), 0)
+    const neracaPiutangUSP = (neraca.currentAssets || [])
+      .filter((a: any) => /piutang/i.test(a.name))
+      .reduce((s: number, a: any) => s + (a.amount || 0), 0)
+
+    const diffSimpanan = Math.abs(totalSimpanan - neracaLiabUSP)
+    const diffPiutang = Math.abs(totalPiutang - neracaPiutangUSP)
+
+    if (diffSimpanan > 1 || diffPiutang > 1) {
+      issues.push({
+        type: "warning",
+        title: "Selisih Rekonsiliasi Simpan Pinjam (USP)",
+        detail: `Buku pembantu ${members.length} anggota berbeda dengan Neraca (Selisih Simpanan: Rp ${Math.round(diffSimpanan).toLocaleString("id-ID")}, Selisih Piutang: Rp ${Math.round(diffPiutang).toLocaleString("id-ID")}).`,
+        recommendation: "Sinkronkan mutasi transaksi atau saldo awal USP di menu Simpan Pinjam."
+      })
+    } else {
+      issues.push({
+        type: "healthy",
+        title: "Subledger Simpan Pinjam USP Klop",
+        detail: `Buku tabungan (Rp ${Math.round(totalSimpanan).toLocaleString("id-ID")}) dan sisa pinjaman (${members.length} anggota) klop 100% dengan akun Neraca.`,
+        recommendation: "Buku Pembantu Piutang dan Simpanan USP siap diaudit."
+      })
+    }
+  }
+
+  // Check 7: Rekonsiliasi Register Aset Tetap vs Neraca
+  const assets = await db.fixedAsset.findMany({
+    where: { acquisitionDate: { lte: endDate } }
+  })
+  if (assets.length > 0) {
+    const totalCostRegister = assets.reduce((s, a) => s + a.acquisitionCost, 0)
+    const neracaCostAset = neraca.fixedAssets?.peralatan || 0
+    const diffCost = Math.abs(totalCostRegister - neracaCostAset)
+    if (diffCost > 1) {
+      issues.push({
+        type: "warning",
+        title: "Selisih Register Aset Tetap vs Neraca",
+        detail: `Total harga perolehan register (${assets.length} item: Rp ${Math.round(totalCostRegister).toLocaleString("id-ID")}) selisih Rp ${Math.round(diffCost).toLocaleString("id-ID")} dengan nilai perolehan di Neraca (Rp ${Math.round(neracaCostAset).toLocaleString("id-ID")}).`,
+        recommendation: "Pastikan seluruh pembelian barang inventaris telah tercatat di akun 1.3.xx."
+      })
+    } else {
+      issues.push({
+        type: "healthy",
+        title: "Register Aset Tetap Sinkron 100%",
+        detail: `Nilai perolehan ${assets.length} aset inventaris (Rp ${Math.round(totalCostRegister).toLocaleString("id-ID")}) klop sempurna dengan Neraca.`,
+        recommendation: "Lakukan inventarisasi fisik barang bersama Badan Pengawas sebelum Musdes."
+      })
+    }
+  }
+
+  // Check 8: Keterkaitan Arus Kas (LAK) vs Kas di Neraca
+  const kasDiNeraca = (neraca.currentAssets || [])
+    .filter((c: any) => /kas|bank/i.test(c.name))
+    .reduce((s: number, c: any) => s + (c.amount || 0), 0)
+  const diffKasLak = Math.abs(cashEnd - kasDiNeraca)
+  if (diffKasLak > 1) {
+    issues.push({
+      type: "critical",
+      title: "Selisih Saldo Kas LAK vs Neraca",
+      detail: `Saldo kas akhir LAK (Rp ${Math.round(cashEnd).toLocaleString("id-ID")}) berbeda dengan Kas & Bank di Neraca (Rp ${Math.round(kasDiNeraca).toLocaleString("id-ID")}). Selisih: Rp ${Math.round(diffKasLak).toLocaleString("id-ID")}.`,
+      recommendation: "Periksa pengelompokan arus kas pada jurnal penerimaan/pengeluaran."
+    })
+  } else {
+    issues.push({
+      type: "healthy",
+      title: "Arus Kas (LAK) Konsisten dengan Neraca",
+      detail: `Saldo kas akhir LAK cocok persis dengan total kas fisik dan rekening bank di Neraca (Rp ${Math.round(cashEnd).toLocaleString("id-ID")}).`,
+      recommendation: "Laporan Arus Kas siap diajukan ke Musyawarah Desa."
+    })
+  }
+
   // Hitung Skor Kesehatan (0 - 100)
   let healthScore = 100
   issues.forEach(i => {
