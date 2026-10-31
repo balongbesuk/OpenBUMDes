@@ -700,13 +700,22 @@ export async function runFinancialHealthAudit(year: number) {
   }
 
   // Check 6: Rekonsiliasi Subledger Simpan Pinjam USP
-  const members = await db.loanMember.findMany()
-  if (members.length > 0) {
-    const totalSimpanan = members.reduce(
-      (s, m) => s + (m.simpananPokok || 0) + (m.simpananWajib || 0) + (m.simpananSukarela || 0),
-      0
-    )
-    const totalPiutang = members.reduce((s, m) => s + (m.sisaPinjaman || 0), 0)
+  const memberAgg = await db.loanMember.aggregate({
+    _sum: {
+      simpananPokok: true,
+      simpananWajib: true,
+      simpananSukarela: true,
+      sisaPinjaman: true
+    },
+    _count: { id: true }
+  })
+  const memberCount = memberAgg._count.id || 0
+  if (memberCount > 0) {
+    const totalSimpanan =
+      (memberAgg._sum.simpananPokok || 0) +
+      (memberAgg._sum.simpananWajib || 0) +
+      (memberAgg._sum.simpananSukarela || 0)
+    const totalPiutang = memberAgg._sum.sisaPinjaman || 0
 
     const neracaLiabUSP = (neraca.liabilities || [])
       .filter((l: any) => /simpanan|pihak ketiga/i.test(l.name))
@@ -722,39 +731,42 @@ export async function runFinancialHealthAudit(year: number) {
       issues.push({
         type: "warning",
         title: "Selisih Rekonsiliasi Simpan Pinjam (USP)",
-        detail: `Buku pembantu ${members.length} anggota berbeda dengan Neraca (Selisih Simpanan: Rp ${Math.round(diffSimpanan).toLocaleString("id-ID")}, Selisih Piutang: Rp ${Math.round(diffPiutang).toLocaleString("id-ID")}).`,
+        detail: `Buku pembantu ${memberCount} anggota berbeda dengan Neraca (Selisih Simpanan: Rp ${Math.round(diffSimpanan).toLocaleString("id-ID")}, Selisih Piutang: Rp ${Math.round(diffPiutang).toLocaleString("id-ID")}).`,
         recommendation: "Sinkronkan mutasi transaksi atau saldo awal USP di menu Simpan Pinjam."
       })
     } else {
       issues.push({
         type: "healthy",
         title: "Subledger Simpan Pinjam USP Klop",
-        detail: `Buku tabungan (Rp ${Math.round(totalSimpanan).toLocaleString("id-ID")}) dan sisa pinjaman (${members.length} anggota) klop 100% dengan akun Neraca.`,
+        detail: `Buku tabungan (Rp ${Math.round(totalSimpanan).toLocaleString("id-ID")}) dan sisa pinjaman (${memberCount} anggota) klop 100% dengan akun Neraca.`,
         recommendation: "Buku Pembantu Piutang dan Simpanan USP siap diaudit."
       })
     }
   }
 
   // Check 7: Rekonsiliasi Register Aset Tetap vs Neraca
-  const assets = await db.fixedAsset.findMany({
-    where: { acquisitionDate: { lte: endDate } }
+  const assetAgg = await db.fixedAsset.aggregate({
+    where: { acquisitionDate: { lte: endDate } },
+    _sum: { acquisitionCost: true },
+    _count: { id: true }
   })
-  if (assets.length > 0) {
-    const totalCostRegister = assets.reduce((s, a) => s + a.acquisitionCost, 0)
+  const assetCount = assetAgg._count.id || 0
+  if (assetCount > 0) {
+    const totalCostRegister = assetAgg._sum.acquisitionCost || 0
     const neracaCostAset = neraca.fixedAssets?.peralatan || 0
     const diffCost = Math.abs(totalCostRegister - neracaCostAset)
     if (diffCost > 1) {
       issues.push({
         type: "warning",
         title: "Selisih Register Aset Tetap vs Neraca",
-        detail: `Total harga perolehan register (${assets.length} item: Rp ${Math.round(totalCostRegister).toLocaleString("id-ID")}) selisih Rp ${Math.round(diffCost).toLocaleString("id-ID")} dengan nilai perolehan di Neraca (Rp ${Math.round(neracaCostAset).toLocaleString("id-ID")}).`,
+        detail: `Total harga perolehan register (${assetCount} item: Rp ${Math.round(totalCostRegister).toLocaleString("id-ID")}) selisih Rp ${Math.round(diffCost).toLocaleString("id-ID")} dengan nilai perolehan di Neraca (Rp ${Math.round(neracaCostAset).toLocaleString("id-ID")}).`,
         recommendation: "Pastikan seluruh pembelian barang inventaris telah tercatat di akun 1.3.xx."
       })
     } else {
       issues.push({
         type: "healthy",
         title: "Register Aset Tetap Sinkron 100%",
-        detail: `Nilai perolehan ${assets.length} aset inventaris (Rp ${Math.round(totalCostRegister).toLocaleString("id-ID")}) klop sempurna dengan Neraca.`,
+        detail: `Nilai perolehan ${assetCount} aset inventaris (Rp ${Math.round(totalCostRegister).toLocaleString("id-ID")}) klop sempurna dengan Neraca.`,
         recommendation: "Lakukan inventarisasi fisik barang bersama Badan Pengawas sebelum Musdes."
       })
     }

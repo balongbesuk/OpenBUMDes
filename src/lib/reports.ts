@@ -63,6 +63,7 @@ export function aggregateNeracaFromLines(
   let totalLiabilities = 0
   let liabPokok = 0
   let liabWajib = 0
+  let liabSukarela = 0
   let eqModalDesa = 0
   let eqModalMasy = 0
   let eqCadanganLabaDitahan = 0
@@ -102,6 +103,7 @@ export function aggregateNeracaFromLines(
       if (code.startsWith("2.1")) totalCurrentLiabilities += netCredit
       if (code === "2.1.01.01") liabPokok += netCredit
       else if (code === "2.1.01.02") liabWajib += netCredit
+      else if (code === "2.1.01.03" || code.startsWith("2.1.01.03")) liabSukarela += netCredit
       else if (code.startsWith("2.1.05")) liabWajib += netCredit
     }
 
@@ -139,10 +141,11 @@ export function aggregateNeracaFromLines(
   const netFixedAssets = asetTetap - accumPenyusutan
   const totalAssets = totalCurrentAssets + netFixedAssets
 
-  const otherLiabilities = totalLiabilities - liabPokok - liabWajib
+  const otherLiabilities = totalLiabilities - liabPokok - liabWajib - liabSukarela
   const liabilities = [
     { name: "Simpanan Pokok Anggota", amount: liabPokok },
     { name: "Simpanan Wajib Anggota", amount: liabWajib },
+    { name: "Simpanan Sukarela Anggota", amount: liabSukarela },
     { name: "Utang & Kewajiban Lainnya", amount: otherLiabilities }
   ]
 

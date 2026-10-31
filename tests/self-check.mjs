@@ -231,6 +231,14 @@ async function runSelfChecks() {
   assert.strictEqual(neraca.totalAssets, 55000000, "Total Assets must include 1.2.01.01 Deposito > 3 bulan")
   assert.strictEqual(neraca.totalAssets, neraca.totalLiabilitiesAndEquity, "Neraca must stay strictly balanced with 1.2.xx and 3.4.xx")
 
+  // Check 16b: Production Simpanan Sukarela (2.1.01.03) must be mapped to liabilities correctly
+  const { neraca: neracaUsp } = aggregateNeracaFromLines([
+    { accountCode: "1.1.01.01", type: "DEBIT", amount: 1500000, journalEntry: txMeta },
+    { accountCode: "2.1.01.03", type: "CREDIT", amount: 1500000, journalEntry: txMeta }
+  ], testAccMap, 0, startDate, endDate)
+  const sukarelaLiab = neracaUsp.liabilities.find(l => l.name === "Simpanan Sukarela Anggota")
+  assert.strictEqual(sukarelaLiab?.amount, 1500000, "Simpanan Sukarela Anggota must appear in neraca.liabilities with correct amount")
+
   // 17. Production LAK check (src/lib/reports.ts): exclude Setor/Tarik Tunai & auto-classify 1.3.xx Investasi / 3.3.xx Pendanaan
   const lakResult = classifyCashEntriesForLak([
     {
