@@ -70,7 +70,8 @@ scripts/parse_sp.py
 
 # IDE / Antigravity / Agent local artifacts
 .gemini/
-.agents/
+.agents/*
+!.agents/skills/
 scratch/
 
 # Uploaded private receipt files
