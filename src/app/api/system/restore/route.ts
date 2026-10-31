@@ -64,6 +64,7 @@ export async function POST(request: Request) {
     try {
       try { if (fs.existsSync(dbPath + "-wal")) fs.unlinkSync(dbPath + "-wal") } catch {}
       try { if (fs.existsSync(dbPath + "-shm")) fs.unlinkSync(dbPath + "-shm") } catch {}
+      try { if (fs.existsSync(dbPath + "-journal")) fs.unlinkSync(dbPath + "-journal") } catch {}
 
       fs.writeFileSync(dbPath, fileBuffer)
 

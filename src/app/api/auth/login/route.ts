@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     }
 
     const cleanUsername = username.trim().toLowerCase()
-    const rateLimitKey = `${ip}:${cleanUsername}`
+    const rateLimitKey = cleanUsername
     const now = Date.now()
     const attemptRecord = failedAttempts.get(rateLimitKey)
 
@@ -45,7 +45,8 @@ export async function POST(request: Request) {
       const current = failedAttempts.get(rateLimitKey) || { count: 0, lockedUntil: 0 }
       current.count += 1
       if (current.count >= 5) {
-        current.lockedUntil = Date.now() + 60 * 1000 // Lock for 60 seconds
+        // Lock for 60s, doubling with each subsequent failure up to 15m
+        current.lockedUntil = Date.now() + Math.min(15 * 60 * 1000, 60 * 1000 * Math.pow(2, current.count - 5))
       }
       failedAttempts.set(rateLimitKey, current)
       if (failedAttempts.size > 200) {

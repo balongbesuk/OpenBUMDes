@@ -131,13 +131,20 @@ export async function postJournalEntry(
           const { year, month } = getFiscalYearMonth(date)
           const prefix = `${proofType}/${year}/${month}/`
 
-          const matching = await tx.journalEntry.findMany({
-            where: { proofNumber: { startsWith: prefix } },
-            select: { proofNumber: true }
-          })
+          const [matching, matchingLoans] = await Promise.all([
+            tx.journalEntry.findMany({
+              where: { proofNumber: { startsWith: prefix } },
+              select: { proofNumber: true }
+            }),
+            tx.loanTransaction.findMany({
+              where: { proofNumber: { startsWith: prefix } },
+              select: { proofNumber: true }
+            })
+          ])
 
           let maxSeq = 0
-          for (const m of matching) {
+          for (const m of [...matching, ...matchingLoans]) {
+            if (!m.proofNumber) continue
             const parts = m.proofNumber.split("/")
             const seq = parseInt(parts[parts.length - 1], 10)
             if (!isNaN(seq) && seq > maxSeq) {

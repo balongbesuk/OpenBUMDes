@@ -226,8 +226,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: `Nomor anggota ${memberNo} sudah terdaftar` }, { status: 400 })
       }
 
-      const hasInitialBalances =
-        Number(simpananPokok) > 0 || Number(simpananWajib) > 0 || Number(simpananSukarela) > 0 || Number(initialLoan) > 0
+      const initPokok = Math.max(0, Number(simpananPokok) || 0)
+      const initWajib = Math.max(0, Number(simpananWajib) || 0)
+      const initSukarela = Math.max(0, Number(simpananSukarela) || 0)
+      const initLoan = Math.max(0, Number(initialLoan) || 0)
+
+      const hasInitialBalances = initPokok > 0 || initWajib > 0 || initSukarela > 0 || initLoan > 0
       if (hasInitialBalances) {
         const curYear = new Date().getUTCFullYear()
         const closed = await db.annualClosing.findUnique({ where: { year: curYear } })
@@ -249,55 +253,55 @@ export async function POST(request: Request) {
             address: address || null,
             groupName: groupName || null,
             memberType,
-            simpananPokok: Number(simpananPokok) || 0,
-            simpananWajib: Number(simpananWajib) || 0,
-            simpananSukarela: Number(simpananSukarela) || 0,
-            totalPinjaman: Number(initialLoan) || 0,
-            sisaPinjaman: Number(initialLoan) || 0,
-            bungaPersen: Number(bungaPersen) || 1.5,
-            jangkaWaktuBulan: Number(jangkaWaktuBulan) || 12,
-            statusPinjaman: Number(initialLoan) > 0 ? "BERJALAN" : "LUNAS",
+            simpananPokok: initPokok,
+            simpananWajib: initWajib,
+            simpananSukarela: initSukarela,
+            totalPinjaman: initLoan,
+            sisaPinjaman: initLoan,
+            bungaPersen: Math.max(0, Number(bungaPersen) || 1.5),
+            jangkaWaktuBulan: Math.max(1, Number(jangkaWaktuBulan) || 12),
+            statusPinjaman: initLoan > 0 ? "BERJALAN" : "LUNAS",
             notes: notes || null
           }
         })
 
-        if (Number(simpananPokok) > 0) {
+        if (initPokok > 0) {
           await tx.loanTransaction.create({
             data: {
               memberId: created.id,
               type: "SIMPANAN_POKOK",
-              amount: Number(simpananPokok),
+              amount: initPokok,
               description: "Setoran Saldo Awal Simpanan Pokok"
             }
           })
         }
-        if (Number(simpananWajib) > 0) {
+        if (initWajib > 0) {
           await tx.loanTransaction.create({
             data: {
               memberId: created.id,
               type: "SIMPANAN_WAJIB",
-              amount: Number(simpananWajib),
+              amount: initWajib,
               description: "Setoran Saldo Awal Simpanan Wajib"
             }
           })
         }
-        if (Number(simpananSukarela) > 0) {
+        if (initSukarela > 0) {
           await tx.loanTransaction.create({
             data: {
               memberId: created.id,
               type: "SIMPANAN_SUKARELA",
-              amount: Number(simpananSukarela),
+              amount: initSukarela,
               description: "Setoran Saldo Awal Simpanan Sukarela"
             }
           })
         }
-        if (Number(initialLoan) > 0) {
+        if (initLoan > 0) {
           await tx.loanTransaction.create({
             data: {
               memberId: created.id,
               type: "PENCAIRAN_PINJAMAN",
-              amount: Number(initialLoan),
-              principalAmount: Number(initialLoan),
+              amount: initLoan,
+              principalAmount: initLoan,
               description: "Penyaluran Pinjaman Saldo Awal"
             }
           })
@@ -323,40 +327,51 @@ export async function POST(request: Request) {
         autoPostJournal = false
       } = body
 
-      if (!memberId || !type || !amount) {
-        return NextResponse.json({ success: false, error: "Data transaksi tidak lengkap" }, { status: 400 })
+      const ALLOWED_LOAN_TYPES = [
+        "SIMPANAN_POKOK",
+        "SIMPANAN_WAJIB",
+        "SIMPANAN_SUKARELA",
+        "TARIK_SIMPANAN",
+        "PENCAIRAN_PINJAMAN",
+        "ANGSURAN"
+      ]
+      if (!memberId || !type || !ALLOWED_LOAN_TYPES.includes(type)) {
+        return NextResponse.json({ success: false, error: "Jenis transaksi tidak valid atau data tidak lengkap" }, { status: 400 })
       }
 
-      const member = await db.loanMember.findUnique({ where: { id: memberId } })
-      if (!member) {
-        return NextResponse.json({ success: false, error: "Anggota tidak ditemukan" }, { status: 404 })
-      }
+      const numAmount = Number(amount)
+      const numPrincipal = Number(principalAmount) || 0
+      const numInterest = Number(interestAmount) || 0
 
-      const numAmount = Math.max(0, Number(amount))
-      const numPrincipal = Math.max(0, Number(principalAmount))
-      const numInterest = Math.max(0, Number(interestAmount))
-
-      if (numAmount <= 0 && numPrincipal + numInterest <= 0) {
-        return NextResponse.json({ success: false, error: "Nominal transaksi harus lebih dari 0" }, { status: 400 })
+      if (type === "ANGSURAN") {
+        if (!Number.isFinite(numPrincipal) || !Number.isFinite(numInterest) || numPrincipal + numInterest <= 0) {
+          return NextResponse.json({ success: false, error: "Nominal pokok atau bunga angsuran harus lebih dari 0" }, { status: 400 })
+        }
+      } else {
+        if (!Number.isFinite(numAmount) || numAmount <= 0) {
+          return NextResponse.json({ success: false, error: "Nominal transaksi harus berupa angka positif lebih dari 0" }, { status: 400 })
+        }
       }
 
       const txDate = new Date(date)
       const { year: txYear, month: monthStr } = getFiscalYearMonth(txDate)
 
-      const closed = await db.annualClosing.findUnique({ where: { year: txYear } })
-      if (closed && closed.isLocked) {
-        return NextResponse.json(
-          { success: false, error: `Tahun pembukuan ${txYear} telah ditutup buku dan dikunci secara permanen.` },
-          { status: 403 }
-        )
-      }
-
-      const inst =
-        type === "ANGSURAN"
-          ? validateLoanInstallment(member.sisaPinjaman, numAmount, numPrincipal, numInterest)
-          : null
-
       const result = await db.$transaction(async (tx) => {
+        const closed = await tx.annualClosing.findUnique({ where: { year: txYear } })
+        if (closed && closed.isLocked) {
+          throw new Error(`Tahun pembukuan ${txYear} telah ditutup buku dan dikunci secara permanen.`)
+        }
+
+        const freshMember = await tx.loanMember.findUnique({ where: { id: memberId } })
+        if (!freshMember) {
+          throw new Error("Anggota tidak ditemukan")
+        }
+
+        const inst =
+          type === "ANGSURAN"
+            ? validateLoanInstallment(freshMember.sisaPinjaman, numAmount || (numPrincipal + numInterest), numPrincipal, numInterest)
+            : null
+
         let updatedMemberData: any = {}
 
         if (type === "SIMPANAN_POKOK") {
@@ -366,8 +381,8 @@ export async function POST(request: Request) {
         } else if (type === "SIMPANAN_SUKARELA") {
           updatedMemberData = { simpananSukarela: { increment: numAmount } }
         } else if (type === "TARIK_SIMPANAN") {
-          if (member.simpananSukarela < numAmount) {
-            throw new Error(`Saldo simpanan sukarela tidak mencukupi (Tersedia: Rp ${member.simpananSukarela.toLocaleString("id-ID")})`)
+          if (freshMember.simpananSukarela < numAmount) {
+            throw new Error(`Saldo simpanan sukarela tidak mencukupi (Tersedia: Rp ${freshMember.simpananSukarela.toLocaleString("id-ID")})`)
           }
           updatedMemberData = { simpananSukarela: { decrement: numAmount } }
         } else if (type === "PENCAIRAN_PINJAMAN") {
@@ -424,7 +439,7 @@ export async function POST(request: Request) {
             principalAmount: inst ? inst.actualPrincipal : numPrincipal,
             interestAmount: inst ? inst.numInterest : numInterest,
             proofNumber: finalProofNumber,
-            description: description || `Transaksi ${type} anggota ${member.name}`
+            description: description || `Transaksi ${type} anggota ${freshMember.name}`
           }
         })
 
@@ -439,7 +454,7 @@ export async function POST(request: Request) {
 
           let debitCode = "1.1.01.01"
           let creditCode = "1.1.01.01"
-          const entryDesc = description || `Transaksi Simpan Pinjam: ${member.name}`
+          const entryDesc = description || `Transaksi Simpan Pinjam: ${freshMember.name}`
 
           if (type === "SIMPANAN_POKOK") {
             debitCode = "1.1.01.01"
@@ -454,7 +469,7 @@ export async function POST(request: Request) {
             debitCode = "2.1.01.03"
             creditCode = "1.1.01.01"
           } else if (type === "PENCAIRAN_PINJAMAN") {
-            debitCode = member.memberType === "KELOMPOK" ? "1.1.02.02" : "1.1.02.01"
+            debitCode = freshMember.memberType === "KELOMPOK" ? "1.1.02.02" : "1.1.02.01"
             creditCode = "1.1.01.01"
           }
 
@@ -465,7 +480,7 @@ export async function POST(request: Request) {
                 proofType: type === "TARIK_SIMPANAN" || type === "PENCAIRAN_PINJAMAN" ? "BKK" : "BKM",
                 date: txDate,
                 description: entryDesc,
-                payeeOrPayer: member.name,
+                payeeOrPayer: freshMember.name,
                 unitName: "Unit Simpan Pinjam",
                 verificationStatus: "VERIFIED",
                 lines: {
@@ -491,7 +506,7 @@ export async function POST(request: Request) {
               data: { journalEntryId: entry.id }
             })
           } else if (inst) {
-            const piutangCode = member.memberType === "KELOMPOK" ? "1.1.02.02" : "1.1.02.01"
+            const piutangCode = freshMember.memberType === "KELOMPOK" ? "1.1.02.02" : "1.1.02.01"
             const lines: any[] = [
               { accountCode: "1.1.01.01", type: "DEBIT", amount: inst.totalCash, cashFlowGroup: "Aktivitas Operasi" }
             ]
@@ -514,7 +529,7 @@ export async function POST(request: Request) {
                 proofType: "BKM",
                 date: txDate,
                 description: entryDesc,
-                payeeOrPayer: member.name,
+                payeeOrPayer: freshMember.name,
                 unitName: "Unit Simpan Pinjam",
                 verificationStatus: "VERIFIED",
                 lines: { create: lines }

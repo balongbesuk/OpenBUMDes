@@ -19,13 +19,13 @@ async function main() {
   const defaultUsers = [
     {
       username: "admin",
-      passwordHash: hashPassword("admin123"),
+      passwordHash: hashPassword(process.env.SEED_ADMIN_PASSWORD || "admin123"),
       name: "Kepala / Direktur BUMDes",
       role: "ADMIN"
     },
     {
       username: "operator",
-      passwordHash: hashPassword("operator123"),
+      passwordHash: hashPassword(process.env.SEED_OPERATOR_PASSWORD || "operator123"),
       name: "Bendahara / Operator Kasir",
       role: "OPERATOR"
     }

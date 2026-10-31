@@ -90,18 +90,25 @@ export async function POST(request: Request) {
     const snapshot = await generateYearReportsSnapshot(parsedYear)
     const { totalRevenue, totalExpense, netProfit } = snapshot.labaRugi
 
-    // 2. Hitung Alokasi SHU
-    const padesRate = shuRates.pades ?? 40
-    const cadanganRate = shuRates.cadangan ?? 20
-    const pengurusRate = shuRates.pengurus ?? 20
-    const sosialRate = shuRates.sosial ?? 10
-    const pendidikanRate = shuRates.pendidikan ?? 10
+    // 2. Validasi & Hitung Alokasi SHU
+    const padesRate = Math.max(0, Number(shuRates.pades ?? 40))
+    const cadanganRate = Math.max(0, Number(shuRates.cadangan ?? 20))
+    const pengurusRate = Math.max(0, Number(shuRates.pengurus ?? 20))
+    const sosialRate = Math.max(0, Number(shuRates.sosial ?? 10))
+    const pendidikanRate = Math.max(0, Number(shuRates.pendidikan ?? 10))
+    const totalRate = padesRate + cadanganRate + pengurusRate + sosialRate + pendidikanRate
+    if (Math.abs(totalRate - 100) > 0.01) {
+      return NextResponse.json(
+        { success: false, error: `Total persentase alokasi SHU harus tepat 100% (saat ini ${totalRate}%).` },
+        { status: 400 }
+      )
+    }
 
-    const padesAmount = netProfit > 0 ? (netProfit * padesRate) / 100 : 0
-    const cadanganAmount = netProfit > 0 ? (netProfit * cadanganRate) / 100 : 0
-    const pengurusAmount = netProfit > 0 ? (netProfit * pengurusRate) / 100 : 0
-    const sosialAmount = netProfit > 0 ? (netProfit * sosialRate) / 100 : 0
-    const pendidikanAmount = netProfit > 0 ? (netProfit * pendidikanRate) / 100 : 0
+    const padesAmount = netProfit > 0 ? Math.round((netProfit * padesRate) / 100) : 0
+    const pengurusAmount = netProfit > 0 ? Math.round((netProfit * pengurusRate) / 100) : 0
+    const sosialAmount = netProfit > 0 ? Math.round((netProfit * sosialRate) / 100) : 0
+    const pendidikanAmount = netProfit > 0 ? Math.round((netProfit * pendidikanRate) / 100) : 0
+    const cadanganAmount = netProfit > 0 ? Math.max(0, netProfit - (padesAmount + pengurusAmount + sosialAmount + pendidikanAmount)) : 0
 
     // 3. Buat Jurnal Penutup (Closing Entries) per 31 Desember
     const closingDate = new Date(`${parsedYear}-12-31T23:59:59.000Z`)
@@ -136,6 +143,11 @@ export async function POST(request: Request) {
 
     // 4. Eksekusi Jurnal Penutup & Simpan Record AnnualClosing secara atomik dalam satu transaksi
     const closingRecord = await db.$transaction(async (tx) => {
+      const lockCheck = await tx.annualClosing.findUnique({ where: { year: parsedYear } })
+      if (lockCheck && lockCheck.isLocked) {
+        throw new Error(`Tahun ${parsedYear} sudah ditutup dan berstatus terkunci.`)
+      }
+
       // Pastikan akun 3.1.03.01 terdaftar di master
       await tx.ledgerAccount.upsert({
         where: { code: "3.1.03.01" },

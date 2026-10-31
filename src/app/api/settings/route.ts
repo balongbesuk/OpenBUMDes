@@ -9,8 +9,20 @@ export async function GET() {
     const map: Record<string, string> = {}
     list.forEach(s => { map[s.key] = s.value })
 
+    // Anonymous visitors only receive public branding metadata
+    if (!session) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          bumdes_name: map.bumdes_name || "BUM Desa",
+          village_name: map.village_name || "Desa",
+          bumdes_logo: map.bumdes_logo || ""
+        }
+      })
+    }
+
     // Hide secret API key from non-admin visitors
-    if (!session || session.role !== "ADMIN") {
+    if (session.role !== "ADMIN") {
       if (map.gemini_api_key) {
         map.gemini_api_key = "********"
       }
@@ -39,6 +51,8 @@ export async function POST(request: Request) {
     await db.$transaction(async (tx) => {
       for (const [key, val] of Object.entries(body)) {
         if (val !== undefined) {
+          // Prevent overwriting actual API key with masked placeholder
+          if (key === "gemini_api_key" && val === "********") continue
           await tx.setting.upsert({
             where: { key },
             update: { value: String(val) },

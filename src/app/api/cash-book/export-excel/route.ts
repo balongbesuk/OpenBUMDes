@@ -3,6 +3,15 @@ import { db } from "@/lib/db"
 import { getUserSession } from "@/lib/auth"
 import * as XLSX from "xlsx"
 
+function sanitizeExcelCell(val: any): any {
+  if (typeof val !== "string") return val
+  const trimmed = val.trim()
+  if (trimmed.startsWith("=") || trimmed.startsWith("+") || trimmed.startsWith("-") || trimmed.startsWith("@")) {
+    return `'${val}`
+  }
+  return val
+}
+
 export async function GET(request: Request) {
   try {
     const session = await getUserSession()
@@ -129,8 +138,8 @@ export async function GET(request: Request) {
           formattedDate,
           entry.proofNumber,
           entry.proofType,
-          entry.description,
-          entry.payeeOrPayer,
+          sanitizeExcelCell(entry.description),
+          sanitizeExcelCell(entry.payeeOrPayer),
           entry.unitName || "Umum",
           line.accountCode,
           accountName,
@@ -138,7 +147,7 @@ export async function GET(request: Request) {
           kreditAmt,
           line.cashFlowGroup || "-",
           statusFisik,
-          entry.note || ""
+          sanitizeExcelCell(entry.note || "")
         ])
       })
 

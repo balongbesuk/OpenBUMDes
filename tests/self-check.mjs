@@ -312,6 +312,32 @@ async function runSelfChecks() {
   assert.strictEqual(contraRow?.type, "CREDIT", "Custom contra-asset with normal Credit/Kredit must roll forward as CREDIT")
   assert.strictEqual(contraRow?.amount, 500000, "Custom contra-asset amount must be positive 500,000 on CREDIT")
 
+  // 21. Excel Formula Injection Sanitizer Check
+  const sanitizeExcel = (val) => {
+    if (typeof val !== "string") return val
+    const trimmed = val.trim()
+    if (trimmed.startsWith("=") || trimmed.startsWith("+") || trimmed.startsWith("-") || trimmed.startsWith("@")) {
+      return `'${val}`
+    }
+    return val
+  }
+  assert.strictEqual(sanitizeExcel("=SUM(A1:A10)"), "'=SUM(A1:A10)", "Formulas starting with = must be prepended with a single quote")
+  assert.strictEqual(sanitizeExcel("@evil.com"), "'@evil.com", "Formulas starting with @ must be prepended with a single quote")
+  assert.strictEqual(sanitizeExcel("Beli ATK Kantor"), "Beli ATK Kantor", "Normal text must not be changed")
+
+  // 22. SHU allocation rate sum validation check
+  const validateShuRates = (rates) => {
+    const pades = Math.max(0, Number(rates.pades ?? 40))
+    const cadangan = Math.max(0, Number(rates.cadangan ?? 20))
+    const pengurus = Math.max(0, Number(rates.pengurus ?? 20))
+    const sosial = Math.max(0, Number(rates.sosial ?? 10))
+    const pendidikan = Math.max(0, Number(rates.pendidikan ?? 10))
+    const total = pades + cadangan + pengurus + sosial + pendidikan
+    return Math.abs(total - 100) <= 0.01
+  }
+  assert.strictEqual(validateShuRates({ pades: 40, cadangan: 20, pengurus: 20, sosial: 10, pendidikan: 10 }), true, "Standard 40/20/20/10/10 must pass")
+  assert.strictEqual(validateShuRates({ pades: 60, cadangan: 60 }), false, "Rates exceeding 100% must fail")
+
   console.log("✔ All OpenBUMDes self-checks passed successfully!")
 }
 

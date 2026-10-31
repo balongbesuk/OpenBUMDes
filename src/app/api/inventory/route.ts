@@ -248,10 +248,13 @@ export async function POST(request: Request) {
             data: { currentQty: { increment: numQty } }
           })
         } else if (normType === "OUT") {
-          await tx.inventoryItem.update({
-            where: { id: itemId },
+          const res = await tx.inventoryItem.updateMany({
+            where: { id: itemId, currentQty: { gte: numQty } },
             data: { currentQty: { decrement: numQty } }
           })
+          if (res.count === 0) {
+            throw new Error(`Stok barang tidak mencukupi untuk dikeluarkan. Sisa stok telah berkurang.`)
+          }
         } else if (normType === "ADJUST") {
           await tx.inventoryItem.update({
             where: { id: itemId },

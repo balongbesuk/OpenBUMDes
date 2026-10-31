@@ -22,6 +22,20 @@ export async function POST(request: Request) {
 
     const parsedYear = parseInt(String(year), 10)
 
+    // Cek apakah tahun berikutnya sudah ditutup dan terkunci
+    const nextYearClosing = await db.annualClosing.findUnique({
+      where: { year: parsedYear + 1 }
+    })
+    if (nextYearClosing && nextYearClosing.isLocked) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Tahun ${parsedYear} tidak dapat dibuka kembali karena Tahun ${parsedYear + 1} sudah ditutup dan berstatus terkunci. Buka kembali kunci tahun ${parsedYear + 1} terlebih dahulu.`
+        },
+        { status: 400 }
+      )
+    }
+
     const closing = await db.annualClosing.findUnique({
       where: { year: parsedYear }
     })
@@ -40,6 +54,14 @@ export async function POST(request: Request) {
             { proofNumber: jpProof }
           ]
         }
+      })
+
+      // Hapus saldo awal turunan (roll-forward) tahun berikutnya agar angka tidak basi saat tahun ini dikoreksi
+      await tx.journalEntry.deleteMany({
+        where: { proofNumber: `SA/${parsedYear + 1}/01/0001` }
+      })
+      await tx.openingBalance.deleteMany({
+        where: { year: parsedYear + 1 }
       })
 
       return await tx.annualClosing.update({

@@ -260,9 +260,16 @@ export async function DELETE(request: Request) {
       }
     }
 
-    // Hapus jurnal transaksi (baris jurnal otomatis terhapus via onDelete: Cascade)
-    await db.journalEntry.delete({
-      where: { id }
+    // Hapus jurnal transaksi dan aset terkait secara atomik
+    await db.$transaction(async (tx) => {
+      if (existing.proofNumber) {
+        await tx.fixedAsset.deleteMany({
+          where: { notes: { contains: existing.proofNumber } }
+        })
+      }
+      await tx.journalEntry.delete({
+        where: { id }
+      })
     })
 
     return NextResponse.json({
