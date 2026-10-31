@@ -49,6 +49,14 @@ async function runSelfChecks() {
   assert.strictEqual(verified?.username, "admin", "Token should verify matching username")
   assert.strictEqual(verified?.role, "ADMIN", "Token should verify matching role")
 
+  // 1b. Password change invalidation check (src/lib/auth.ts)
+  const initialHash = hashPassword("secret-pass-1")
+  const tokenWithPwd = createToken({ ...payload, passwordHash: initialHash })
+  const verifiedWithPwd = verifyToken(tokenWithPwd)
+  assert.strictEqual(verifiedWithPwd?.pwdSig, initialHash.slice(0, 16), "Token must contain 16-char pwdSig prefix")
+  const changedHash = hashPassword("secret-pass-2")
+  assert.notStrictEqual(verifiedWithPwd?.pwdSig, changedHash.slice(0, 16), "Changed password hash must mismatch token pwdSig")
+
   // 2. Tampered token rejection (src/lib/auth.ts)
   const tamperedToken = token.slice(0, -4) + "XXXX"
   assert.strictEqual(verifyToken(tamperedToken), null, "Tampered signature must be rejected")

@@ -31,9 +31,12 @@ export function comparePassword(password: string, stored: string): boolean {
   }
 }
 
-export function createToken(payload: { id: string; username: string; name: string; role: string }): string {
+export function createToken(payload: { id: string; username: string; name: string; role: string; passwordHash?: string }): string {
+  const pwdSig = payload.passwordHash ? payload.passwordHash.slice(0, 16) : undefined
   const data = JSON.stringify({
     ...payload,
+    passwordHash: undefined,
+    ...(pwdSig ? { pwdSig } : {}),
     exp: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
   })
   const b64 = Buffer.from(data).toString("base64url")
@@ -41,7 +44,7 @@ export function createToken(payload: { id: string; username: string; name: strin
   return `${b64}.${sig}`
 }
 
-export function verifyToken(token: string): { id: string; username: string; name: string; role: string } | null {
+export function verifyToken(token: string): { id: string; username: string; name: string; role: string; pwdSig?: string } | null {
   try {
     if (!token || !token.includes(".")) return null
     const [b64, sig] = token.split(".")
@@ -57,7 +60,8 @@ export function verifyToken(token: string): { id: string; username: string; name
       id: data.id,
       username: data.username,
       name: data.name,
-      role: data.role
+      role: data.role,
+      pwdSig: data.pwdSig
     }
   } catch {
     return null
@@ -76,9 +80,18 @@ export async function getUserSession() {
     const { db } = await import("./db")
     const user = await db.user.findUnique({
       where: { id: payload.id },
-      select: { id: true, username: true, name: true, role: true }
+      select: { id: true, username: true, name: true, role: true, passwordHash: true }
     })
-    return user || null
+    if (!user) return null
+    if (payload.pwdSig && user.passwordHash.slice(0, 16) !== payload.pwdSig) {
+      return null // Token revoked because user changed their password
+    }
+    return {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      role: user.role
+    }
   } catch {
     return null
   }

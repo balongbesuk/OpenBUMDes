@@ -81,7 +81,8 @@ export async function POST(request: Request) {
       id: user.id,
       username: user.username,
       name: user.name,
-      role: user.role
+      role: user.role,
+      passwordHash: user.passwordHash
     })
 
     const response = NextResponse.json({

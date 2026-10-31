@@ -26,13 +26,25 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "File database SQLite tidak ditemukan." }, { status: 404 })
     }
 
-    const fileBuffer = fs.readFileSync(dbPath)
+    let fileBuffer: Buffer
+    const tmpBackup = path.join(process.cwd(), "storage", `tmp_bak_${Date.now()}.db`)
+    const storageDir = path.dirname(tmpBackup)
+    if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir, { recursive: true })
+
+    try {
+      const escapedTmp = tmpBackup.replace(/\\/g, "/")
+      await db.$executeRawUnsafe(`VACUUM INTO '${escapedTmp}'`)
+      fileBuffer = fs.readFileSync(tmpBackup)
+      try { fs.unlinkSync(tmpBackup) } catch {}
+    } catch {
+      fileBuffer = fs.readFileSync(dbPath)
+    }
     const now = new Date()
     const pad = (n: number) => String(n).padStart(2, "0")
     const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
     const filename = `backup_bumdes_${timestamp}.db`
 
-    return new Response(fileBuffer, {
+    return new Response(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         "Content-Type": "application/octet-stream",
