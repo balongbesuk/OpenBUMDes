@@ -71,6 +71,28 @@ import { APP_VERSION } from "@/lib/version"
 import { HandCoins } from "lucide-react"
 import { showAppAlert, showAppConfirm, showAppToast } from "@/components/ui/AppDialog"
 
+const TAB_TITLES: Record<string, string> = {
+  dashboard: "Dashboard Kesehatan",
+  eis: "EIS / Kesehatan BUMDes",
+  "cash-book": "Buku Kas & Jurnal",
+  closing: "Tutup & Buka Buku",
+  "laba-rugi": "Laporan Laba Rugi",
+  neraca: "Neraca (SAK EMKM)",
+  lpe: "Laporan Perubahan Ekuitas (LPE)",
+  lak: "Laporan Arus Kas (LAK)",
+  calk: "Catatan atas Lap. Keuangan (CaLK)",
+  "general-ledger": "Buku Besar (General Ledger)",
+  "trial-balance": "Neraca Saldo (Trial Balance)",
+  "sub-ledger": "Buku Pembantu Pengawasan (Sub-Ledger)",
+  "subsidiary-ledger": "Buku Pembantu Pengawasan (Sub-Ledger)",
+  inventory: "Buku Pembantu Persediaan & Kartu Stok",
+  "fixed-assets": "Register & Penyusutan Aset Tetap",
+  "simpan-pinjam": "Buku Simpan Pinjam (USP)",
+  coa: "Bagan Akun (COA Dinamis)",
+  maintenance: "Backup & Pemeliharaan Sistem",
+  settings: "Pengaturan & AI",
+}
+
 export default function StislaApp() {
   const [activeTab, setActiveTab] = useState<string>("dashboard")
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -1172,31 +1194,7 @@ export default function StislaApp() {
                 <span className="hidden sm:inline text-slate-400 text-sm font-medium">BUMDes</span>
                 <span className="hidden sm:inline text-slate-300">/</span>
                 <span className="text-slate-800 font-bold text-sm sm:text-base truncate">
-                  {activeTab === "dashboard"
-                    ? "Dashboard Kesehatan"
-                    : activeTab === "cash-book"
-                    ? "Buku Kas & Jurnal"
-                    : activeTab === "closing"
-                    ? "Tutup & Buka Buku"
-                    : activeTab === "laba-rugi"
-                    ? "Laba Rugi"
-                    : activeTab === "neraca"
-                    ? "Neraca (SAK EMKM)"
-                    : activeTab === "lpe"
-                    ? "Perubahan Ekuitas"
-                    : activeTab === "lak"
-                    ? "Arus Kas (LAK)"
-                    : activeTab === "calk"
-                    ? "Catatan (CaLK)"
-                    : activeTab === "coa"
-                    ? "Bagan Akun (COA Dinamis)"
-                    : activeTab === "inventory"
-                    ? "Buku Pembantu Persediaan & Kartu Stok"
-                    : activeTab === "fixed-assets"
-                    ? "Register & Penyusutan Aset Tetap"
-                    : activeTab === "maintenance"
-                    ? "Backup & Pemeliharaan Sistem"
-                    : "Pengaturan & AI"}
+                  {TAB_TITLES[activeTab] || "Pengaturan & AI"}
                 </span>
               </div>
             </div>
