@@ -279,6 +279,25 @@ export default function LpjPrintModal({
     tailwindScript.src = "https://cdn.tailwindcss.com"
     head.appendChild(tailwindScript)
 
+    // Inline all active stylesheets from main window
+    try {
+      const inlineStyles = printDoc.createElement("style")
+      let aggregatedCss = ""
+      Array.from(document.styleSheets).forEach((sheet) => {
+        try {
+          if (sheet.cssRules) {
+            Array.from(sheet.cssRules).forEach((rule) => {
+              aggregatedCss += rule.cssText + "\n"
+            })
+          }
+        } catch {}
+      })
+      if (aggregatedCss) {
+        inlineStyles.textContent = aggregatedCss
+        head.appendChild(inlineStyles)
+      }
+    } catch {}
+
     document.querySelectorAll("link[rel='stylesheet'], style").forEach((node) => {
       head.appendChild(node.cloneNode(true))
     })
@@ -287,7 +306,7 @@ export default function LpjPrintModal({
     customStyle.textContent = `
     @page { 
       size: A4 portrait; 
-      margin: 10mm 12mm; 
+      margin: 8mm 10mm; 
     }
     *, *::before, *::after { 
       box-sizing: border-box !important; 
@@ -310,15 +329,15 @@ export default function LpjPrintModal({
     .cover-a4-page {
       box-sizing: border-box !important;
       width: 100% !important;
-      height: 272mm !important;
-      min-height: 272mm !important;
-      max-height: 272mm !important;
+      height: 266mm !important;
+      min-height: 266mm !important;
+      max-height: 266mm !important;
       display: flex !important;
       flex-direction: column !important;
       justify-content: space-between !important;
       border: 5px double #0f172a !important;
-      border-radius: 18px !important;
-      padding: 12mm 10mm !important;
+      border-radius: 16px !important;
+      padding: 8mm 8mm 6mm 8mm !important;
       margin: 0 auto !important;
       page-break-after: always !important;
       break-after: page !important;
@@ -326,6 +345,47 @@ export default function LpjPrintModal({
       break-inside: avoid !important;
       background: #ffffff !important;
       position: relative !important;
+      overflow: hidden !important;
+    }
+    .cover-logo-box {
+      width: 90px !important;
+      height: 90px !important;
+      min-width: 90px !important;
+      min-height: 90px !important;
+      max-width: 90px !important;
+      max-height: 90px !important;
+      margin: 4px auto !important;
+      border-radius: 20px !important;
+      background: #0f172a !important;
+      border: 2px solid #334155 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      overflow: hidden !important;
+      flex-shrink: 0 !important;
+    }
+    .cover-logo-img {
+      width: 74px !important;
+      height: 74px !important;
+      max-width: 74px !important;
+      max-height: 74px !important;
+      object-fit: contain !important;
+      display: block !important;
+      margin: auto !important;
+      padding: 4px !important;
+    }
+    .cover-signatures-table {
+      width: 100% !important;
+      table-layout: fixed !important;
+      border-collapse: collapse !important;
+      border: none !important;
+      margin-top: 4px !important;
+    }
+    .cover-signatures-table td {
+      border: none !important;
+      text-align: center !important;
+      vertical-align: top !important;
+      padding: 0 4px !important;
     }
     .report-a4-page {
       box-sizing: border-box !important;
@@ -496,15 +556,37 @@ export default function LpjPrintModal({
     body.appendChild(printContainer)
 
     let printed = false
-    printWindow.onload = () => {
-      setTimeout(() => {
-        try { if (!printed) { printed = true; printWindow.print() } } catch {}
-      }, 600)
+    const triggerPrint = () => {
+      if (!printed) {
+        printed = true
+        try {
+          printWindow.focus()
+          printWindow.print()
+        } catch {}
+      }
     }
 
-    setTimeout(() => {
-      try { if (!printed) { printed = true; printWindow.print() } } catch {}
-    }, 1200)
+    const images = Array.from(printDoc.images)
+    if (images.length === 0) {
+      setTimeout(triggerPrint, 400)
+    } else {
+      const imagePromises = images.map((img) => {
+        if (img.complete) return Promise.resolve(true)
+        return new Promise((resolve) => {
+          img.onload = () => resolve(true)
+          img.onerror = () => resolve(true)
+        })
+      })
+      Promise.all(imagePromises).then(() => {
+        setTimeout(triggerPrint, 400)
+      })
+    }
+
+    printWindow.onload = () => {
+      setTimeout(triggerPrint, 600)
+    }
+
+    setTimeout(triggerPrint, 1600)
   }
 
   const handlePrint = () => {
@@ -516,26 +598,27 @@ export default function LpjPrintModal({
       {/* CSS Injeksi Cetak A4 Langsung */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          @page { size: A4 portrait; margin: 10mm 12mm; }
+          @page { size: A4 portrait; margin: 8mm 10mm; }
           body { background: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .cover-a4-page {
             box-sizing: border-box !important;
             width: 100% !important;
-            height: 272mm !important;
-            min-height: 272mm !important;
-            max-height: 272mm !important;
+            height: 266mm !important;
+            min-height: 266mm !important;
+            max-height: 266mm !important;
             display: flex !important;
             flex-direction: column !important;
             justify-content: space-between !important;
             border: 5px double #0f172a !important;
             border-radius: 16px !important;
-            padding: 12mm 10mm !important;
+            padding: 8mm 8mm 6mm 8mm !important;
             margin: 0 !important;
             page-break-after: always !important;
             break-after: page !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             background: #ffffff !important;
+            overflow: hidden !important;
           }
           .report-a4-page {
             box-sizing: border-box !important;
@@ -707,16 +790,42 @@ export default function LpjPrintModal({
           {/* ========================================================= */}
           {/* HALAMAN 1: SAMPUL / COVER RESMI LPJ MUSDES (SEUKURAN A4)  */}
           {/* ========================================================= */}
-          <div className="cover-a4-page text-center page-break">
+          <div
+            className="cover-a4-page text-center page-break"
+            style={{
+              boxSizing: "border-box",
+              width: "100%",
+              height: "266mm",
+              maxHeight: "266mm",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              border: "5px double #0f172a",
+              borderRadius: "16px",
+              padding: "8mm 8mm 6mm 8mm",
+              margin: "0 auto",
+              background: "#ffffff",
+              overflow: "hidden"
+            }}
+          >
             {/* Header Instansi */}
-            <div className="space-y-1.5 pb-3 border-b-2 border-slate-800">
-              <span className="text-xs font-black uppercase tracking-widest text-[#6777ef] block">
+            <div className="space-y-1 pb-2.5 border-b-2 border-slate-800" style={{ borderBottom: "2px solid #1e293b", paddingBottom: "10px" }}>
+              <span
+                className="text-xs font-black uppercase tracking-widest text-[#6777ef] block"
+                style={{ fontSize: "11px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "#4f46e5", display: "block", margin: 0 }}
+              >
                 PEMERINTAH KABUPATEN {regencyName.toUpperCase()} &bull; KECAMATAN {subdistrictName.toUpperCase()}
               </span>
-              <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-slate-900">
+              <h2
+                className="text-base sm:text-lg font-black uppercase tracking-wider text-slate-900"
+                style={{ fontSize: "16px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em", color: "#0f172a", margin: "2px 0" }}
+              >
                 PEMERINTAH DESA {villageName.toUpperCase()}
               </h2>
-              <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500 font-semibold">
+              <div
+                className="flex items-center justify-center gap-2 text-[10px] text-slate-500 font-semibold"
+                style={{ fontSize: "10px", color: "#64748b", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+              >
                 <span>Badan Usaha Milik Desa (BUM Desa)</span>
                 <span>&bull;</span>
                 <span>Badan Hukum Resmi Kemendesa PDTT</span>
@@ -724,66 +833,178 @@ export default function LpjPrintModal({
             </div>
 
             {/* Logo & Judul Utama LPJ */}
-            <div className="space-y-4 my-auto py-4">
-              <div className="w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-3xl bg-slate-900 text-white flex items-center justify-center font-black text-4xl shadow-md border-2 border-slate-700">
+            <div className="space-y-3 my-auto py-2" style={{ margin: "auto 0", padding: "8px 0" }}>
+              {/* LOGO BOX ANTI-STRETCH */}
+              <div
+                className="cover-logo-box mx-auto shadow-md"
+                style={{
+                  width: "90px",
+                  height: "90px",
+                  minWidth: "90px",
+                  minHeight: "90px",
+                  maxWidth: "90px",
+                  maxHeight: "90px",
+                  margin: "4px auto",
+                  borderRadius: "20px",
+                  backgroundColor: "#0f172a",
+                  border: "2px solid #334155",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                  flexShrink: 0
+                }}
+              >
                 {settings.bumdes_logo ? (
                   <img
                     src={settings.bumdes_logo}
-                    alt="Logo"
-                    className="w-full h-full object-contain p-2 rounded-3xl"
+                    alt="Logo BUMDes"
+                    className="cover-logo-img"
+                    style={{
+                      width: "74px",
+                      height: "74px",
+                      maxWidth: "74px",
+                      maxHeight: "74px",
+                      objectFit: "contain",
+                      padding: "4px",
+                      borderRadius: "16px",
+                      display: "block",
+                      margin: "auto"
+                    }}
                   />
                 ) : (
-                  (bumdesName || "B").charAt(0)
+                  <span style={{ color: "#ffffff", fontWeight: 900, fontSize: "36px", lineHeight: 1 }}>
+                    {(bumdesName || "B").charAt(0)}
+                  </span>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <span className="inline-block px-4 py-1 rounded-full text-[10.5px] font-extrabold bg-indigo-100 text-indigo-900 border border-indigo-200 uppercase tracking-widest">
+              <div className="space-y-1.5" style={{ marginTop: "8px" }}>
+                <span
+                  className="inline-block px-3.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-900 border border-indigo-200 uppercase tracking-widest"
+                  style={{
+                    display: "inline-block",
+                    padding: "3px 12px",
+                    borderRadius: "9999px",
+                    fontSize: "10px",
+                    fontWeight: 800,
+                    backgroundColor: "#e0e7ff",
+                    color: "#312e81",
+                    border: "1px solid #c7d2fe",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em"
+                  }}
+                >
                   DOKUMEN RESMI PERTANGGUNGJAWABAN TAHUNAN
                 </span>
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-950 uppercase tracking-tight leading-tight">
+                <h1
+                  className="text-2xl sm:text-3xl font-black text-slate-950 uppercase tracking-tight leading-tight"
+                  style={{ fontSize: "24px", fontWeight: 900, color: "#020617", textTransform: "uppercase", letterSpacing: "-0.025em", margin: "4px 0" }}
+                >
                   LAPORAN PERTANGGUNGJAWABAN (LPJ)
                 </h1>
-                <h2 className="text-xl sm:text-2xl font-black text-[#6777ef] uppercase tracking-wide">
+                <h2
+                  className="text-lg sm:text-xl font-black text-[#6777ef] uppercase tracking-wide"
+                  style={{ fontSize: "19px", fontWeight: 900, color: "#4f46e5", textTransform: "uppercase", letterSpacing: "0.025em", margin: "2px 0" }}
+                >
                   {bumdesName}
                 </h2>
-                <div className="inline-block px-5 py-1.5 rounded-xl bg-slate-900 text-white font-mono font-black text-sm tracking-wider mt-1 shadow-xs">
+                <div
+                  className="inline-block px-4 py-1 rounded-xl bg-slate-900 text-white font-mono font-black text-xs tracking-wider shadow-xs"
+                  style={{
+                    display: "inline-block",
+                    padding: "4px 14px",
+                    borderRadius: "10px",
+                    backgroundColor: "#0f172a",
+                    color: "#ffffff",
+                    fontFamily: "monospace",
+                    fontWeight: 900,
+                    fontSize: "12px",
+                    letterSpacing: "0.05em",
+                    marginTop: "4px"
+                  }}
+                >
                   TAHUN ANGGARAN {year}
                 </div>
               </div>
 
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl max-w-lg mx-auto text-[11px] text-slate-600 leading-relaxed text-justify sm:text-center">
+              {/* DASAR HUKUM BOX */}
+              <div
+                style={{
+                  padding: "8px 14px",
+                  backgroundColor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "12px",
+                  maxWidth: "480px",
+                  margin: "8px auto",
+                  fontSize: "10px",
+                  lineHeight: "1.45",
+                  color: "#475569",
+                  textAlign: "center"
+                }}
+              >
                 Disusun dan disajikan berdasarkan Standar Akuntansi Keuangan Entitas Mikro, Kecil, dan Menengah (SAK EMKM) serta Keputusan Menteri Desa, Pembangunan Daerah Tertinggal, dan Transmigrasi RI Nomor 136 Tahun 2022 tentang Panduan Penyusunan Pelaporan Keuangan Badan Usaha Milik Desa.
               </div>
 
-              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+              <div
+                className="text-[9.5px] font-semibold text-slate-500 uppercase tracking-wider"
+                style={{ fontSize: "9.5px", fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: "4px" }}
+              >
                 Unit Usaha: Gedung Serbaguna (GSG) &bull; Persewaan Kios Pasar &bull; Jasa PPOB &bull; Simpan Pinjam
               </div>
             </div>
 
             {/* Footer Cover: Pengesahan Musdes & 3 Pihak */}
-            <div className="space-y-2.5 pt-3 border-t-2 border-slate-800 text-xs">
-              <div className="p-2 bg-indigo-50/70 border border-indigo-200 rounded-xl text-[10.5px] font-bold text-indigo-950">
+            <div
+              className="space-y-2 pt-2.5 border-t-2 border-slate-800 text-xs"
+              style={{ borderTop: "2px solid #1e293b", paddingTop: "8px" }}
+            >
+              <div
+                className="p-1.5 bg-indigo-50/70 border border-indigo-200 rounded-lg text-[10px] font-bold text-indigo-950"
+                style={{
+                  padding: "5px 10px",
+                  backgroundColor: "#eef2ff",
+                  border: "1px solid #c7d2fe",
+                  borderRadius: "8px",
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  color: "#1e1b4b",
+                  textAlign: "center"
+                }}
+              >
                 Disampaikan & Disahkan Dalam Forum Musyawarah Desa (Musdes) Pertanggungjawaban Tahunan
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-1 text-slate-700">
-                <div>
-                  <span className="text-[9px] text-slate-500 block uppercase">Pelaksana Operasional</span>
-                  <span className="font-bold text-slate-900">{directorName}</span>
-                  <span className="text-[9px] text-slate-400 block">Direktur Utama</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-500 block uppercase">Badan Pengawas</span>
-                  <span className="font-bold text-slate-900">{supervisorName}</span>
-                  <span className="text-[9px] text-slate-400 block">Ketua Pengawas / BPD</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-500 block uppercase">Penasihat</span>
-                  <span className="font-bold text-slate-900">{villageHead}</span>
-                  <span className="text-[9px] text-slate-400 block">Kepala Desa {villageName}</span>
-                </div>
-              </div>
-              <div className="text-[9.5px] text-slate-500 font-medium pt-1 border-t border-slate-200">
+
+              {/* TABLE SIGNATURES ANTI-COLLAPSE */}
+              <table
+                className="cover-signatures-table w-full"
+                style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", border: "none", margin: "4px 0 0 0" }}
+              >
+                <tbody>
+                  <tr style={{ border: "none" }}>
+                    <td style={{ width: "33.33%", textAlign: "center", verticalAlign: "top", border: "none", padding: "0 4px" }}>
+                      <span style={{ fontSize: "9px", color: "#64748b", textTransform: "uppercase", display: "block" }}>Pelaksana Operasional</span>
+                      <span style={{ fontSize: "10.5px", fontWeight: 700, color: "#0f172a", display: "block", margin: "2px 0" }}>{directorName}</span>
+                      <span style={{ fontSize: "9px", color: "#94a3b8", display: "block" }}>Direktur Utama</span>
+                    </td>
+                    <td style={{ width: "33.33%", textAlign: "center", verticalAlign: "top", border: "none", padding: "0 4px" }}>
+                      <span style={{ fontSize: "9px", color: "#64748b", textTransform: "uppercase", display: "block" }}>Badan Pengawas</span>
+                      <span style={{ fontSize: "10.5px", fontWeight: 700, color: "#0f172a", display: "block", margin: "2px 0" }}>{supervisorName}</span>
+                      <span style={{ fontSize: "9px", color: "#94a3b8", display: "block" }}>Ketua Pengawas / BPD</span>
+                    </td>
+                    <td style={{ width: "33.33%", textAlign: "center", verticalAlign: "top", border: "none", padding: "0 4px" }}>
+                      <span style={{ fontSize: "9px", color: "#64748b", textTransform: "uppercase", display: "block" }}>Penasihat</span>
+                      <span style={{ fontSize: "10.5px", fontWeight: 700, color: "#0f172a", display: "block", margin: "2px 0" }}>{villageHead}</span>
+                      <span style={{ fontSize: "9px", color: "#94a3b8", display: "block" }}>Kepala Desa {villageName}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div
+                className="text-[9px] text-slate-500 font-medium pt-1 border-t border-slate-200"
+                style={{ fontSize: "9px", color: "#64748b", paddingTop: "4px", borderTop: "1px solid #e2e8f0", textAlign: "center" }}
+              >
                 {bumdesAddress}
               </div>
             </div>
