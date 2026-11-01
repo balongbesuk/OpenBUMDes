@@ -67,6 +67,7 @@ import InventoryTab from "@/components/InventoryTab"
 import FixedAssetsTab from "@/components/FixedAssetsTab"
 import EisHealthTab from "@/components/EisHealthTab"
 import SimpanPinjamTab from "@/components/SimpanPinjamTab"
+import ReportHeader from "@/components/ReportHeader"
 import { APP_VERSION } from "@/lib/version"
 import { HandCoins } from "lucide-react"
 import { showAppAlert, showAppConfirm, showAppToast } from "@/components/ui/AppDialog"
@@ -645,57 +646,19 @@ export default function StislaApp() {
 
   // --- KOP RESMI LAPORAN KEUANGAN KEMENDES 136 ---
   const renderReportKop = (reportTitle: string, subtitle?: string) => (
-    <div className="border-b-2 border-slate-800 pb-4 mb-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 print:flex-row print:items-center">
-        <div className="flex items-center gap-3 sm:gap-4">
-          {(settings.bumdes_logo || logoPreview) ? (
-            <img
-              src={settings.bumdes_logo || logoPreview}
-              alt="Logo BUMDes"
-              className="w-16 h-16 object-contain rounded-lg border border-slate-200 p-1"
-            />
-          ) : (
-            <div className="w-16 h-16 rounded-xl bg-slate-900 text-white font-black text-2xl flex items-center justify-center">
-              {(settings.bumdes_name || "B").charAt(0)}
-            </div>
-          )}
-          <div>
-            <h1 className="font-black text-xl text-slate-900 uppercase tracking-tight">
-              {settings.bumdes_name || "PPAK BUMDesa"}
-            </h1>
-            <p className="text-xs text-slate-600 font-medium">
-              Desa {settings.village_name || "Balongbesuk"}, Kecamatan {settings.subdistrict_name || "Diwek"}, Kabupaten {settings.regency_name || "Jombang"}
-            </p>
-            <p className="text-[11px] text-slate-500">
-              {settings.bumdes_address || `Kantor BUMDes Desa ${settings.village_name || "Balongbesuk"}`}
-            </p>
-          </div>
-        </div>
-
-        <div className="text-right">
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-300 uppercase tracking-wider">
-            Kepmendes PDTT 136/2022
-          </span>
-          <p className="text-[11px] text-slate-500 mt-1 font-mono">
-            TA: {selectedYear}
-          </p>
-        </div>
-      </div>
-
-      <div className="text-center mt-5">
-        <h2 className="text-lg font-black text-slate-900 uppercase tracking-wide">
-          {reportTitle}
-        </h2>
-        {subtitle && (
-          <p className="text-xs text-slate-600 font-bold mt-0.5">
-            {subtitle}
-          </p>
-        )}
-        <p className="text-xs text-slate-500 mt-0.5 italic">
-          Periode Tahun Buku: {selectedYear}
-        </p>
-      </div>
-    </div>
+    <ReportHeader
+      bumdesName={settings.bumdes_name || "PPAK BUMDesa"}
+      villageName={settings.village_name || "Balongbesuk"}
+      subdistrictName={settings.subdistrict_name || "Diwek"}
+      regencyName={settings.regency_name || "Jombang"}
+      address={settings.bumdes_address}
+      logo={settings.bumdes_logo || logoPreview}
+      badgeText="Kepmendes PDTT 136/2022"
+      year={selectedYear}
+      title={reportTitle}
+      subtitle={subtitle}
+      periodText={`Periode Tahun Buku: ${selectedYear}`}
+    />
   )
 
   // --- LEMBAR TANDA TANGAN AUDIT / PENGESAHAN LAPORAN KEUANGAN ---

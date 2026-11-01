@@ -18,6 +18,7 @@ import {
   CheckCircle2
 } from "lucide-react"
 import { formatRupiah, safePrintElement, getLocalDateString } from "@/lib/utils"
+import ReportHeader from "@/components/ReportHeader"
 import { showAppAlert, showAppConfirm, showAppToast } from "@/components/ui/AppDialog"
 
 interface InventoryTabProps {
@@ -404,55 +405,19 @@ export default function InventoryTab({ settings = {} }: InventoryTabProps) {
       {/* DOCUMENT PRINT CONTAINER */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8" id="printable-inventory-report">
         {/* KOP RESMI DOKUMEN CETAK */}
-        <div className="border-b-2 border-slate-800 pb-4 mb-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {settings.bumdes_logo ? (
-                <img
-                  src={settings.bumdes_logo}
-                  alt="Logo BUMDes"
-                  className="w-16 h-16 object-contain rounded-lg border border-slate-200 p-1"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-xl bg-slate-900 text-white font-black text-2xl flex items-center justify-center">
-                  {bumdesName.charAt(0)}
-                </div>
-              )}
-              <div>
-                <h1 className="font-black text-xl text-slate-900 uppercase tracking-tight">
-                  {bumdesName}
-                </h1>
-                <p className="text-xs text-slate-600 font-medium">
-                  Desa {villageName}, Kecamatan {subdistrictName}, Kabupaten {regencyName}
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  {settings.bumdes_address || `Kantor BUMDes Desa ${villageName}`}
-                </p>
-              </div>
-            </div>
-
-            <div className="text-right">
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-300 uppercase tracking-wider">
-                Dokumen Audit Inspektorat
-              </span>
-              <p className="text-[11px] text-slate-500 mt-1 font-mono">
-                TA: {new Date().getFullYear()}
-              </p>
-            </div>
-          </div>
-
-          <div className="text-center mt-5">
-            <h2 className="text-lg font-black text-slate-900 uppercase tracking-wide">
-              BUKU PEMBANTU PERSEDIAAN & REKAPITULASI STOK BARANG DAGANG
-            </h2>
-            <div className="inline-block mt-1 px-3 py-0.5 rounded-full bg-slate-100 text-slate-800 text-xs font-bold border border-slate-300">
-              Standar Akuntansi Kepmendesa No. 136/2022 & SAK EMKM (Akun 1.1.05)
-            </div>
-            <p className="text-xs text-slate-500 mt-1 italic">
-              Posisi Saldo Fisik & Nilai Buku Persediaan per {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-            </p>
-          </div>
-        </div>
+        <ReportHeader
+          bumdesName={bumdesName}
+          villageName={villageName}
+          subdistrictName={subdistrictName}
+          regencyName={regencyName}
+          address={settings.bumdes_address}
+          logo={settings.bumdes_logo}
+          badgeText="Buku Pembantu Persediaan"
+          year={new Date().getFullYear()}
+          title="BUKU PEMBANTU PERSEDIAAN & REKAPITULASI STOK BARANG DAGANG"
+          subtitle="Standar Akuntansi Kepmendesa No. 136/2022 & SAK EMKM (Akun 1.1.05)"
+          periodText={`Posisi Saldo Fisik & Nilai Buku Persediaan per ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`}
+        />
 
         {/* TABEL DATA PERSEDIAAN */}
         <div className="sm:hidden px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10.5px] text-slate-500 font-medium flex items-center justify-between mb-2">
@@ -852,49 +817,19 @@ export default function InventoryTab({ settings = {} }: InventoryTabProps) {
 
             <div className="flex-1 overflow-y-auto mt-4 p-4" id="printable-stock-card">
               {/* KOP RESMI DOKUMEN CETAK KARTU STOK */}
-              <div className="border-b-2 border-slate-800 pb-3 mb-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    {settings.bumdes_logo ? (
-                      <img
-                        src={settings.bumdes_logo}
-                        alt="Logo BUMDes"
-                        className="w-12 h-12 object-contain rounded-lg border border-slate-200 p-0.5"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-xl bg-slate-900 text-white font-black text-xl flex items-center justify-center">
-                        {bumdesName.charAt(0)}
-                      </div>
-                    )}
-                    <div>
-                      <h1 className="font-black text-base text-slate-900 uppercase tracking-tight">
-                        {bumdesName}
-                      </h1>
-                      <p className="text-[11px] text-slate-600 font-medium">
-                        Desa {villageName}, Kecamatan {subdistrictName}, Kabupaten {regencyName}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300 uppercase tracking-wider">
-                      Kartu Inventaris Fisik
-                    </span>
-                    <p className="text-[10px] text-slate-500 mt-0.5 font-mono">
-                      TA: {new Date().getFullYear()}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-center mt-3">
-                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">
-                    KARTU STOK PERSEDIAAN BARANG DAGANG (STOCK CARD)
-                  </h2>
-                  <div className="inline-block mt-0.5 px-3 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[11px] font-bold border border-slate-300">
-                    {activeItem.code} &mdash; {activeItem.name}
-                  </div>
-                </div>
-              </div>
+              <ReportHeader
+                bumdesName={bumdesName}
+                villageName={villageName}
+                subdistrictName={subdistrictName}
+                regencyName={regencyName}
+                address={settings.bumdes_address}
+                logo={settings.bumdes_logo}
+                badgeText="Kartu Inventaris Fisik"
+                year={new Date().getFullYear()}
+                title="KARTU STOK PERSEDIAAN BARANG DAGANG (STOCK CARD)"
+                subtitle={`${activeItem.code} — ${activeItem.name}`}
+                periodText={`Satuan: ${activeItem.unit} | Kategori: ${activeItem.category || "Umum"}`}
+              />
 
               <div className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-300 text-xs grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div><span className="text-slate-500 block text-[10px] uppercase">Satuan:</span> <strong className="text-slate-800">{activeItem.unit}</strong></div>

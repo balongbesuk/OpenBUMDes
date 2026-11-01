@@ -18,6 +18,7 @@ import {
   AlertCircle
 } from "lucide-react"
 import { formatRupiah, safePrintElement, getLocalDateString } from "@/lib/utils"
+import ReportHeader from "@/components/ReportHeader"
 import { showAppAlert, showAppConfirm, showAppToast } from "@/components/ui/AppDialog"
 
 interface FixedAssetsTabProps {
@@ -461,55 +462,19 @@ export default function FixedAssetsTab({ settings = {}, currentUser }: FixedAsse
       {/* DOCUMENT PRINT CONTAINER */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8" id="printable-assets-report">
         {/* KOP RESMI DOKUMEN CETAK */}
-        <div className="border-b-2 border-slate-800 pb-4 mb-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {settings.bumdes_logo ? (
-                <img
-                  src={settings.bumdes_logo}
-                  alt="Logo BUMDes"
-                  className="w-16 h-16 object-contain rounded-lg border border-slate-200 p-1"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-xl bg-slate-900 text-white font-black text-2xl flex items-center justify-center">
-                  {bumdesName.charAt(0)}
-                </div>
-              )}
-              <div>
-                <h1 className="font-black text-xl text-slate-900 uppercase tracking-tight">
-                  {bumdesName}
-                </h1>
-                <p className="text-xs text-slate-600 font-medium">
-                  Desa {villageName}, Kecamatan {subdistrictName}, Kabupaten {regencyName}
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  {settings.bumdes_address || `Kantor BUMDes Desa ${villageName}`}
-                </p>
-              </div>
-            </div>
-
-            <div className="text-right">
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-300 uppercase tracking-wider">
-                Dokumen Audit Inspektorat
-              </span>
-              <p className="text-[11px] text-slate-500 mt-1 font-mono">
-                TA: {selectedYear}
-              </p>
-            </div>
-          </div>
-
-          <div className="text-center mt-5">
-            <h2 className="text-lg font-black text-slate-900 uppercase tracking-wide">
-              DAFTAR REGISTER & JADWAL AMORTISASI / PENYUSUTAN ASET TETAP
-            </h2>
-            <div className="inline-block mt-1 px-3 py-0.5 rounded-full bg-slate-100 text-slate-800 text-xs font-bold border border-slate-300">
-              Metode Garis Lurus (Straight-Line Method) Standar SAK EMKM & Kepmendes 136
-            </div>
-            <p className="text-xs text-slate-500 mt-1 italic">
-              Posisi Nilai Perolehan, Akumulasi Penyusutan & Nilai Buku Bersih per 31 Desember {selectedYear}
-            </p>
-          </div>
-        </div>
+        <ReportHeader
+          bumdesName={bumdesName}
+          villageName={villageName}
+          subdistrictName={subdistrictName}
+          regencyName={regencyName}
+          address={settings.bumdes_address}
+          logo={settings.bumdes_logo}
+          badgeText="Dokumen Audit Inspektorat"
+          year={selectedYear}
+          title="DAFTAR REGISTER & JADWAL AMORTISASI / PENYUSUTAN ASET TETAP"
+          subtitle="Metode Garis Lurus (Straight-Line Method) Standar SAK EMKM & Kepmendes 136"
+          periodText={`Posisi Nilai Perolehan, Akumulasi Penyusutan & Nilai Buku Bersih per 31 Desember ${selectedYear}`}
+        />
 
         {/* TABEL DATA ASET */}
         <div className="sm:hidden no-print print:hidden px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10.5px] text-slate-500 font-medium flex items-center justify-between mb-2">

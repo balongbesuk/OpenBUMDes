@@ -15,6 +15,7 @@ import {
   ChevronDown
 } from "lucide-react"
 import { formatRupiah, safePrintElement } from "@/lib/utils"
+import ReportHeader from "@/components/ReportHeader"
 
 interface GeneralLedgerTabProps {
   settings?: Record<string, string>
@@ -238,55 +239,19 @@ export default function GeneralLedgerTab({ settings = {} }: GeneralLedgerTabProp
       {/* DOCUMENT PRINT CONTAINER */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-8" id="general-ledger-print-area">
         {/* KOP RESMI DOKUMEN CETAK */}
-        <div className="border-b-2 border-slate-800 pb-4 mb-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {settings.bumdes_logo ? (
-                <img
-                  src={settings.bumdes_logo}
-                  alt="Logo BUMDes"
-                  className="w-16 h-16 object-contain rounded-lg border border-slate-200 p-1"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-xl bg-slate-900 text-white font-black text-2xl flex items-center justify-center">
-                  {bumdesName.charAt(0)}
-                </div>
-              )}
-              <div>
-                <h1 className="font-black text-xl text-slate-900 uppercase tracking-tight">
-                  {bumdesName}
-                </h1>
-                <p className="text-xs text-slate-600 font-medium">
-                  Desa {villageName}, Kecamatan {subdistrictName}, Kabupaten {regencyName}
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  {settings.bumdes_address || `Kantor BUMDes Desa ${villageName}`}
-                </p>
-              </div>
-            </div>
-
-            <div className="text-right">
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-300 uppercase tracking-wider">
-                Dokumen Audit Inspektorat
-              </span>
-              <p className="text-[11px] text-slate-500 mt-1 font-mono">
-                TA: {selectedYear}
-              </p>
-            </div>
-          </div>
-
-          <div className="text-center mt-5">
-            <h2 className="text-lg font-black text-slate-900 uppercase tracking-wide">
-              BUKU BESAR UMUM (GENERAL LEDGER)
-            </h2>
-            <div className="inline-block mt-1 px-3 py-0.5 rounded-full bg-slate-100 text-slate-800 text-xs font-bold border border-slate-300">
-              Akun: {meta?.account?.code} &mdash; {meta?.account?.name}
-            </div>
-            <p className="text-xs text-slate-500 mt-1 italic">
-              Periode Pemeriksaan: {meta?.periodLabel}
-            </p>
-          </div>
-        </div>
+        <ReportHeader
+          bumdesName={bumdesName}
+          villageName={villageName}
+          subdistrictName={subdistrictName}
+          regencyName={regencyName}
+          address={settings.bumdes_address}
+          logo={settings.bumdes_logo}
+          badgeText="Dokumen Audit Inspektorat"
+          year={selectedYear}
+          title="BUKU BESAR UMUM (GENERAL LEDGER)"
+          subtitle={`Akun: ${meta?.account?.code || ""} — ${meta?.account?.name || ""}`}
+          periodText={`Periode Pemeriksaan: ${meta?.periodLabel || `Tahun Buku ${selectedYear}`}`}
+        />
 
         {/* TABEL DATA BUKU BESAR */}
         {loading ? (

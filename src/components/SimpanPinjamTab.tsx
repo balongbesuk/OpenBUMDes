@@ -25,6 +25,7 @@ import {
   Building2
 } from "lucide-react"
 import { formatRupiah, safePrintElement, getLocalDateString } from "@/lib/utils"
+import ReportHeader from "@/components/ReportHeader"
 import { showAppAlert, showAppConfirm, showAppToast } from "@/components/ui/AppDialog"
 
 interface SimpanPinjamTabProps {
@@ -110,6 +111,35 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
   const directorName = settings.director_name || "DODIK SUSANTO"
   const treasurerName = settings.treasurer_name || "MAMIK KURNIAWATI"
   const bumdesLogo = settings.bumdes_logo || ""
+
+  const renderSignaturesBlock = () => (
+    <div className="pt-8 mt-6 border-t border-slate-200 grid grid-cols-3 text-center text-xs signature-block">
+      <div>
+        <p className="text-slate-500 mb-16">
+          Mengetahui,<br />
+          <strong>Direktur BUMDes</strong>
+        </p>
+        <p className="font-bold underline text-slate-800">{directorName || "Nama Direktur"}</p>
+        <p className="text-[11px] text-slate-500">Pemerintah Desa {villageName}</p>
+      </div>
+      <div>
+        <p className="text-slate-500 mb-16">
+          Diperiksa oleh,<br />
+          <strong>Badan Pengawas</strong>
+        </p>
+        <p className="font-bold underline text-slate-800">{settings.supervisor_name || "Nama Pengawas"}</p>
+        <p className="text-[11px] text-slate-500">BPD / Pengawas BUMDes</p>
+      </div>
+      <div>
+        <p className="text-slate-500 mb-16">
+          Dibuat oleh,<br />
+          <strong>Pengelola USP / Bendahara</strong>
+        </p>
+        <p className="font-bold underline text-slate-800">{treasurerName || "Nama Bendahara"}</p>
+        <p className="text-[11px] text-slate-500">Unit Usaha Simpan Pinjam</p>
+      </div>
+    </div>
+  )
 
   const loadData = async () => {
     setLoading(true)
@@ -365,8 +395,16 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
           )}
 
           <button
-            onClick={() => safePrintElement("print-simpan-pinjam-area")}
-            className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all flex items-center gap-1.5"
+            onClick={() => {
+              const docTitle =
+                activeSubTab === "members"
+                  ? `Buku Pembantu Simpanan Anggota - ${bumdesName}`
+                  : activeSubTab === "loans"
+                  ? `Buku Pembantu Piutang Pinjaman - ${bumdesName}`
+                  : `Rekapitulasi Unit Simpan Pinjam - ${bumdesName}`
+              safePrintElement("print-simpan-pinjam-area", docTitle)
+            }}
+            className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Printer className="w-4 h-4 text-slate-600" />
             Cetak Rekap
@@ -606,18 +644,37 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
         </div>
       </div>
 
+      {/* SIGNATURE BLOCK HELPER FOR PRINT & PREVIEW */}
+      {(() => null)()}
+
       {/* PRINTABLE AREA */}
-      <div id="print-simpan-pinjam-area" className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        {/* Printable Header */}
-        <div className="hidden print:block p-6 text-center border-b border-slate-300">
-          <h2 className="text-xl font-bold uppercase tracking-wider">{bumdesName}</h2>
-          <p className="text-sm text-slate-600">
-            UNIT USAHA SIMPAN PINJAM (USP) DESA {villageName.toUpperCase()} KEC. {subdistrictName.toUpperCase()} KAB. {regencyName.toUpperCase()}
-          </p>
-          <p className="text-xs text-slate-500 mt-1">
-            BUKU PEMBANTU SIMPAN PINJAM & REKONSILIASI KEUANGAN PER {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-          </p>
-        </div>
+      <div id="print-simpan-pinjam-area" className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden p-6 sm:p-8">
+        {/* KOP DOKUMEN RESMI SIMPAN PINJAM */}
+        <ReportHeader
+          bumdesName={bumdesName}
+          villageName={villageName}
+          subdistrictName={subdistrictName}
+          regencyName={regencyName}
+          address={settings.bumdes_address}
+          logo={bumdesLogo}
+          badgeText="Unit Simpan Pinjam (USP)"
+          year={new Date().getFullYear()}
+          title={
+            activeSubTab === "members"
+              ? "BUKU PEMBANTU SIMPANAN ANGGOTA (USP)"
+              : activeSubTab === "loans"
+              ? "BUKU PEMBANTU PIUTANG & PINJAMAN ANGGOTA (USP)"
+              : "REKAPITULASI UNIT USAHA SIMPAN PINJAM (USP)"
+          }
+          subtitle={
+            activeSubTab === "members"
+              ? "Register Simpanan Pokok, Wajib, dan Sukarela Anggota USP BUMDes"
+              : activeSubTab === "loans"
+              ? "Buku Register Pinjaman, Tingkat Kolektibilitas & Sisa Piutang"
+              : "Konsolidasi Saldo Simpanan, Penyaluran Dana, dan Kolektibilitas Pinjaman"
+          }
+          periodText={`Standar Pengelolaan USP BUMDes • Posisi per ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`}
+        />
 
         {/* VIEW 1: DAFTAR ANGGOTA & SIMPANAN */}
         {activeSubTab === "members" && (
@@ -718,6 +775,9 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
                 </tr>
               </tfoot>
             </table>
+            <div className="p-6 pt-4">
+              {renderSignaturesBlock()}
+            </div>
           </div>
         )}
 
@@ -807,6 +867,9 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
                 </tr>
               </tfoot>
             </table>
+            <div className="p-6 pt-4">
+              {renderSignaturesBlock()}
+            </div>
           </div>
         )}
 
@@ -879,20 +942,7 @@ export default function SimpanPinjamTab({ settings = {}, currentUser }: SimpanPi
             </div>
 
             {/* Signature Block for Print */}
-            <div className="pt-8 border-t border-slate-200 grid grid-cols-3 text-center text-xs">
-              <div>
-                <p className="text-slate-500 mb-16">Mengetahui,<br /><strong>Direktur BUMDes</strong></p>
-                <p className="font-bold underline text-slate-800">{settings.director_name || "Nama Direktur"}</p>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-16">Diperiksa oleh,<br /><strong>Badan Pengawas</strong></p>
-                <p className="font-bold underline text-slate-800">{settings.supervisor_name || "Nama Pengawas"}</p>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-16">Dibuat oleh,<br /><strong>Pengelola USP / Bendahara</strong></p>
-                <p className="font-bold underline text-slate-800">{settings.treasurer_name || "Nama Bendahara"}</p>
-              </div>
-            </div>
+            {renderSignaturesBlock()}
           </div>
         )}
       </div>

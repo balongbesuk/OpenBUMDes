@@ -80,16 +80,36 @@ export function safePrintElement(
   metaCharset.setAttribute("charset", "utf-8")
   head.appendChild(metaCharset)
 
-  if (options?.baseHref) {
-    const baseTag = printDoc.createElement("base")
-    baseTag.setAttribute("href", options.baseHref)
-    head.appendChild(baseTag)
-  }
+  const baseHref = options?.baseHref || (typeof window !== "undefined" && window.location?.origin ? `${window.location.origin}/` : "/")
+  const baseTag = printDoc.createElement("base")
+  baseTag.setAttribute("href", baseHref)
+  head.appendChild(baseTag)
 
   const metaViewport = printDoc.createElement("meta")
   metaViewport.setAttribute("name", "viewport")
   metaViewport.setAttribute("content", "width=device-width, initial-scale=1.0")
   head.appendChild(metaViewport)
+
+  // Copy existing document styles directly into print window head
+  try {
+    const inlineStyles = printDoc.createElement("style")
+    let aggregatedCss = ""
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        if (sheet.cssRules) {
+          Array.from(sheet.cssRules).forEach((rule) => {
+            aggregatedCss += rule.cssText + "\n"
+          })
+        }
+      } catch {
+        // Cross-origin stylesheet access might fail silently
+      }
+    })
+    if (aggregatedCss) {
+      inlineStyles.textContent = aggregatedCss
+      head.appendChild(inlineStyles)
+    }
+  } catch {}
 
   if (options?.includeTailwindScript) {
     const tailwindScript = printDoc.createElement("script")
@@ -111,17 +131,22 @@ export function safePrintElement(
   const customStyle = printDoc.createElement("style")
   customStyle.textContent = `
     @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #fff !important; margin: 0; padding: 0; }
+      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-color: #fff !important; margin: 0; padding: 0; }
       @page { size: A4 ${orientation}; margin: ${pageMargin}; }
       .no-print, .print\\:hidden { display: none !important; }
       table { width: 100% !important; border-collapse: collapse !important; }
+      table.report-kop-table, .report-kop-table { width: 100% !important; border-collapse: collapse !important; border: none !important; margin-bottom: 16px !important; }
+      table.report-kop-table td, .report-kop-table td { border: none !important; }
       th, td { word-break: normal; }
       thead { display: table-header-group; }
       tfoot { display: table-row-group !important; }
       tr { page-break-inside: avoid; break-inside: avoid; }
       .signature-block, .page-break-avoid { page-break-inside: avoid; break-inside: avoid; }
+      img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     }
     body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #fff; color: #1e293b; padding: 20px; }
+    table.report-kop-table, .report-kop-table { width: 100% !important; border-collapse: collapse !important; border: none !important; margin-bottom: 16px !important; }
+    table.report-kop-table td, .report-kop-table td { border: none !important; }
   `
   head.appendChild(customStyle)
 
@@ -130,19 +155,39 @@ export function safePrintElement(
   body.innerHTML = ""
   body.appendChild(element.cloneNode(true))
 
-  // Trigger print cleanly
+  // Trigger print cleanly after images are loaded
   let printed = false
-  printWindow.onload = () => {
-    setTimeout(() => {
+  const triggerPrint = () => {
+    if (!printed) {
+      printed = true
       try {
-        if (!printed) { printed = true; printWindow.print() }
+        printWindow.focus()
+        printWindow.print()
       } catch {}
-    }, 500)
+    }
   }
 
-  setTimeout(() => {
-    try {
-      if (!printed) { printed = true; printWindow.print() }
-    } catch {}
-  }, 1000)
+  // Check if all images inside print document are complete
+  const images = Array.from(printDoc.images)
+  if (images.length === 0) {
+    setTimeout(triggerPrint, 350)
+  } else {
+    const imagePromises = images.map((img) => {
+      if (img.complete) return Promise.resolve(true)
+      return new Promise((resolve) => {
+        img.onload = () => resolve(true)
+        img.onerror = () => resolve(true)
+      })
+    })
+    Promise.all(imagePromises).then(() => {
+      setTimeout(triggerPrint, 350)
+    })
+  }
+
+  printWindow.onload = () => {
+    setTimeout(triggerPrint, 500)
+  }
+
+  // Failsafe timeout
+  setTimeout(triggerPrint, 1500)
 }
