@@ -2,6 +2,33 @@
 
 All notable changes to OpenBUMDes are documented in this file.
 
+## [1.6.3] - 2026-11-01
+
+### Enhanced & Standardized - Format Cetak Dokumen Resmi & Sampul LPJ Musdes
+
+* **Standarisasi Kop Laporan Dokumen Cetak Standar Kepmendes 136/2022 (`src/components/ReportHeader.tsx`, `src/lib/utils.ts`)**:
+  * Mengembangkan komponen `ReportHeader` universal dengan arsitektur tabel HTML murni (`<table>` fixed layout & inline styles anti-collapse) yang menjamin posisi Logo di kiri, Identitas BUMDes di tengah, dan Badge Dokumen di kanan tetap sejajar horizontal secara konsisten di semua mesin peramban dan cetak PDF.
+  * Menerapkan `ReportHeader` ke seluruh menu laporan keuangan resmi:
+    * Laporan Laba Rugi Komprehensif
+    * Laporan Posisi Keuangan (Neraca SAK EMKM)
+    * Laporan Perubahan Ekuitas (LPE)
+    * Laporan Arus Kas (LAK)
+    * Catatan atas Laporan Keuangan (CaLK)
+    * Buku Besar Utama & Neraca Saldo
+    * Buku Pembantu (Bank, Pajak, Piutang)
+    * Buku Pembantu Persediaan & Register Aset Tetap
+    * Ringkasan Informasi Eksekutif (EIS)
+  * Menambahkan Kop Dokumen Resmi dan 3 pihak tanda tangan pengesahan pada menu Buku Simpan Pinjam USP (Buku Simpanan Anggota, Buku Piutang Pinjaman, dan Rekapitulasi).
+  * Menyempurnakan fungsi `safePrintElement` di `src/lib/utils.ts` untuk mengkloning seluruh aturan CSS stylesheet aktif dan memastikan seluruh aset gambar telah selesai dimuat sebelum membuka dialog cetak browser.
+
+* **Penyempurnaan Halaman Sampul (Cover) & Cetak LPJ Musdes (`src/components/LpjPrintModal.tsx`)**:
+  * Kalibrasi tinggi halaman sampul A4 (`height: 266mm`, padding `8mm`, `page-break-after: always`) sehingga pas 1 halaman tanpa melorot ke halaman kedua.
+  * Mengubah tata letak 3 tanda tangan pengesahan cover ke tabel HTML untuk mencegah elemen bergeser atau bertumpuk saat dicetak.
+  * Memperbesar logo BUMDes pada cover dari 90px ke 125px (dimensi gambar 112px) dengan latar belakang putih bersih dan border tipis halus (`border: 1px solid #cbd5e1`, `border-radius: 18px`), serasi dengan estetika kartu resmi.
+
+* **Pembersihan Route Favicon Ganda**:
+  * Menghapus route duplikat `src/app/favicon.ico/route.ts` yang bertabrakan dengan favicon statis `public/favicon.ico` untuk menjaga stabilitas rute Next.js.
+
 ## [1.6.2] - 2026-10-31
 
 ### Fixed & Enhanced - Rekonsiliasi Data Riil, Subledger, & Arsip Tutup Buku
