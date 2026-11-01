@@ -348,27 +348,28 @@ export default function LpjPrintModal({
       overflow: hidden !important;
     }
     .cover-logo-box {
-      width: 90px !important;
-      height: 90px !important;
-      min-width: 90px !important;
-      min-height: 90px !important;
-      max-width: 90px !important;
-      max-height: 90px !important;
-      margin: 4px auto !important;
-      border-radius: 20px !important;
-      background: #0f172a !important;
-      border: 2px solid #334155 !important;
+      width: 125px !important;
+      height: 125px !important;
+      min-width: 125px !important;
+      min-height: 125px !important;
+      max-width: 125px !important;
+      max-height: 125px !important;
+      margin: 6px auto !important;
+      border-radius: 18px !important;
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       overflow: hidden !important;
       flex-shrink: 0 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
     }
     .cover-logo-img {
-      width: 74px !important;
-      height: 74px !important;
-      max-width: 74px !important;
-      max-height: 74px !important;
+      width: 112px !important;
+      height: 112px !important;
+      max-width: 112px !important;
+      max-height: 112px !important;
       object-fit: contain !important;
       display: block !important;
       margin: auto !important;
@@ -836,18 +837,18 @@ export default function LpjPrintModal({
             <div className="space-y-3 my-auto py-2" style={{ margin: "auto 0", padding: "8px 0" }}>
               {/* LOGO BOX ANTI-STRETCH */}
               <div
-                className="cover-logo-box mx-auto shadow-md"
+                className="cover-logo-box mx-auto shadow-sm"
                 style={{
-                  width: "90px",
-                  height: "90px",
-                  minWidth: "90px",
-                  minHeight: "90px",
-                  maxWidth: "90px",
-                  maxHeight: "90px",
-                  margin: "4px auto",
-                  borderRadius: "20px",
-                  backgroundColor: "#0f172a",
-                  border: "2px solid #334155",
+                  width: "125px",
+                  height: "125px",
+                  minWidth: "125px",
+                  minHeight: "125px",
+                  maxWidth: "125px",
+                  maxHeight: "125px",
+                  margin: "6px auto",
+                  borderRadius: "18px",
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #cbd5e1",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -861,19 +862,18 @@ export default function LpjPrintModal({
                     alt="Logo BUMDes"
                     className="cover-logo-img"
                     style={{
-                      width: "74px",
-                      height: "74px",
-                      maxWidth: "74px",
-                      maxHeight: "74px",
+                      width: "112px",
+                      height: "112px",
+                      maxWidth: "112px",
+                      maxHeight: "112px",
                       objectFit: "contain",
                       padding: "4px",
-                      borderRadius: "16px",
                       display: "block",
                       margin: "auto"
                     }}
                   />
                 ) : (
-                  <span style={{ color: "#ffffff", fontWeight: 900, fontSize: "36px", lineHeight: 1 }}>
+                  <span style={{ color: "#0f172a", fontWeight: 900, fontSize: "48px", lineHeight: 1 }}>
                     {(bumdesName || "B").charAt(0)}
                   </span>
                 )}
