@@ -406,6 +406,21 @@ export default function StislaApp() {
   }, [settings.bumdes_logo])
 
   useEffect(() => {
+    // Selalu muat metadata branding publik (logo, nama BUMDes, desa) agar langsung tersedia di halaman login dan favicon
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && res.data) {
+          setSettings((prev) => ({ ...prev, ...res.data }))
+          if (res.data.bumdes_logo) {
+            setLogoPreview(res.data.bumdes_logo)
+          }
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
     // Check auth session
     fetch("/api/auth/me")
       .then((r) => r.json())

@@ -16,7 +16,10 @@ export async function GET() {
         data: {
           bumdes_name: map.bumdes_name || "BUM Desa",
           village_name: map.village_name || "Desa",
-          bumdes_logo: map.bumdes_logo || ""
+          subdistrict_name: map.subdistrict_name || "Kecamatan",
+          regency_name: map.regency_name || "Kabupaten",
+          bumdes_logo: map.bumdes_logo || "",
+          bumdes_address: map.bumdes_address || ""
         }
       })
     }

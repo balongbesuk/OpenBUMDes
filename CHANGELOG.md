@@ -29,6 +29,12 @@ All notable changes to OpenBUMDes are documented in this file.
 * **Pembersihan Route Favicon Ganda**:
   * Menghapus route duplikat `src/app/favicon.ico/route.ts` yang bertabrakan dengan favicon statis `public/favicon.ico` untuk menjaga stabilitas rute Next.js.
 
+* **Keandalan Logo & Branding Halaman Login (`src/components/LoginModal.tsx`, `src/app/page.tsx`, `src/app/api/settings/route.ts`)**:
+  * Memperbaiki bug di mana `LoginModal` menerima `initialSettings = {}` saat tab pertama kali dibuka dan mengabaikan pengambilan logo via API, sehingga logo kadang tidak muncul dan jatuh ke kotak inisial.
+  * Menambahkan pemanggilan mandiri metadata branding publik pada `LoginModal` dan `page.tsx` sejak *mount* awal tanpa menunggu sesi login.
+  * Mengganti fallback inisial statis menjadi inisial dinamis nama BUMDes serta menambahkan penanganan *fallback* `onError` pada gambar logo.
+  * Membuka field publik non-sensitif (`subdistrict_name`, `regency_name`, `bumdes_address`) pada endpoint `GET /api/settings` untuk pengunjung sebelum login.
+
 ## [1.6.2] - 2026-10-31
 
 ### Fixed & Enhanced - Rekonsiliasi Data Riil, Subledger, & Arsip Tutup Buku

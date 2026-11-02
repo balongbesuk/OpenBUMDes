@@ -31,19 +31,35 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
   const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [settings, setSettings] = useState<any>(initialSettings || null)
+  const [settings, setSettings] = useState<any>(
+    initialSettings && Object.keys(initialSettings).length > 0 ? initialSettings : null
+  )
+  const [logoError, setLogoError] = useState(false)
 
-  // Fetch settings if not passed as prop
+  // Sync settings jika parent (page.tsx) memperbarui initialSettings
   useEffect(() => {
-    if (!settings) {
+    if (initialSettings && Object.keys(initialSettings).length > 0) {
+      setSettings(initialSettings)
+    }
+  }, [initialSettings])
+
+  // Selalu muat branding publik jika data logo atau nama BUMDes belum tersedia
+  useEffect(() => {
+    if (!settings || !settings.bumdes_name || !settings.bumdes_logo) {
       fetch("/api/settings")
         .then((r) => r.json())
         .then((d) => {
-          if (d.success && d.data) setSettings(d.data)
+          if (d.success && d.data) {
+            setSettings((prev: any) => ({ ...(prev || {}), ...d.data }))
+          }
         })
         .catch(() => {})
     }
-  }, [settings])
+  }, [settings?.bumdes_name, settings?.bumdes_logo])
+
+  useEffect(() => {
+    setLogoError(false)
+  }, [settings?.bumdes_logo])
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -79,6 +95,11 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
   const subdistrictName = settings?.subdistrict_name || "Diwek"
   const regencyName = settings?.regency_name || "Jombang"
   const logoUrl = settings?.bumdes_logo
+  const bumdesInitial = (
+    bumdesName
+      ? bumdesName.replace(/^BUMDES(A)?\s*["']?/i, "").replace(/["']/g, "").trim().charAt(0).toUpperCase()
+      : "B"
+  ) || "B"
 
   return (
     <div className="min-h-screen w-full bg-slate-950 flex flex-col justify-stretch antialiased">
@@ -108,15 +129,16 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
             {/* Logo & BUMDes Identity */}
             <div className="flex items-center gap-3 sm:gap-4 pt-1 sm:pt-2">
               <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-18 lg:h-18 rounded-2xl bg-white/10 p-1.5 sm:p-2.5 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-xl shadow-indigo-950/50 shrink-0">
-                {logoUrl ? (
+                {logoUrl && !logoError ? (
                   <img
                     src={logoUrl}
                     alt={bumdesName}
+                    onError={() => setLogoError(true)}
                     className="max-h-full max-w-full object-contain filter drop-shadow"
                   />
                 ) : (
                   <div className="w-full h-full rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center font-black text-xl sm:text-2xl text-white">
-                    P
+                    {bumdesInitial}
                   </div>
                 )}
               </div>
