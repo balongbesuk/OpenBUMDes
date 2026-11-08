@@ -14,12 +14,12 @@
     "test": "node tests/self-check.mjs"
   },
   "dependencies": {
-    "@google/genai": "^2.31.0",
+    "@google/genai": "^2.32.0",
     "@prisma/client": "^5.21.1",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.577.0",
-    "next": "^15.5.28",
+    "next": "^15.5.29",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "tailwind-merge": "^2.5.4",
@@ -29,7 +29,7 @@
     "@types/node": "^20.17.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "autoprefixer": "^10.6.1",
+    "autoprefixer": "^10.6.2",
     "postcss": "^8.5.31",
     "prisma": "^5.21.1",
     "tailwindcss": "^3.4.14",
