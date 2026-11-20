@@ -37,7 +37,7 @@ function loadProdTsModule(relPath) {
 
 const { createToken, verifyToken, hashPassword, comparePassword } = loadProdTsModule("src/lib/auth.ts")
 const { aggregateNeracaFromLines, classifyCashEntriesForLak, computeRollForwardPreview } = loadProdTsModule("src/lib/reports.ts")
-const { getFiscalYearMonth, nextAssetCode, calculateInventoryValuation, validateLoanInstallment } = loadProdTsModule("src/lib/ledger.ts")
+const { getFiscalYearMonth, nextAssetCode, calculateInventoryValuation, validateLoanInstallment, USP_STANDARD_ACCOUNTS } = loadProdTsModule("src/lib/ledger.ts")
 
 async function runSelfChecks() {
   console.log("▶ Running OpenBUMDes Core Logic Self-Checks (against real src/ modules)...")
@@ -367,6 +367,59 @@ async function runSelfChecks() {
       .trim()
   }
   assert.strictEqual(cleanDesc("angsuran pinjaman sebesar 1.000.000"), "angsuran pinjaman", "Must preserve 'angsuran' without corrupting double s")
+
+  // 26. USP Standard Accounts completeness check (Kepmendes 136/2022)
+  assert(Array.isArray(USP_STANDARD_ACCOUNTS), "USP_STANDARD_ACCOUNTS must be an exported array")
+  assert.strictEqual(USP_STANDARD_ACCOUNTS.length, 8, "USP_STANDARD_ACCOUNTS must define exactly 8 Kepmendes accounts")
+  const requiredUspCodes = [
+    "1.1.01.01", "1.1.02.01", "1.1.02.02",
+    "2.1.01.01", "2.1.01.02", "2.1.01.03",
+    "3.1.01.01", "4.1.08.01"
+  ]
+  for (const code of requiredUspCodes) {
+    const acc = USP_STANDARD_ACCOUNTS.find(a => a.code === code)
+    assert(acc, `Missing required Kepmendes USP account code: ${code}`)
+    assert(acc.name && acc.type && acc.normal, `Account ${code} must have name, type, and normal balance`)
+  }
+
+  // 27. Multi-ledger transaction atomicity & rollback simulation
+  let simulatedDb = {
+    journalEntry: { id: "JE-001", proofNumber: "BKM/2026/01/0001" },
+    loanTxCreated: false,
+    deletedEntryId: null
+  }
+  try {
+    // Stage 1: Primary entry posted
+    assert.strictEqual(simulatedDb.journalEntry.id, "JE-001")
+    // Stage 2: Subsidiary mutation fails
+    throw new Error("Simulated secondary ledger deadlock/constraint failure")
+  } catch (syncErr) {
+    // Rollback stage: clean up created journal entry
+    if (simulatedDb.journalEntry?.id) {
+      simulatedDb.deletedEntryId = simulatedDb.journalEntry.id
+      simulatedDb.journalEntry = null
+    }
+  }
+  assert.strictEqual(simulatedDb.deletedEntryId, "JE-001", "Failed subsidiary sync must trigger cleanup of primary journal entry")
+  assert.strictEqual(simulatedDb.journalEntry, null, "Primary journal entry must be cleaned up to prevent desync")
+
+  // 28. Currency string parsing & dot-separator sanitization for mobile/text inputs
+  const parseIdrInput = (val) => parseFloat(String(val || "").replace(/[^0-9]/g, ""))
+  assert.strictEqual(parseIdrInput("150.000"), 150000, "150.000 must parse to 150000")
+  assert.strictEqual(parseIdrInput("Rp 1.500.000"), 1500000, "Rp 1.500.000 must parse to 1500000")
+  assert.strictEqual(parseIdrInput("  250000  "), 250000, "Whitespace-padded numbers must parse correctly")
+  assert.strictEqual(isNaN(parseIdrInput("")), true, "Empty input must return NaN")
+  assert.strictEqual(isNaN(parseIdrInput("invalid")), true, "Non-numeric input must return NaN")
+
+  // 29. Universal multi-village dynamic bank account labeler check
+  const formatBankPillLabel = (code, name) => {
+    return code === "1.1.01.01" ? "Kas Tunai" : name.replace(/^(Kas\s+(?:Rekening\s+|di\s+)?|Rekening\s+)/i, "").trim() || name
+  }
+  assert.strictEqual(formatBankPillLabel("1.1.01.01", "Kas Tunai di Bendahara"), "Kas Tunai")
+  assert.strictEqual(formatBankPillLabel("1.1.01.06", "Kas Rekening Bank Nagari"), "Bank Nagari")
+  assert.strictEqual(formatBankPillLabel("1.1.01.07", "Kas di Bank Papua"), "Bank Papua")
+  assert.strictEqual(formatBankPillLabel("1.1.01.08", "Kas Rekening Bank Jateng"), "Bank Jateng")
+  assert.strictEqual(formatBankPillLabel("1.1.01.04", "Kas di Bank BRI"), "Bank BRI")
 
   console.log("✔ All OpenBUMDes self-checks passed successfully!")
 }

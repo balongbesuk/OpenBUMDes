@@ -20,7 +20,9 @@ import {
   Lock,
   LogIn,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Wallet,
+  CheckCircle2
 } from "lucide-react"
 
 // Helper kompresi gambar di browser agar cepat diunggah via 4G/HP
@@ -98,9 +100,12 @@ export default function MobileScanPage() {
     unitName: string; cashFlowGroup?: string
   } | null>(null)
 
-  // Chart of Accounts for dropdown
+  // Chart of Accounts & Context Data
   const [accounts, setAccounts] = useState<any[]>([])
   const [recentEntries, setRecentEntries] = useState<any[]>([])
+  const [settings, setSettings] = useState<Record<string, string>>({})
+  const [loanMembers, setLoanMembers] = useState<any[]>([])
+  const [selectedCashCode, setSelectedCashCode] = useState<string>("1.1.01.01")
 
   // Check login on load
   const checkAuth = async () => {
@@ -113,6 +118,7 @@ export default function MobileScanPage() {
         setCurrentUser(json.user)
         loadAccounts()
         loadRecentEntries()
+        loadSettingsAndLoans()
       } else {
         setIsAuthenticated(false)
       }
@@ -121,6 +127,17 @@ export default function MobileScanPage() {
     } finally {
       setAuthChecking(false)
     }
+  }
+
+  const loadSettingsAndLoans = async () => {
+    try {
+      const [resSet, resLoans] = await Promise.all([
+        fetch("/api/settings").then((r) => r.json()).catch(() => null),
+        fetch("/api/loans").then((r) => r.json()).catch(() => null)
+      ])
+      if (resSet?.success && resSet.data) setSettings(resSet.data)
+      if (resLoans?.success && Array.isArray(resLoans.data)) setLoanMembers(resLoans.data)
+    } catch { }
   }
 
   const loadAccounts = async () => {
@@ -257,6 +274,15 @@ export default function MobileScanPage() {
 
       const todayStr = getLocalDateString()
 
+      let initialCash = "1.1.01.01"
+      if (d.cashAccount && d.cashAccount.startsWith("1.1.01")) {
+        initialCash = d.cashAccount
+      } else if (Array.isArray(d.lines)) {
+        const cLine = d.lines.find((l: any) => l.accountCode?.startsWith("1.1.01"))
+        if (cLine) initialCash = cLine.accountCode
+      }
+      setSelectedCashCode(initialCash)
+
       setParsedData({
         proofType: d.proofType === "BKM" ? "BKM" : "BKK",
         date: d.date || todayStr,
@@ -264,7 +290,8 @@ export default function MobileScanPage() {
         description: d.description || (inputMode === "text" ? textPrompt : "Transaksi via Mobile Scanner"),
         amount: String(d.totalAmount || "0"),
         contraAccount: contra,
-        unitName: d.unitName || "Umum", cashFlowGroup: d.cashFlowGroup || undefined
+        unitName: d.unitName || "Kantor Umum / Sekretariat",
+        cashFlowGroup: d.cashFlowGroup || undefined
       })
     } catch (err: any) {
       setErrorMessage(err.message || "Gagal memproses dengan AI")
@@ -276,7 +303,7 @@ export default function MobileScanPage() {
   // Save to Cash Book (Buku Kas Umum)
   const handleSaveToCashBook = async () => {
     if (!parsedData) return
-    const amt = parseFloat(parsedData.amount)
+    const amt = parseFloat(String(parsedData.amount).replace(/[^0-9]/g, ""))
     if (isNaN(amt) || amt <= 0) {
       setErrorMessage("Nominal transaksi harus lebih dari 0.")
       return
@@ -287,7 +314,7 @@ export default function MobileScanPage() {
     setSuccessMessage("")
 
     try {
-      const cashCode = "1.1.01.01" // Kas Tunai
+      const cashCode = selectedCashCode || "1.1.01.01"
       const isOut = parsedData.proofType === "BKK"
 
       // Double-entry lines
@@ -760,6 +787,87 @@ export default function MobileScanPage() {
                 />
               </div>
 
+              {/* Deteksi Otomatis Anggota USP (0 Token Cost) */}
+              {(() => {
+                const rawParty = (parsedData.payeeOrPayer || "").trim()
+                const cleanName = rawParty.replace(/^(pak|bpk|bapak|ibu|bu|sdr|sdri)\.?\s+/i, "").trim().toLowerCase()
+                const isUspTx =
+                  parsedData.unitName?.toLowerCase().includes("simpan pinjam") ||
+                  parsedData.contraAccount?.startsWith("1.1.02") ||
+                  parsedData.contraAccount?.startsWith("2.1.01") ||
+                  parsedData.contraAccount === "4.1.08.01"
+
+                const matchedMember = loanMembers.find((m: any) =>
+                  (cleanName && m.name.toLowerCase() === cleanName) ||
+                  (rawParty && m.memberNo.toLowerCase() === rawParty.toLowerCase()) ||
+                  (cleanName.length >= 4 && m.name.toLowerCase().includes(cleanName))
+                )
+
+                const candidateMembers = !matchedMember && cleanName.length >= 3
+                  ? loanMembers.filter((m: any) => {
+                      const mParts = m.name.toLowerCase().split(/\s+/)
+                      const pParts = cleanName.split(/\s+/)
+                      return mParts.some((mp: string) => mp.length >= 3 && cleanName.includes(mp)) ||
+                             pParts.some((pp: string) => pp.length >= 3 && m.name.toLowerCase().includes(pp))
+                    }).slice(0, 3)
+                  : []
+
+                if (!isUspTx && !matchedMember && candidateMembers.length === 0) return null
+
+                return (
+                  <div className="text-[11px]">
+                    {matchedMember ? (
+                      <div className="bg-emerald-950/60 border border-emerald-600/70 rounded-xl p-2.5 text-emerald-200 space-y-1">
+                        <div className="font-bold flex items-center gap-1.5 flex-wrap">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>Anggota USP Terverifikasi:</span>
+                          <span className="font-mono bg-emerald-900 text-emerald-300 px-1 py-0.5 rounded text-[10px]">
+                            {matchedMember.memberNo}
+                          </span>
+                          <span className="font-extrabold text-white">{matchedMember.name}</span>
+                          {matchedMember.groupName && (
+                            <span className="text-[10px] text-emerald-400">({matchedMember.groupName})</span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-emerald-400 flex items-center gap-2 flex-wrap">
+                          <span>Sisa Pokok: <strong>Rp {Number(matchedMember.sisaPinjaman || 0).toLocaleString("id-ID")}</strong></span>
+                          <span>•</span>
+                          <span>Status: <strong className={matchedMember.statusPinjaman === "MACET" ? "text-rose-400" : "text-emerald-300"}>{matchedMember.statusPinjaman}</strong></span>
+                        </div>
+                        {parsedData.payeeOrPayer !== matchedMember.name && (
+                          <button
+                            type="button"
+                            onClick={() => setParsedData({ ...parsedData, payeeOrPayer: matchedMember.name, unitName: "Unit Simpan Pinjam (USP)" })}
+                            className="mt-1 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-600 text-white hover:bg-emerald-500"
+                          >
+                            Gunakan Nama Resmi
+                          </button>
+                        )}
+                      </div>
+                    ) : candidateMembers.length > 0 ? (
+                      <div className="bg-amber-950/60 border border-amber-600/70 rounded-xl p-2.5 text-amber-200">
+                        <div className="font-bold text-[10px] flex items-center gap-1 mb-1 text-amber-300">
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Nama mirip di Daftar Anggota USP:</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {candidateMembers.map((cand: any) => (
+                            <button
+                              key={cand.id}
+                              type="button"
+                              onClick={() => setParsedData({ ...parsedData, payeeOrPayer: cand.name, unitName: "Unit Simpan Pinjam (USP)" })}
+                              className="px-2 py-0.5 rounded bg-slate-900 border border-amber-500/50 text-amber-200 text-[10px] font-semibold hover:bg-amber-900/40"
+                            >
+                              + {cand.memberNo} {cand.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })()}
+
               {/* Keterangan */}
               <div>
                 <label className="text-[10px] text-slate-400 font-semibold block mb-1">
@@ -791,61 +899,141 @@ export default function MobileScanPage() {
                 </select>
               </div>
 
-              {/* Unit Usaha */}
+              {/* Pilihan Cepat Sumber Rekening Kas / Bank (1-Klik & 0 Token) */}
               <div>
-                <label className="text-[10px] text-slate-400 font-semibold block mb-1">
-                  Unit Usaha Penanggung Jawab
+                <label className="text-[10px] text-slate-400 font-semibold block mb-1 flex items-center gap-1">
+                  <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Sumber Kas / Rekening Pembayaran</span>
                 </label>
-                <select
-                  value={parsedData.unitName}
-                  onChange={(e) => setParsedData({ ...parsedData, unitName: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                >
-                  <option value="Umum">Kantor Umum / Sekretariat</option>
-                  <option value="Unit Simpan Pinjam">Unit Simpan Pinjam (USP)</option>
-                  <option value="Unit Persewaan">Unit Persewaan / Gedung GSG</option>
-                  <option value="Unit Pengelolaan Sampah">Unit Pengelolaan Sampah</option>
-                  <option value="Kemitraan Gapoktan">Kemitraan Pertanian (GAPOKTAN)</option>
-                </select>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(accounts.filter((a: any) => a.code?.startsWith("1.1.01")).length > 0
+                    ? accounts.filter((a: any) => a.code?.startsWith("1.1.01"))
+                    : [
+                        { code: "1.1.01.01", name: "Kas Tunai" },
+                        { code: "1.1.01.04", name: "Bank BRI" }
+                      ]
+                  ).slice(0, 6).map((opt: any) => {
+                    const label = opt.code === "1.1.01.01" ? "Kas Tunai" : opt.name.replace(/^(Kas\s+(?:Rekening\s+|di\s+)?|Rekening\s+)/i, "").trim() || opt.name
+                    return (
+                      <button
+                        key={opt.code}
+                        type="button"
+                        onClick={() => setSelectedCashCode(opt.code)}
+                        className={`py-1.5 px-2 rounded-lg text-[11px] font-bold border transition-all text-left flex items-center justify-between ${
+                          selectedCashCode === opt.code
+                            ? "bg-emerald-600/30 border-emerald-500 text-emerald-300"
+                            : "bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-800"
+                        }`}
+                      >
+                        <span className="truncate">{label}</span>
+                        <span className="text-[9px] font-mono opacity-60">({opt.code})</span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
 
+              {/* Unit Usaha (Dinamis Seluruh BUMDes Indonesia) */}
+              {(() => {
+                const configuredUnits = settings.business_units
+                  ? settings.business_units.split(",").map((s: string) => s.trim()).filter(Boolean)
+                  : [
+                      "Unit Simpan Pinjam (USP)",
+                      "Unit Persewaan & Properti",
+                      "Unit Perdagangan & Toko Desa",
+                      "Unit Jasa & Pariwisata Desa",
+                      "Unit Pengelolaan Air Bersih (PAMDes)"
+                    ]
+                const historicalUnits = Array.from(new Set(recentEntries.map((e: any) => e.unitName).filter(Boolean)))
+                const dynamicUnits = Array.from(
+                  new Set([
+                    "Kantor Umum / Sekretariat",
+                    ...configuredUnits,
+                    ...historicalUnits,
+                    ...(parsedData.unitName ? [parsedData.unitName] : [])
+                  ])
+                )
+
+                return (
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-semibold block mb-1">
+                      Unit Usaha Penanggung Jawab
+                    </label>
+                    <select
+                      value={parsedData.unitName || "Kantor Umum / Sekretariat"}
+                      onChange={(e) => {
+                        if (e.target.value === "__NEW__") {
+                          const customUnit = prompt("Masukkan nama unit usaha baru di BUMDes Anda:")
+                          if (customUnit && customUnit.trim()) {
+                            setParsedData({ ...parsedData, unitName: customUnit.trim() })
+                          }
+                        } else {
+                          setParsedData({ ...parsedData, unitName: e.target.value })
+                        }
+                      }}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    >
+                      {dynamicUnits.map((u) => (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
+                      ))}
+                      <option value="__NEW__" className="text-emerald-400 font-bold">
+                        + Tambah Unit Usaha Baru...
+                      </option>
+                    </select>
+                  </div>
+                )
+              })()}
+
               {/* Preview Jurnal Berpasangan (Sama Seperti Versi Desktop) */}
-              <div className="bg-slate-900/90 rounded-xl p-3 border border-slate-800 space-y-1.5">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
-                  <span>Jurnal Berpasangan (Kepmendes 136)</span>
-                  <span className="text-emerald-400 font-mono text-[9px]">Otomatis Sync Kas</span>
-                </div>
-                <div className="text-[11px] flex justify-between items-center bg-slate-950/70 px-2.5 py-1.5 rounded-lg border border-slate-800">
-                  <div className="flex items-center gap-1.5 min-w-0 mr-2">
-                    <span className="bg-emerald-950 text-emerald-300 font-extrabold px-1.5 py-0.5 rounded text-[9px] border border-emerald-800 shrink-0">DEBIT</span>
-                    <span className="text-emerald-300 font-medium truncate">
-                      {parsedData.proofType === "BKK" ? parsedData.contraAccount : "1.1.01.01"} - {
-                        parsedData.proofType === "BKK"
-                          ? (accounts.find((a) => a.code === parsedData.contraAccount)?.name || "Beban / Biaya")
-                          : "Kas Tunai di Bendahara"
-                      }
-                    </span>
+              {(() => {
+                const getCashName = (code: string) => {
+                  const acc = accounts.find((a: any) => a.code === code)
+                  if (acc?.name) return acc.name
+                  if (code === "1.1.01.01") return "Kas Tunai di Bendahara"
+                  return "Kas Rekening Bank"
+                }
+
+                return (
+                  <div className="bg-slate-900/90 rounded-xl p-3 border border-slate-800 space-y-1.5">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
+                      <span>Jurnal Berpasangan (Kepmendes 136)</span>
+                      <span className="text-emerald-400 font-mono text-[9px]">Otomatis Sync Kas</span>
+                    </div>
+                    <div className="text-[11px] flex justify-between items-center bg-slate-950/70 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                      <div className="flex items-center gap-1.5 min-w-0 mr-2">
+                        <span className="bg-emerald-950 text-emerald-300 font-extrabold px-1.5 py-0.5 rounded text-[9px] border border-emerald-800 shrink-0">DEBIT</span>
+                        <span className="text-emerald-300 font-medium truncate">
+                          {parsedData.proofType === "BKK" ? parsedData.contraAccount : selectedCashCode} - {
+                            parsedData.proofType === "BKK"
+                              ? (accounts.find((a) => a.code === parsedData.contraAccount)?.name || "Beban / Biaya")
+                              : getCashName(selectedCashCode)
+                          }
+                        </span>
+                      </div>
+                      <span className="font-mono text-emerald-300 font-bold shrink-0">
+                        Rp {Number(parsedData.amount || 0).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <div className="text-[11px] flex justify-between items-center bg-slate-950/70 px-2.5 py-1.5 rounded-lg border border-slate-800 pl-3">
+                      <div className="flex items-center gap-1.5 min-w-0 mr-2">
+                        <span className="bg-rose-950 text-rose-300 font-extrabold px-1.5 py-0.5 rounded text-[9px] border border-rose-800 shrink-0">KREDIT</span>
+                        <span className="text-rose-300 font-medium truncate">
+                          {parsedData.proofType === "BKK" ? selectedCashCode : parsedData.contraAccount} - {
+                            parsedData.proofType === "BKK"
+                              ? getCashName(selectedCashCode)
+                              : (accounts.find((a) => a.code === parsedData.contraAccount)?.name || "Pendapatan / Modal")
+                          }
+                        </span>
+                      </div>
+                      <span className="font-mono text-rose-300 font-bold shrink-0">
+                        Rp {Number(parsedData.amount || 0).toLocaleString("id-ID")}
+                      </span>
+                    </div>
                   </div>
-                  <span className="font-mono text-emerald-300 font-bold shrink-0">
-                    Rp {Number(parsedData.amount || 0).toLocaleString("id-ID")}
-                  </span>
-                </div>
-                <div className="text-[11px] flex justify-between items-center bg-slate-950/70 px-2.5 py-1.5 rounded-lg border border-slate-800 pl-3">
-                  <div className="flex items-center gap-1.5 min-w-0 mr-2">
-                    <span className="bg-rose-950 text-rose-300 font-extrabold px-1.5 py-0.5 rounded text-[9px] border border-rose-800 shrink-0">KREDIT</span>
-                    <span className="text-rose-300 font-medium truncate">
-                      {parsedData.proofType === "BKK" ? "1.1.01.01" : parsedData.contraAccount} - {
-                        parsedData.proofType === "BKK"
-                          ? "Kas Tunai di Bendahara"
-                          : (accounts.find((a) => a.code === parsedData.contraAccount)?.name || "Pendapatan / Modal")
-                      }
-                    </span>
-                  </div>
-                  <span className="font-mono text-rose-300 font-bold shrink-0">
-                    Rp {Number(parsedData.amount || 0).toLocaleString("id-ID")}
-                  </span>
-                </div>
-              </div>
+                )
+              })()}
             </div>
 
             {/* Tombol Simpan Final */}

@@ -257,13 +257,19 @@ export function ManualTransactionModal({
                   onChange={(e) => setForm((prev) => ({ ...prev, cashAccount: e.target.value }))}
                   className="w-full p-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:border-[#6777ef]"
                 >
-                  <option value="1.1.01.01">1.1.01.01 Kas Tunai (di Bendahara)</option>
-                  <option value="1.1.01.07">1.1.01.07 Kas di Bank Jombang</option>
-                  <option value="1.1.01.06">1.1.01.06 Kas di Bank Jatim</option>
-                  <option value="1.1.01.04">1.1.01.04 Kas di Bank BRI</option>
-                  <option value="1.1.01.02">1.1.01.02 Kas di Bank BNI</option>
-                  <option value="1.1.01.03">1.1.01.03 Kas di Bank Mandiri</option>
-                  <option value="1.1.01.05">1.1.01.05 Kas di Bank BCA</option>
+                  {(coaList.filter((c) => c.code.startsWith("1.1.01")).length > 0
+                    ? coaList.filter((c) => c.code.startsWith("1.1.01"))
+                    : [
+                        { code: "1.1.01.01", name: "Kas Tunai (di Bendahara)" },
+                        { code: "1.1.01.04", name: "Kas di Bank BRI" },
+                        { code: "1.1.01.02", name: "Kas di Bank BNI" },
+                        { code: "1.1.01.03", name: "Kas di Bank Mandiri" }
+                      ]
+                  ).map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} {c.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 

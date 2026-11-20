@@ -190,16 +190,14 @@ export async function POST(request: Request) {
           }
         })
 
-        for (const line of validLines) {
-          await tx.journalLine.create({
-            data: {
-              journalEntryId: entry.id,
-              accountCode: line.accountCode,
-              type: line.type,
-              amount: line.amount
-            }
-          })
-        }
+        await tx.journalLine.createMany({
+          data: validLines.map((line) => ({
+            journalEntryId: entry.id,
+            accountCode: line.accountCode,
+            type: line.type,
+            amount: line.amount
+          }))
+        })
       }
     })
 

@@ -1,18 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getUserSession } from "@/lib/auth"
-import { getFiscalYearMonth, validateLoanInstallment } from "@/lib/ledger"
-
-const USP_STANDARD_ACCOUNTS = [
-  { code: "1.1.01.01", name: "Kas Tunai", type: "ASSET", normal: "Debit" },
-  { code: "1.1.02.01", name: "Piutang Pinjaman Masyarakat", type: "ASSET", normal: "Debit" },
-  { code: "1.1.02.02", name: "Piutang Pinjaman Poktan/Kelompok", type: "ASSET", normal: "Debit" },
-  { code: "2.1.01.01", name: "Simpanan Pokok Anggota", type: "LIABILITY", normal: "Kredit" },
-  { code: "2.1.01.02", name: "Simpanan Wajib Anggota", type: "LIABILITY", normal: "Kredit" },
-  { code: "2.1.01.03", name: "Simpanan Sukarela Anggota", type: "LIABILITY", normal: "Kredit" },
-  { code: "3.1.01.01", name: "Penyertaan Modal Desa", type: "EQUITY", normal: "Kredit" },
-  { code: "4.1.08.01", name: "Pendapatan Simpan Pinjam", type: "REVENUE", normal: "Kredit" }
-]
+import { getFiscalYearMonth, validateLoanInstallment, USP_STANDARD_ACCOUNTS } from "@/lib/ledger"
 
 export async function GET(request: Request) {
   try {

@@ -90,10 +90,10 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
     }
   }
 
-  const bumdesName = settings?.bumdes_name || 'BUMDesa "BAROKAH"'
-  const villageName = settings?.village_name || "Balongbesuk"
-  const subdistrictName = settings?.subdistrict_name || "Diwek"
-  const regencyName = settings?.regency_name || "Jombang"
+  const bumdesName = settings?.bumdes_name || "BUM Desa"
+  const villageName = settings?.village_name || "Desa"
+  const subdistrictName = settings?.subdistrict_name || ""
+  const regencyName = settings?.regency_name || ""
   const logoUrl = settings?.bumdes_logo
   const bumdesInitial = (
     bumdesName

@@ -44,15 +44,15 @@ export default function LpjPrintModal({
   }
 
   const year = closing.year || 2025
-  const bumdesName = settings.bumdes_name || "BUMDesa \"BAROKAH\""
-  const bumdesAddress = settings.bumdes_address || "Desa Balongbesuk, Kecamatan Diwek, Kabupaten Jombang"
-  const villageName = settings.village_name || "Balongbesuk"
-  const subdistrictName = settings.subdistrict_name || "Diwek"
-  const regencyName = settings.regency_name || "Jombang"
-  const directorName = settings.director_name || "DODIK SUSANTO, S.Fil.I"
-  const treasurerName = settings.treasurer_name || "MAMIK KURNIAWATI"
-  const villageHead = settings.village_head || "MOCHAMAD SAIFUR"
-  const supervisorName = settings.supervisor_name || "SADJI ABDULLAH"
+  const bumdesName = settings.bumdes_name || "BUM Desa"
+  const bumdesAddress = settings.bumdes_address || (settings.village_name ? `Desa ${settings.village_name}, Kecamatan ${settings.subdistrict_name || ""}, Kabupaten ${settings.regency_name || ""}` : "Kantor BUM Desa")
+  const villageName = settings.village_name || "Desa"
+  const subdistrictName = settings.subdistrict_name || "Kecamatan"
+  const regencyName = settings.regency_name || "Kabupaten"
+  const directorName = settings.director_name || "(Nama Direktur)"
+  const treasurerName = settings.treasurer_name || "(Nama Bendahara)"
+  const villageHead = settings.village_head || "(Nama Kepala Desa)"
+  const supervisorName = settings.supervisor_name || "(Nama Ketua Pengawas)"
 
   const labaRugi = snapshot.labaRugi || {
     revenues: [],

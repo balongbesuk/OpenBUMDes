@@ -2,6 +2,26 @@
 
 All notable changes to OpenBUMDes are documented in this file.
 
+## [1.6.5] - 2026-11-21
+
+### Added & Enhanced - Kesiapan Universal Nasional, Optimasi AI Zero-Token & Audit Keamanan Transaksi
+
+* **Kesiapan Universal Seluruh Desa Indonesia (`src/components/*`, `src/app/page.tsx`, `src/app/scan/page.tsx`, `prisma/seed.ts`)**:
+  * **Pilihan Kas/Bank Dinamis**: Tombol cepat (*pills*) Kas/Bank dan dropdown transaksi manual otomatis membaca akun `1.1.01.xx` dari Bagan Akun (COA) aktif masing-masing desa (mendukung seluruh bank daerah dan bank nasional seperti BRI, BNI, Mandiri, Bank Nagari, Bank Papua, Bank Jateng, dll.).
+  * **Unit Usaha Dinamis (`business_units`)**: Penambahan daftar unit usaha BUMDes yang dapat dikonfigurasi di Pengaturan dan ditambahkan langsung via `+ Tambah Unit Usaha Baru...` pada Desktop maupun Mobile Scanner (`/scan`), serta diteruskan ke prompt AI Gemini secara dinamis.
+  * **Penghapusan Fallback Spesifik Desa**: Mengganti seluruh *default/fallback* nama desa, pejabat, dan alamat di form Pengaturan, Kop Laporan, Kwitansi, LPJ, dan CaLK menjadi *placeholder* netral standar nasional.
+
+* **Optimasi Chat Gemini AI & Mobile Scanner (`/scan`) (Hemat Token)**:
+  * **Deteksi Anggota USP Real-Time (0 Token)**: Verifikasi otomatis nama peminjam/anggota Simpan Pinjam dari database lokal secara *real-time* beserta fitur koreksi nama 1-klik sebelum transaksi disimpan.
+  * **Switcher Sumber Kas/Bank 1-Klik**: Pemindahan akun kas/bank (Tunai/Bank) langsung pada kartu pratinjau hasil AI di Desktop dan `/scan` tanpa memanggil ulang API AI.
+  * **Sanitasi Nominal Rupiah Mobile (`src/app/scan/page.tsx`)**: Memastikan input angka berformat ribuan (misal `150.000`) terbaca utuh menjadi `150000` saat disimpan.
+
+* **Integritas Database, Refactoring & Pengujian (`src/app/api/*`, `src/components/SettingsTab.tsx`, `tests/self-check.mjs`)**:
+  * **Transaksi Atomik Multi-Buku (`src/app/api/cash-book/route.ts`)**: Membungkus mutasi buku pembantu Aset Tetap dan Simpan Pinjam dalam satu transaksi dengan mekanisme *rollback* otomatis jurnal utama jika terjadi kegagalan sinkronisasi.
+  * **Batch Saldo Awal & Deduplikasi Akun (`src/app/api/opening-balance/route.ts`, `src/lib/ledger.ts`)**: Menggunakan `createMany` untuk insert saldo awal dan memusatkan konstanta `USP_STANDARD_ACCOUNTS` di `src/lib/ledger.ts`.
+  * **Ekstraksi Komponen `SettingsTab` (`src/components/SettingsTab.tsx`)**: Memisahkan modul pengaturan (~520 baris) dari `src/app/page.tsx` untuk keterbacaan dan pemeliharaan kode yang lebih baik.
+  * **Ekspansi Uji Mandiri (`tests/self-check.mjs`)**: Menambah pengujian #26–#29 untuk kelengkapan akun USP, simulasi *rollback* atomik, sanitasi nominal Rupiah, dan pelabelan bank multi-desa (seluruh 29 pengujian lulus 100%).
+
 ## [1.6.4] - 2026-11-20
 
 ### Added & Fixed - Dukungan Penuh Unit Simpan Pinjam (USP), Bank Jombang, & Penguatan Integritas Audit

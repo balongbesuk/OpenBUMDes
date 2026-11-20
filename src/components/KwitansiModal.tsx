@@ -258,10 +258,10 @@ export default function KwitansiModal({
                 )}
                 <div>
                   <h2 className="text-base sm:text-lg font-black tracking-tight uppercase text-slate-900 leading-tight">
-                    {settings.bumdes_name || "BUMDESA \"BAROKAH\""}
+                    {settings.bumdes_name || "BUM DESA"}
                   </h2>
                   <p className="text-[11.5px] sm:text-xs font-bold text-slate-700 uppercase mt-0.5">
-                    DESA {settings.village_name || "BALONGBESUK"}, KEC. {settings.subdistrict_name || "DIWEK"}, KAB. {settings.regency_name || "JOMBANG"}
+                    DESA {settings.village_name || "DESA"}{settings.subdistrict_name ? `, KEC. ${settings.subdistrict_name}` : ""}{settings.regency_name ? `, KAB. ${settings.regency_name}` : ""}
                   </p>
                   <p className="text-[10px] text-slate-500 font-medium mt-0.5">
                     Badan Hukum: Kemenkumham RI &bull; Standar Akuntansi Kepmendes 136/2022

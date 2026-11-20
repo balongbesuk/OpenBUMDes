@@ -22,10 +22,10 @@ export interface ReportHeaderProps {
  * TETAP sejajar horizontal secara konsisten saat diprint/PDF preview di semua browser.
  */
 export default function ReportHeader({
-  bumdesName,
-  villageName = "Balongbesuk",
-  subdistrictName = "Diwek",
-  regencyName = "Jombang",
+  bumdesName = "BUM Desa",
+  villageName = "Desa",
+  subdistrictName = "Kecamatan",
+  regencyName = "Kabupaten",
   address,
   logo,
   badgeText = "Kepmendes PDTT 136/2022",
@@ -35,7 +35,7 @@ export default function ReportHeader({
   periodText,
   className = ""
 }: ReportHeaderProps) {
-  const displayAddress = address || `Desa ${villageName}, Kecamatan ${subdistrictName}, Kabupaten ${regencyName}`
+  const displayAddress = address || (villageName !== "Desa" ? `Desa ${villageName}, Kecamatan ${subdistrictName}, Kabupaten ${regencyName}` : "Kantor BUM Desa")
   const initial = bumdesName ? bumdesName.replace(/^BUMDES(A)?\s+/i, "").charAt(0).toUpperCase() : "B"
 
   return (

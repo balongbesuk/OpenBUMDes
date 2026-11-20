@@ -27,13 +27,13 @@ export default function TrialBalanceTab({ settings = {} }: TrialBalanceTabProps)
   const [meta, setMeta] = useState<any>(null)
   const [rows, setRows] = useState<any[]>([])
 
-  const bumdesName = settings.bumdes_name || "BUMDesa Mandiri Sejahtera"
-  const villageName = settings.village_name || "Balongbesuk"
-  const subdistrictName = settings.subdistrict_name || "Diwek"
-  const regencyName = settings.regency_name || "Jombang"
-  const directorName = settings.director_name || "DODIK SUSANTO, S.Fil.I"
+  const bumdesName = settings.bumdes_name || "BUM Desa"
+  const villageName = settings.village_name || "Desa"
+  const subdistrictName = settings.subdistrict_name || ""
+  const regencyName = settings.regency_name || ""
+  const directorName = settings.director_name || "(Nama Direktur)"
   const directorNip = settings.director_nip || "-"
-  const treasurerName = settings.treasurer_name || "MAMIK KURNIAWATI"
+  const treasurerName = settings.treasurer_name || "(Nama Bendahara)"
   const treasurerNip = settings.treasurer_nip || "-"
 
   const loadData = async () => {

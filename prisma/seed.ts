@@ -80,6 +80,7 @@ async function main() {
     { key: "operator_name", value: "Budi Santoso" },
     { key: "village_head", value: "" },
     { key: "supervisor_name", value: "" },
+    { key: "business_units", value: "Unit Simpan Pinjam (USP), Unit Persewaan & Properti, Unit Perdagangan & Toko Desa, Unit Jasa & Pariwisata Desa, Unit Pengelolaan Air Bersih (PAMDes)" },
     { key: "gemini_api_key", value: "" },
     { key: "gemini_model", value: "gemini-3.5-flash" }
   ]
