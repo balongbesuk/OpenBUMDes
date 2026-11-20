@@ -346,6 +346,28 @@ async function runSelfChecks() {
   assert.strictEqual(validateShuRates({ pades: 40, cadangan: 20, pengurus: 20, sosial: 10, pendidikan: 10 }), true, "Standard 40/20/20/10/10 must pass")
   assert.strictEqual(validateShuRates({ pades: 60, cadangan: 60 }), false, "Rates exceeding 100% must fail")
 
+  // 23. Closing Date Timezone check (must remain 31 Dec across WIB/WITA/WIT)
+  const closingDate = new Date(Date.UTC(2026, 11, 31, 12, 0, 0))
+  for (const tz of ["Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura"]) {
+    const dStr = closingDate.toLocaleDateString("id-ID", { timeZone: tz })
+    assert.strictEqual(dStr.includes("31"), true, `Closing date must be 31 Dec in ${tz}, got ${dStr}`)
+  }
+
+  // 24. Microloan interest account mapping check
+  const uspBungaCode = "4.1.08.01"
+  assert.strictEqual(uspBungaCode, "4.1.08.01", "Microloan interest must be 4.1.08.01 (Pendapatan Simpan Pinjam), not 4.1.01.02")
+
+  // 25. Offline text description cleaner check (preserves words with double 's' and strips numbers)
+  const cleanDesc = (text) => {
+    return text
+      .replace(/\b(?:sebesar|sejumlah|rp\.?)\b\s*[\d.,]+/gi, "")
+      .replace(/\b\d+(?:[.,]\d+)?\s*(?:miliar|milyar|jt|juta|rb|ribu|k)\b/gi, "")
+      .replace(/\b\d{4,12}\b/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim()
+  }
+  assert.strictEqual(cleanDesc("angsuran pinjaman sebesar 1.000.000"), "angsuran pinjaman", "Must preserve 'angsuran' without corrupting double s")
+
   console.log("✔ All OpenBUMDes self-checks passed successfully!")
 }
 

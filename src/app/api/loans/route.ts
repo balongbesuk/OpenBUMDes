@@ -11,7 +11,7 @@ const USP_STANDARD_ACCOUNTS = [
   { code: "2.1.01.02", name: "Simpanan Wajib Anggota", type: "LIABILITY", normal: "Kredit" },
   { code: "2.1.01.03", name: "Simpanan Sukarela Anggota", type: "LIABILITY", normal: "Kredit" },
   { code: "3.1.01.01", name: "Penyertaan Modal Desa", type: "EQUITY", normal: "Kredit" },
-  { code: "4.1.01.02", name: "Pendapatan Jasa Pinjaman USP", type: "REVENUE", normal: "Kredit" }
+  { code: "4.1.08.01", name: "Pendapatan Simpan Pinjam", type: "REVENUE", normal: "Kredit" }
 ]
 
 export async function GET(request: Request) {
@@ -514,7 +514,7 @@ export async function POST(request: Request) {
               lines.push({ accountCode: piutangCode, type: "CREDIT", amount: inst.actualPrincipal })
             }
             if (inst.numInterest > 0) {
-              lines.push({ accountCode: "4.1.01.02", type: "CREDIT", amount: inst.numInterest })
+              lines.push({ accountCode: "4.1.08.01", type: "CREDIT", amount: inst.numInterest })
             }
 
             const debits = lines.filter((l) => l.type === "DEBIT").reduce((s, l) => s + l.amount, 0)

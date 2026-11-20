@@ -110,12 +110,17 @@ export default function StislaApp() {
 
   // Helper mendapatkan nama akun dari COA / Standar Kepmendesa 136
   const getAccountName = (code: string) => {
+    if (code === "1.1.02.01") return "Piutang Pinjaman Masyarakat"
+    if (code === "1.1.02.02") return "Piutang Pinjaman Poktan/Kelompok"
     const found = coaList.find((a: any) => a.code === code)
-    if (found && found.name) return found.name
+    if (found && found.name && !found.name.toLowerCase().includes("deposito")) return found.name
     const fallbackNames: Record<string, string> = {
       "1.1.01.01": "Kas Tunai di Bendahara",
       "1.1.01.02": "Kas Kecil (Petty Cash)",
       "1.1.01.06": "Kas Rekening Bank Jatim",
+      "1.1.01.07": "Kas Rekening Bank Jombang",
+      "1.1.02.01": "Piutang Pinjaman Masyarakat",
+      "1.1.02.02": "Piutang Pinjaman Poktan/Kelompok",
       "1.1.03.01": "Piutang Usaha GSG & Sewa",
       "1.1.03.99": "Piutang Lain-lain (SPP / Pinjaman)",
       "1.1.04.01": "Persediaan Barang Dagangan",
@@ -539,6 +544,12 @@ export default function StislaApp() {
   // Save AI Generated Transaction
   const handleSaveAiTransaction = async () => {
     if (!aiResult) return
+    const totalDebit = aiResult.lines?.filter((l: any) => l.type === "DEBIT").reduce((sum: number, l: any) => sum + (Number(l.amount) || 0), 0) || 0
+    const totalCredit = aiResult.lines?.filter((l: any) => l.type === "CREDIT").reduce((sum: number, l: any) => sum + (Number(l.amount) || 0), 0) || 0
+    if (Math.abs(totalDebit - totalCredit) >= 0.01) {
+      showAppAlert(`Jurnal belum seimbang!\nTotal Debit: ${formatRupiah(totalDebit)}\nTotal Kredit: ${formatRupiah(totalCredit)}\nSelisih: ${formatRupiah(Math.abs(totalDebit - totalCredit))}\n\nSilakan sesuaikan nominal sebelum menyimpan.`, { type: "error" })
+      return
+    }
     try {
       const res = await fetch("/api/cash-book", {
         method: "POST",
@@ -1891,12 +1902,13 @@ export default function StislaApp() {
                             Unit Usaha Penanggung Jawab:
                           </label>
                           <select
-                            value={aiResult.unitName || "Umum"}
+                            value={aiResult.unitName?.includes("Simpan Pinjam") ? "Unit Simpan Pinjam (USP)" : (aiResult.unitName || "Umum")}
                             onChange={(e) => setAiResult({ ...aiResult, unitName: e.target.value })}
                             className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#6777ef] focus:bg-white shadow-xs transition-colors cursor-pointer"
                           >
                             <option value="Umum">Kantor Umum / Sekretariat</option>
-                            <option value="Unit Simpan Pinjam">Unit Simpan Pinjam (USP)</option>
+                            <option value="Unit Simpan Pinjam (USP)">Unit Simpan Pinjam (USP)</option>
+                            <option value="Unit Simpan Pinjam">Unit Simpan Pinjam</option>
                             <option value="Unit Persewaan">Unit Persewaan / Gedung GSG</option>
                             <option value="Unit Pengelolaan Sampah">Unit Pengelolaan Sampah</option>
                             <option value="Kemitraan Gapoktan">Kemitraan Pertanian (GAPOKTAN)</option>
@@ -1917,48 +1929,164 @@ export default function StislaApp() {
                         </div>
                       </div>
 
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-3 space-y-2">
-                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                          <span>Kode & Nama Akun Jurnal (COA)</span>
-                          <span>Posisi & Nominal</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          {aiResult.lines?.map((line: any, idx: number) => {
-                            const accName = getAccountName(line.accountCode)
-                            const isCredit = line.type === "CREDIT"
-                            return (
-                              <div
-                                key={idx}
-                                className={`flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg ${
-                                  isCredit ? "bg-white/70 pl-6 border border-slate-200/80" : "bg-white border border-slate-200"
-                                }`}
-                              >
-                                <div className="flex items-center gap-2 overflow-hidden min-w-0 pr-2">
-                                  <span className="font-mono font-bold text-[11px] bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded border border-slate-200 shrink-0">
-                                    {line.accountCode}
-                                  </span>
-                                  <span className={`truncate ${isCredit ? "font-medium text-slate-700" : "font-bold text-slate-900"}`}>
-                                    {accName || "Akun Standar"}
-                                  </span>
-                                  <span
-                                    className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                                      isCredit
-                                        ? "bg-rose-50 text-rose-700 border border-rose-200"
-                                        : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      {(() => {
+                        const aiDebitTotal = aiResult.lines?.filter((l: any) => l.type === "DEBIT").reduce((sum: number, l: any) => sum + (Number(l.amount) || 0), 0) || 0
+                        const aiCreditTotal = aiResult.lines?.filter((l: any) => l.type === "CREDIT").reduce((sum: number, l: any) => sum + (Number(l.amount) || 0), 0) || 0
+                        const aiDiff = Math.abs(aiDebitTotal - aiCreditTotal)
+                        const isAiBalanced = aiDiff < 0.01 && aiDebitTotal > 0
+
+                        return (
+                          <div className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 mb-3 space-y-2.5">
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                              <span>Akun Jurnal (COA Standar Kepmendes 136)</span>
+                              <span>Posisi & Nominal</span>
+                            </div>
+                            <div className="space-y-2">
+                              {aiResult.lines?.map((line: any, idx: number) => {
+                                const isCredit = line.type === "CREDIT"
+                                return (
+                                  <div
+                                    key={idx}
+                                    className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs py-2 px-2.5 rounded-lg border transition-all ${
+                                      isCredit ? "bg-white/90 sm:pl-5 border-slate-200" : "bg-white border-slate-200 shadow-2xs"
                                     }`}
                                   >
-                                    {isCredit ? "KREDIT" : "DEBIT"}
-                                  </span>
-                                </div>
-                                <span className={`font-mono font-bold shrink-0 ${isCredit ? "text-rose-600" : "text-emerald-700"}`}>
-                                  {formatRupiah(line.amount)}
-                                </span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      {/* Dropdown Akun COA Lengkap */}
+                                      <select
+                                        value={line.accountCode}
+                                        onChange={(e) => {
+                                          const newCode = e.target.value
+                                          const updated = [...aiResult.lines]
+                                          updated[idx] = { ...updated[idx], accountCode: newCode }
+                                          setAiResult({ ...aiResult, lines: updated })
+                                        }}
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#6777ef] focus:bg-white cursor-pointer"
+                                      >
+                                        {coaList.length > 0 ? (
+                                          coaList.map((acc: any) => {
+                                            const accDisplayName = acc.code === "1.1.02.01"
+                                              ? "Piutang Pinjaman Masyarakat"
+                                              : (acc.code === "1.1.02.02" ? "Piutang Pinjaman Poktan/Kelompok" : acc.name)
+                                            return (
+                                              <option key={acc.code} value={acc.code}>
+                                                {acc.code} - {accDisplayName} ({acc.type})
+                                              </option>
+                                            )
+                                          })
+                                        ) : (
+                                          <option value={line.accountCode}>
+                                            {line.accountCode} - {getAccountName(line.accountCode) || "Akun Standar"}
+                                          </option>
+                                        )}
+                                        {coaList.length > 0 && !coaList.some((a: any) => a.code === line.accountCode) && (
+                                          <option value={line.accountCode}>
+                                            {line.accountCode} - {getAccountName(line.accountCode) || "Akun Tambahan"}
+                                          </option>
+                                        )}
+                                      </select>
+                                    </div>
 
+                                    <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                                      {/* Tombol Toggle Posisi DEBIT / KREDIT */}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const updated = [...aiResult.lines]
+                                          updated[idx] = { ...updated[idx], type: line.type === "DEBIT" ? "CREDIT" : "DEBIT" }
+                                          setAiResult({ ...aiResult, lines: updated })
+                                        }}
+                                        className={`text-[10px] font-bold px-2.5 py-1 rounded-md border cursor-pointer transition-colors shrink-0 ${
+                                          isCredit
+                                            ? "bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100"
+                                            : "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                                        }`}
+                                        title="Klik untuk ubah posisi Debit / Kredit"
+                                      >
+                                        {isCredit ? "KREDIT" : "DEBIT"}
+                                      </button>
+
+                                      {/* Input Nominal Baris */}
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[11px] font-mono text-slate-400">Rp</span>
+                                        <input
+                                          type="number"
+                                          value={line.amount}
+                                          onChange={(e) => {
+                                            const val = Math.max(0, parseFloat(e.target.value) || 0)
+                                            const updated = [...aiResult.lines]
+                                            updated[idx] = { ...updated[idx], amount: val }
+                                            setAiResult({ ...aiResult, lines: updated })
+                                          }}
+                                          className={`w-28 sm:w-32 text-right font-mono font-bold text-xs bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:border-[#6777ef] focus:bg-white ${
+                                            isCredit ? "text-rose-600" : "text-emerald-700"
+                                          }`}
+                                        />
+                                      </div>
+
+                                      {/* Tombol Hapus Baris */}
+                                      {aiResult.lines.length > 2 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updated = aiResult.lines.filter((_: any, i: number) => i !== idx)
+                                            setAiResult({ ...aiResult, lines: updated })
+                                          }}
+                                          className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
+                                          title="Hapus baris jurnal ini"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+
+                            {/* Tombol Tambah Baris Jurnal & Status Keseimbangan */}
+                            <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-slate-200">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [
+                                    ...aiResult.lines,
+                                    {
+                                      accountCode: coaList[0]?.code || "1.1.01.01",
+                                      type: "CREDIT",
+                                      amount: 0
+                                    }
+                                  ]
+                                  setAiResult({ ...aiResult, lines: updated })
+                                }}
+                                className="text-xs font-semibold text-[#6777ef] hover:text-[#5868e4] flex items-center gap-1 w-fit"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Tambah Baris Jurnal</span>
+                              </button>
+
+                              {/* Indikator Balance / Keseimbangan */}
+                              <div className={`flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg font-bold border ${
+                                isAiBalanced
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : "bg-rose-50 text-rose-700 border-rose-200"
+                              }`}>
+                                {isAiBalanced ? (
+                                  <>
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                    <span>Seimbang: {formatRupiah(aiDebitTotal)}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                    <span>Selisih: {formatRupiah(aiDiff)} (D: {formatRupiah(aiDebitTotal)}, K: {formatRupiah(aiCreditTotal)})</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })()}
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => setAiResult(null)}

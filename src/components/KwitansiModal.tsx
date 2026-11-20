@@ -112,6 +112,7 @@ export default function KwitansiModal({
     "1.1.01.01": "Kas Tunai di Bendahara",
     "1.1.01.02": "Kas Kecil (Petty Cash)",
     "1.1.01.06": "Kas Rekening Bank Jatim",
+    "1.1.01.07": "Kas Rekening Bank Jombang",
     "1.1.03.01": "Piutang Usaha GSG & Sewa",
     "1.1.03.99": "Piutang Lain-lain (SPP / Pinjaman)",
     "1.1.04.01": "Penyisihan Piutang Usaha Tak Tertagih",

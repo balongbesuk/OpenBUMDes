@@ -52,7 +52,7 @@ Lakukan pengecekan secara berurutan sesuai 5 pilar berikut:
    - $\text{Ekuitas Akhir} = \text{Modal Desa APBDes} + \text{Modal Masyarakat} + \text{Saldo Laba Akhir}$.
    - Cocokkan langsung dengan baris Total Ekuitas Neraca.
 3. **Laporan Arus Kas (LAK)**:
-   - Mutasi internal antar kas (misal Setor Tunai dari Kas `1.1.01.01` ke Bank Jatim `1.1.01.06`) wajib **dieliminasi** dari Arus Kas Operasi agar tidak terjadi penggelembungan semu.
+   - Mutasi internal antar kas (misal Setor Tunai dari Kas `1.1.01.01` ke Rekening Bank `1.1.01.06`/`1.1.01.07`) wajib **dieliminasi** dari Arus Kas Operasi agar tidak terjadi penggelembungan semu.
    - Pembelian aset tetap (`1.3.xx`) wajib masuk ke **Arus Kas Investasi**.
    - Pembayaran bagi hasil PADes (`3.3.01.01`) wajib masuk ke **Arus Kas Pendanaan**.
    - $\text{Saldo Kas Awal} + \text{Kenaikan Kas Bersih} = \text{Saldo Kas Akhir} = \text{Kas \& Bank di Neraca}$.

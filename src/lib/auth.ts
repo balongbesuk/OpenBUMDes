@@ -1,9 +1,28 @@
 import crypto from "crypto"
 
-const SECRET =
-  process.env.AUTH_SECRET ||
-  process.env.JWT_SECRET ||
-  "bumdes-kepmendes-136-secret-salt-2026"
+function getAuthSecret(): string {
+  if (process.env.AUTH_SECRET) return process.env.AUTH_SECRET
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET
+  // Persistent random local secret per installation to prevent shared public secret forgery
+  try {
+    const fs = require("fs")
+    const path = require("path")
+    const secretPath = path.join(process.cwd(), "storage", "auth.secret")
+    if (fs.existsSync(secretPath)) {
+      const stored = fs.readFileSync(secretPath, "utf-8").trim()
+      if (stored) return stored
+    }
+    const generated = crypto.randomBytes(32).toString("hex")
+    const dir = path.dirname(secretPath)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(secretPath, generated, "utf-8")
+    return generated
+  } catch {
+    return "bumdes-kepmendes-136-secret-salt-2026"
+  }
+}
+
+const SECRET = getAuthSecret()
 
 export const AUTH_COOKIE_NAME = "bumdes_auth_token"
 

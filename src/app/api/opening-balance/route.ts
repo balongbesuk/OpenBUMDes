@@ -156,14 +156,14 @@ export async function POST(request: Request) {
     await db.$transaction(async (tx) => {
       await tx.openingBalance.deleteMany({ where: { year: parsedYear } })
 
-      for (const line of validLines) {
-        await tx.openingBalance.create({
-          data: {
+      if (validLines.length > 0) {
+        await tx.openingBalance.createMany({
+          data: validLines.map((line) => ({
             year: parsedYear,
             accountCode: line.accountCode,
             type: line.type,
             amount: line.amount
-          }
+          }))
         })
       }
 

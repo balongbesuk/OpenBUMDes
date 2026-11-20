@@ -65,7 +65,7 @@ export function parseTransactionOffline(userText: string, accounts: any[] = []) 
       const idx = lower.indexOf(kw)
       if (idx !== -1) {
         const afterKeyword = text.slice(idx + kw.length).trim()
-        const stopKeywords = [" sebesar", " sejumlah", " rp", " tunai", " melalui", " untuk", " per ", " bulan"]
+        const stopKeywords = [" sebesar", " sejumlah", " rp", " tunai", " melalui", " untuk", " per ", " bulan", " total", " dengan rincian", " rincian"]
         let cutIndex = afterKeyword.length
         for (const sk of stopKeywords) {
           const sIdx = afterKeyword.toLowerCase().indexOf(sk)
@@ -90,11 +90,111 @@ export function parseTransactionOffline(userText: string, accounts: any[] = []) 
     cashAccount = bankAcc ? bankAcc.code : "1.1.01.02"
   }
 
+  // Deteksi Transaksi Unit Simpan Pinjam (USP)
+  const isUSP = lower.includes("pinjam") || lower.includes("angsuran") || lower.includes("simpanan") || lower.includes("usp")
+  const isCairPinjaman = isUSP && (lower.includes("cair") || (lower.includes("pinjam") && (lower.includes("ke ") || lower.includes("kepada ") || lower.includes("penyaluran"))))
+
   let targetAccount = proofType === "BKM" ? "4.1.04.01" : "6.1.02.99"
   let cashFlowGroup = "Aktivitas Operasi"
   let unitName = "Operasional Kantor"
 
-  if (isPADesPayout) {
+  if (isUSP) {
+    unitName = "Unit Simpan Pinjam (USP)"
+    const isKelompok = lower.includes("kelompok") || lower.includes("poktan") || lower.includes("gapoktan")
+    const piutangCode = isKelompok ? "1.1.02.02" : "1.1.02.01"
+
+    if (isCairPinjaman) {
+      proofType = "BKK"
+      targetAccount = piutangCode
+    } else {
+      proofType = "BKM"
+      const parseIndoNominal = (raw: string | number) => {
+        if (!raw) return 0
+        let str = String(raw).trim().toLowerCase()
+        const mSuffix = str.match(/^([\d.,]+)\s*(miliar|milyar|jt|juta|rb|ribu|k)$/i)
+        if (mSuffix) {
+          let num = parseFloat(mSuffix[1].replace(",", "."))
+          const u = mSuffix[2].toLowerCase()
+          if (u.startsWith("m")) num *= 1e9
+          else if (u === "jt" || u === "juta") num *= 1e6
+          else if (u === "rb" || u === "ribu" || u === "k") num *= 1e3
+          return Math.round(num)
+        }
+        if (/^\d{1,3}(?:\.\d{3})+(?:,\d+)?$/.test(str)) {
+          return parseInt(str.replace(/\./g, ""), 10)
+        }
+        if (/^\d+$/.test(str)) {
+          return parseInt(str, 10)
+        }
+        return Math.round(parseFloat(str.replace(/\./g, "").replace(",", ".")) || 0)
+      }
+
+      const extractAmount = (text: string, keywords: string[]) => {
+        for (const kw of keywords) {
+          const reg = new RegExp(kw + "\\s*(?:sebesar|sejumlah|rp\\.?)?\\s*([0-9]+(?:[.,][0-9]+)*(?:\\s*(?:miliar|milyar|jt|juta|rb|ribu|k))?)", "i")
+          const m = text.match(reg)
+          if (m) return parseIndoNominal(m[1].trim())
+        }
+        return 0
+      }
+
+      const pokokAmt = extractAmount(lower, ["pokok pinjaman", "angsuran pokok", "pokok", "pinjaman"])
+      const simpananAmt = extractAmount(lower, ["simpanan wajib", "simpanan sukarela", "simpanan"])
+      const bungaAmt = extractAmount(lower, ["jasa bunga", "bunga pinjaman", "jasa pinjaman", "bunga", "jasa"])
+      const adminAmt = extractAmount(lower, ["biaya admin", "administrasi", "admin"])
+
+      const subSum = pokokAmt + simpananAmt + bungaAmt + adminAmt
+      if (subSum > 0) {
+        if (totalAmount < subSum || totalAmount === 0) {
+          totalAmount = subSum
+        }
+
+        const lines = [
+          { accountCode: cashAccount, type: "DEBIT", amount: totalAmount }
+        ]
+        if (pokokAmt > 0) {
+          lines.push({ accountCode: piutangCode, type: "CREDIT", amount: pokokAmt })
+        }
+        if (simpananAmt > 0) {
+          const simpCode = lower.includes("sukarela") ? "2.1.01.03" : "2.1.01.02"
+          lines.push({ accountCode: simpCode, type: "CREDIT", amount: simpananAmt })
+        }
+        if (bungaAmt > 0) {
+          lines.push({ accountCode: "4.1.08.01", type: "CREDIT", amount: bungaAmt })
+        }
+        if (adminAmt > 0) {
+          lines.push({ accountCode: "4.1.05.99", type: "CREDIT", amount: adminAmt })
+        }
+
+        let description = text
+          .replace(/\b(?:sebesar|sejumlah|rp\.?)\b\s*[\d.,]+/gi, "")
+          .replace(/\b\d+(?:[.,]\d+)?\s*(?:miliar|milyar|jt|juta|rb|ribu|k)\b/gi, "")
+          .replace(/\b\d{4,12}\b/g, "")
+          .replace(/\s{2,}/g, " ")
+          .trim()
+        if (description) {
+          description = description.charAt(0).toUpperCase() + description.slice(1)
+        } else {
+          description = `Penerimaan angsuran simpan pinjam dari ${payeeOrPayer}`
+        }
+
+        return {
+          proofType: "BKM",
+          description,
+          payeeOrPayer,
+          unitName,
+          totalAmount,
+          cashAccount,
+          targetAccount: piutangCode,
+          cashFlowGroup: "Aktivitas Operasi",
+          lines,
+          engine: "OFFLINE_RULES"
+        }
+      }
+
+      targetAccount = piutangCode
+    }
+  } else if (isPADesPayout) {
     // Penyerahan bagian laba / PADes ke Kas Desa (Akun Ekuitas / Saldo Laba Ditahan)
     const padesAcc = accounts.find(a => a.code === "3.3.01.01" || a.code.startsWith("3.3") || a.name.toLowerCase().includes("laba"))
     targetAccount = padesAcc ? padesAcc.code : "3.3.01.01"
@@ -286,13 +386,18 @@ export async function parseTransactionWithGemini(userText: string, imageBase64?:
     console.warn("Gagal mengambil riwayat transaksi untuk few-shot:", err)
   }
 
-  // Jika belum ada riwayat transaksi di database, gunakan contoh standar Kepmendes 136
+  const standardUspExamples = `\n\nCONTOH STANDAR TRANSAKSI SIMPAN PINJAM (USP) KEPMENDES 136:
+Contoh Pembayaran Angsuran Majemuk: "Terima pembayaran dari Pak Ilham Hendrik total Rp 1.140.000 tunai dengan rincian: angsuran pokok pinjaman 1.000.000, simpanan 30.000, jasa bunga 90.000, admin 20.000" -> Jenis: BKM, Pihak: Pak Ilham Hendrik, Unit: Unit Simpan Pinjam (USP), Total: 1140000, Jurnal: [DEBIT 1.1.01.01 (1140000), KREDIT 1.1.02.01 (1000000), KREDIT 2.1.01.02 (30000), KREDIT 4.1.08.01 (90000), KREDIT 4.1.05.99 (20000)]
+Contoh Pencairan Pinjaman: "Pencairan pinjaman 1 juta tunai kepada Pak Ilham Hendrik" -> Jenis: BKK, Pihak: Pak Ilham Hendrik, Unit: Unit Simpan Pinjam (USP), Total: 1000000, Jurnal: [DEBIT 1.1.02.01 (1000000), KREDIT 1.1.01.01 (1000000)]`;
+
   if (!exampleContext) {
     exampleContext = `\n\nCONTOH STANDAR TRANSAKSI KEPMENDES 136:
 Contoh 1: "Beli kertas HVS dan spidol kantor 65rb bayar tunai" -> Jenis: BKK, Pihak: Toko ATK, DEBIT 6.1.02.01 (Beban ATK), KREDIT 1.1.01.01 (Kas Tunai)
 Contoh 2: "Terima sewa kios pasar dari Pak Budi 500rb tunai" -> Jenis: BKM, Pihak: Pak Budi, DEBIT 1.1.01.01 (Kas Tunai), KREDIT 4.1.04.02 (Pendapatan Sewa Kios)
 Contoh 3: "Bayar wifi dan listrik kantor 250rb transfer bank" -> Jenis: BKK, Pihak: Telkom/PLN, DEBIT 6.1.04.01 (Beban Listrik & Air), KREDIT 1.1.01.02 (Kas Bank)
-Contoh 4: "Setor PADes bagi hasil SHU ke kas desa 5jt" -> Jenis: BKK, Pihak: Pemerintah Desa, DEBIT 3.3.01.01 (Alokasi PADes), KREDIT 1.1.01.02 (Kas Bank)`
+Contoh 4: "Setor PADes bagi hasil SHU ke kas desa 5jt" -> Jenis: BKK, Pihak: Pemerintah Desa, DEBIT 3.3.01.01 (Alokasi PADes), KREDIT 1.1.01.02 (Kas Bank)` + standardUspExamples;
+  } else {
+    exampleContext += standardUspExamples;
   }
 
   // 3. Filter otomatis COA: buang akun penyesuaian non-kas & prioritaskan akun aktif desa
@@ -323,7 +428,27 @@ ATURAN WAJIB:
    - Jika Pemerintah Desa memberikan/menyetor dana ke BUMDes, itu adalah KAS MASUK (BKM) untuk "Penyertaan Modal Desa" (3.1.01.01), BUKAN PAD.
 6. Total nominal Debit dan Kredit harus selalu tepat dan seimbang.
 7. Ekstrak nama Penyetor (untuk BKM) atau Penerima (untuk BKK).
-8. Tentukan kelompok LAK (Laporan Arus Kas) yang sesuai (Aktivitas Operasi, Aktivitas Investasi, Aktivitas Pendanaan).`
+8. Tentukan kelompok LAK (Laporan Arus Kas) yang sesuai (Aktivitas Operasi, Aktivitas Investasi, Aktivitas Pendanaan).
+9. ATURAN KHUSUS UNIT SIMPAN PINJAM (USP) & PINJAMAN WARGA (STANDAR KEPMENDES 136/2022):
+   - Jika transaksi berkaitan dengan pinjaman, angsuran, simpanan anggota, jasa bunga, atau administrasi pinjaman:
+     * Unit Usaha Penanggung Jawab (unitName) WAJIB: "Unit Simpan Pinjam (USP)".
+     * Pokok Pinjaman Pribadi / Perorangan / Warga: WAJIB gunakan [1.1.02.01] Piutang Pinjaman Masyarakat (KREDIT saat terima angsuran/pelunasan pokok, DEBIT saat pencairan pinjaman baru).
+       JANGAN gunakan [1.1.02.02] kecuali jika teks secara eksplisit menyebut "kelompok tani", "poktan", atau "gapoktan". Jika menyebut nama warga individu (seperti Pak Ilham Hendrik, Bu Siti, dsb.), WAJIB gunakan [1.1.02.01].
+     * Simpanan Anggota:
+       - Simpanan Wajib: [2.1.01.02] Simpanan Wajib Anggota (KREDIT saat terima setoran).
+       - Simpanan Sukarela: [2.1.01.03] Simpanan Sukarela Anggota (KREDIT saat terima setoran).
+       - Simpanan Pokok: [2.1.01.01] Simpanan Pokok Anggota.
+       - Bila hanya disebutkan "simpanan", gunakan [2.1.01.02] Simpanan Wajib Anggota.
+     * Jasa / Bunga Pinjaman dari Warga:
+       - Jasa pinjaman yang dibayar warga adalah PENDAPATAN OPERASIONAL USP: WAJIB gunakan [4.1.08.01] Pendapatan Simpan Pinjam (KREDIT).
+       - DILARANG KERAS menggunakan akun [7.1.01.01] (Pendapatan Bunga Bank), karena 7.1.01.01 HANYA untuk bunga/jasa giro rekening bank milik BUMDes di bank komersial!
+     * Biaya Administrasi dari Warga Peminjam:
+       - Biaya administrasi pinjaman yang dipungut dari warga adalah PENDAPATAN OPERASIONAL: gunakan [4.1.08.01] Pendapatan Simpan Pinjam atau [4.1.05.99] Pendapatan Jasa Pelayanan lainnya (KREDIT).
+       - DILARANG KERAS menggunakan [7.1.01.01] (Pendapatan Bunga Bank) atau [7.2.01.01] (Beban Administrasi Bank). Administrasi pinjaman dari warga BUKAN dari bank dan BUKAN beban bagi BUMDes!
+     * Transaksi Majemuk Pembayaran Angsuran USP:
+       Total penerimaan kas (DEBIT 1.1.01.01 Kas Tunai) harus sama persis dengan penjumlahan baris KREDIT (Pokok + Simpanan + Bunga + Administrasi).
+     * Transaksi Pencairan Pinjaman ke Warga (BKK):
+       DEBIT [1.1.02.01] Piutang Pinjaman Masyarakat, KREDIT [1.1.01.01] Kas Tunai (atau [1.1.01.xx] Kas Bank).`
 
   const modelSetting = await db.setting.findUnique({ where: { key: "gemini_model" } })
   const chosenModel = modelSetting?.value?.trim() || "gemini-3.5-flash"

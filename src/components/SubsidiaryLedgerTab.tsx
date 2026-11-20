@@ -46,7 +46,7 @@ export default function SubsidiaryLedgerTab({ settings = {} }: SubsidiaryLedgerT
 
   // Bank form state
   const [bankSubType, setBankSubType] = useState<string>("BUNGA_BANK")
-  const [bankAccountCode, setBankAccountCode] = useState<string>("1.1.01.06")
+  const [bankAccountCode, setBankAccountCode] = useState<string>("1.1.01.07")
 
   // Pajak form state
   const [taxSubType, setTaxSubType] = useState<string>("POTONG_PAJAK")
@@ -620,6 +620,7 @@ export default function SubsidiaryLedgerTab({ settings = {} }: SubsidiaryLedgerT
                       <option value="1.1.01.03">1.1.01.03 - Kas di Bank Mandiri</option>
                       <option value="1.1.01.04">1.1.01.04 - Kas di Bank BRI</option>
                       <option value="1.1.01.05">1.1.01.05 - Kas di Bank BCA</option>
+                      <option value="1.1.01.07">1.1.01.07 - Kas di Bank Jombang</option>
                       <option value="1.1.01.06">1.1.01.06 - Kas di Bank Jatim</option>
                       <option value="1.1.02.01">1.1.02.01 - Deposito &lt;= 3 bulan</option>
                     </select>
@@ -705,7 +706,8 @@ export default function SubsidiaryLedgerTab({ settings = {} }: SubsidiaryLedgerT
                         className="w-full border border-slate-300 rounded-xl px-3 py-2 text-slate-800 font-medium"
                       >
                         <option value="1.1.01.01">1.1.01.01 - Kas Tunai Bendahara</option>
-                        <option value="1.1.01.06">1.1.01.06 - Kas di Bank Jatim</option>
+                        <option value="1.1.01.07">1.1.01.07 - Kas di Bank Jombang</option>
+                      <option value="1.1.01.06">1.1.01.06 - Kas di Bank Jatim</option>
                         <option value="1.1.01.04">1.1.01.04 - Kas di Bank BRI</option>
                         <option value="1.1.01.02">1.1.01.02 - Kas di Bank BNI</option>
                         <option value="1.1.01.03">1.1.01.03 - Kas di Bank Mandiri</option>
@@ -765,7 +767,7 @@ export default function SubsidiaryLedgerTab({ settings = {} }: SubsidiaryLedgerT
                   type="text"
                   value={txPayee}
                   onChange={(e) => setTxPayee(e.target.value)}
-                  placeholder="Contoh: Bank Jatim Cab. Jombang / KPP Pratama"
+                  placeholder="Contoh: Bank Jombang Cab. Perak / KPP Pratama"
                   className="w-full border border-slate-300 rounded-xl px-3 py-2 text-slate-800"
                 />
               </div>

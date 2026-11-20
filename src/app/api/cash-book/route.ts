@@ -180,6 +180,159 @@ export async function POST(request: Request) {
       }
     }
 
+    // Otomatis Sinkronisasi ke Buku Pembantu Simpan Pinjam jika transaksi USP
+    const isUspTx =
+      unitName?.toLowerCase().includes("simpan pinjam") ||
+      lines.some(
+        (l: any) =>
+          l.accountCode?.startsWith("1.1.02") ||
+          l.accountCode === "2.1.01.02" ||
+          l.accountCode === "2.1.01.03" ||
+          l.accountCode === "4.1.08.01"
+      )
+
+    if (isUspTx && payeeOrPayer) {
+      try {
+        const cleanParty = payeeOrPayer.replace(/^(?:Pak|Bpk|Bapak|Ibu|Bu|Sdr|Sdri)\s+/i, "").trim()
+        const member = await db.loanMember.findFirst({
+          where: {
+            OR: [
+              { name: { equals: cleanParty } },
+              { name: { contains: cleanParty } },
+              { name: { equals: payeeOrPayer.trim() } }
+            ]
+          }
+        })
+
+        if (member) {
+          const entryId = result?.entry?.id
+          const finalProof = result?.entry?.proofNumber || proofType
+
+          // 1. Simpanan Wajib (Kredit saat BKM, Debit saat BKK)
+          const swLine = lines.find((l: any) => l.accountCode === "2.1.01.02" && l.type === (proofType === "BKM" ? "CREDIT" : "DEBIT"))
+          if (swLine && swLine.amount > 0) {
+            const amt = Number(swLine.amount)
+            await db.loanMember.update({
+              where: { id: member.id },
+              data: { simpananWajib: { increment: proofType === "BKM" ? amt : -amt } }
+            })
+            await db.loanTransaction.create({
+              data: {
+                memberId: member.id,
+                date: txDate,
+                proofNumber: finalProof,
+                type: "SIMPANAN_WAJIB",
+                amount: amt,
+                description: description || `Setoran Simpanan Wajib (${finalProof})`,
+                journalEntryId: entryId
+              }
+            })
+          }
+
+          // 2. Simpanan Sukarela
+          const ssLine = lines.find((l: any) => l.accountCode === "2.1.01.03" && l.type === (proofType === "BKM" ? "CREDIT" : "DEBIT"))
+          if (ssLine && ssLine.amount > 0) {
+            const amt = Number(ssLine.amount)
+            await db.loanMember.update({
+              where: { id: member.id },
+              data: { simpananSukarela: { increment: proofType === "BKM" ? amt : -amt } }
+            })
+            await db.loanTransaction.create({
+              data: {
+                memberId: member.id,
+                date: txDate,
+                proofNumber: finalProof,
+                type: "SIMPANAN_SUKARELA",
+                amount: amt,
+                description: description || `Setoran Simpanan Sukarela (${finalProof})`,
+                journalEntryId: entryId
+              }
+            })
+          }
+
+          // 3. Simpanan Pokok
+          const spLine = lines.find((l: any) => l.accountCode === "2.1.01.01" && l.type === (proofType === "BKM" ? "CREDIT" : "DEBIT"))
+          if (spLine && spLine.amount > 0) {
+            const amt = Number(spLine.amount)
+            await db.loanMember.update({
+              where: { id: member.id },
+              data: { simpananPokok: { increment: proofType === "BKM" ? amt : -amt } }
+            })
+            await db.loanTransaction.create({
+              data: {
+                memberId: member.id,
+                date: txDate,
+                proofNumber: finalProof,
+                type: "SIMPANAN_POKOK",
+                amount: amt,
+                description: description || `Setoran Simpanan Pokok (${finalProof})`,
+                journalEntryId: entryId
+              }
+            })
+          }
+
+          // 4. Pembayaran Angsuran Pinjaman (BKM: 1.1.02.xx di posisi CREDIT)
+          const angsuranLine = lines.find((l: any) => (l.accountCode === "1.1.02.01" || l.accountCode === "1.1.02.02") && l.type === "CREDIT" && proofType === "BKM")
+          if (angsuranLine && angsuranLine.amount > 0) {
+            const pokok = Number(angsuranLine.amount)
+            const bungaLine = lines.find((l: any) => (l.accountCode === "4.1.08.01" || l.accountCode === "4.1.01.02") && l.type === "CREDIT")
+            const bunga = bungaLine ? Number(bungaLine.amount) : 0
+            const newSisa = Math.max(0, member.sisaPinjaman - pokok)
+
+            await db.loanMember.update({
+              where: { id: member.id },
+              data: {
+                sisaPinjaman: newSisa,
+                statusPinjaman: newSisa <= 0 ? "LUNAS" : "BERJALAN"
+              }
+            })
+            await db.loanTransaction.create({
+              data: {
+                memberId: member.id,
+                date: txDate,
+                proofNumber: finalProof,
+                type: "ANGSURAN",
+                amount: pokok + bunga,
+                principalAmount: pokok,
+                interestAmount: bunga,
+                description: description || `Pembayaran Angsuran Pinjaman (${finalProof})`,
+                journalEntryId: entryId
+              }
+            })
+          }
+
+          // 5. Pencairan Pinjaman (BKK: 1.1.02.xx di posisi DEBIT)
+          const cairLine = lines.find((l: any) => (l.accountCode === "1.1.02.01" || l.accountCode === "1.1.02.02") && l.type === "DEBIT" && proofType === "BKK")
+          if (cairLine && cairLine.amount > 0) {
+            const cairAmt = Number(cairLine.amount)
+            await db.loanMember.update({
+              where: { id: member.id },
+              data: {
+                totalPinjaman: { increment: cairAmt },
+                sisaPinjaman: { increment: cairAmt },
+                statusPinjaman: "BERJALAN"
+              }
+            })
+            await db.loanTransaction.create({
+              data: {
+                memberId: member.id,
+                date: txDate,
+                proofNumber: finalProof,
+                type: "PENCAIRAN_PINJAMAN",
+                amount: cairAmt,
+                principalAmount: cairAmt,
+                interestAmount: 0,
+                description: description || `Pencairan Pinjaman (${finalProof})`,
+                journalEntryId: entryId
+              }
+            })
+          }
+        }
+      } catch (uspErr) {
+        console.error("Gagal otomatis sinkronisasi simpan pinjam:", uspErr)
+      }
+    }
+
     return NextResponse.json({ success: true, data: result })
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
@@ -267,6 +420,30 @@ export async function DELETE(request: Request) {
           where: { notes: { contains: existing.proofNumber } }
         })
       }
+
+      // Rollback mutasi simpan pinjam anggota jika ada
+      const linkedLoans = await tx.loanTransaction.findMany({
+        where: { OR: [{ journalEntryId: id }, { proofNumber: existing.proofNumber }] }
+      })
+      for (const lt of linkedLoans) {
+        if (lt.type === "SIMPANAN_WAJIB") {
+          await tx.loanMember.update({ where: { id: lt.memberId }, data: { simpananWajib: { decrement: lt.amount } } })
+        } else if (lt.type === "SIMPANAN_SUKARELA") {
+          await tx.loanMember.update({ where: { id: lt.memberId }, data: { simpananSukarela: { decrement: lt.amount } } })
+        } else if (lt.type === "SIMPANAN_POKOK") {
+          await tx.loanMember.update({ where: { id: lt.memberId }, data: { simpananPokok: { decrement: lt.amount } } })
+        } else if (lt.type === "PENCAIRAN_PINJAMAN") {
+          await tx.loanMember.update({ where: { id: lt.memberId }, data: { totalPinjaman: { decrement: lt.amount }, sisaPinjaman: { decrement: lt.amount } } })
+        } else if (lt.type === "ANGSURAN") {
+          await tx.loanMember.update({ where: { id: lt.memberId }, data: { sisaPinjaman: { increment: lt.principalAmount }, statusPinjaman: "BERJALAN" } })
+        }
+      }
+      if (linkedLoans.length > 0) {
+        await tx.loanTransaction.deleteMany({
+          where: { id: { in: linkedLoans.map(l => l.id) } }
+        })
+      }
+
       await tx.journalEntry.delete({
         where: { id }
       })

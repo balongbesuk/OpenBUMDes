@@ -72,7 +72,7 @@ Aplikasi ini patuh penuh terhadap dua regulasi akuntansi utama:
 
 ### 5. 🔍 Modul Audit Pemeriksaan & Buku Pembantu (Sub-Ledger Kepmendes 136)
 * **Buku Besar Umum (General Ledger) & Neraca Saldo (Trial Balance):** Rincian mutasi akun, saldo berjalan, rekonsiliasi saldo awal, dan lembar kerja audit.
-* **Buku Kas Pembantu Bank:** Kontrol mutasi per rekening bank BUMDes (BNI, Mandiri, BRI, BCA, Bank Jatim) lengkap dengan fitur auto-jurnal cepat untuk bunga bank (`7.1.01`), admin bank (`7.2.01`), dan pajak bunga (`7.3.01`).
+* **Buku Kas Pembantu Bank:** Kontrol mutasi per rekening bank BUMDes (Bank Jombang, Bank Jatim, BNI, Mandiri, BRI, BCA) lengkap dengan fitur auto-jurnal cepat untuk bunga bank (`7.1.01`), admin bank (`7.2.01`), dan pajak bunga (`7.3.01`).
 * **Buku Pembantu Pajak (NTPN):** Pelaporan pajak potong/pungut desa (`2.1.02.xx`) dan beban pajak langsung (`7.3.01.xx`) disertai input lencana nomor **NTPN / ID Billing**.
 * **Buku Pembantu Persediaan & Kartu Stok:** Master SKU barang dagang, mutasi stok (Masuk/Keluar/Opname), kalkulasi biaya rata-rata bergerak (*Moving Average*), dan Berita Acara Rekapitulasi Stok.
 * **Register & Jadwal Penyusutan Aset Tetap:** Pencatatan barang modal BUMDes, penyusutan otomatis metode garis lurus (*Straight-Line*), dan filter perolehan tahun berjalan.

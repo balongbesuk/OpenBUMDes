@@ -27,13 +27,11 @@ export async function GET(request: Request) {
     const totalBeban = reports.labaRugi.totalExpense
     const labaBersih = reports.labaRugi.netProfit
 
-    const kasDanBank = Math.max(
-      0,
+    const kasDanBank =
       reports.lak?.saldoKasAkhir ??
-        reports.neraca.currentAssets
-          .filter((a) => a.name.toLowerCase().includes("kas") || a.name.toLowerCase().includes("bank"))
-          .reduce((s, a) => s + a.amount, 0)
-    )
+      reports.neraca.currentAssets
+        .filter((a) => a.name.toLowerCase().includes("kas") || a.name.toLowerCase().includes("bank"))
+        .reduce((s, a) => s + a.amount, 0)
     const piutangUsaha = Math.max(
       0,
       reports.neraca.currentAssets

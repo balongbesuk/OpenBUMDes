@@ -341,7 +341,7 @@ export async function POST(request: Request) {
     }
 
     if (action === "RECORD_BANK") {
-      const bankAccountCode = body.bankAccountCode || "1.1.01.06"
+      const bankAccountCode = body.bankAccountCode || "1.1.01.07"
       const subType = body.subType || "BUNGA_BANK" // BUNGA_BANK | ADMIN_BANK | PAJAK_BUNGA | SETOR_TUNAI | TARIK_TUNAI
 
       let proofType: "BKM" | "BKK" = "BKM"

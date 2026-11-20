@@ -110,8 +110,8 @@ export async function POST(request: Request) {
     const pendidikanAmount = netProfit > 0 ? Math.round((netProfit * pendidikanRate) / 100) : 0
     const cadanganAmount = netProfit > 0 ? Math.max(0, netProfit - (padesAmount + pengurusAmount + sosialAmount + pendidikanAmount)) : 0
 
-    // 3. Buat Jurnal Penutup (Closing Entries) per 31 Desember
-    const closingDate = new Date(`${parsedYear}-12-31T23:59:59.000Z`)
+    // 3. Buat Jurnal Penutup (Closing Entries) per 31 Desember (midday UTC agar tetap 31 Des di WIB/WITA/WIT)
+    const closingDate = new Date(Date.UTC(parsedYear, 11, 31, 12, 0, 0))
     const closingProofNumber = `JP/${parsedYear}/12/0001`
 
     const closingLines: { accountCode: string; type: "DEBIT" | "CREDIT"; amount: number }[] = []

@@ -2,6 +2,33 @@
 
 All notable changes to OpenBUMDes are documented in this file.
 
+## [1.6.4] - 2026-11-20
+
+### Added & Fixed - Dukungan Penuh Unit Simpan Pinjam (USP), Bank Jombang, & Penguatan Integritas Audit
+
+* **Bagan Akun Rekening Bank Standar Kepmendes 136 (`prisma/coa_kemendes_136.json`, UI)**:
+  * Menambahkan akun **`1.1.01.07` Kas di Bank Jombang** sebagai rekening operasional BUMDes Balongbesuk.
+  * Mengembalikan dan mengunci akun **`1.1.01.06` Kas di Bank Jatim** sesuai standar baku Kepmendes PDTT No. 136/2022.
+  * Memperbarui seluruh dropdown rekening bank pada Buku Kas Umum, Buku Pembantu Bank, Modal Transaksi Manual, dan Cetak Kwitansi.
+
+* **Sinkronisasi Otomatis 2 Arah Buku Kas Umum & Buku Pembantu Simpan Pinjam (`src/app/api/cash-book/route.ts`)**:
+  * Transaksi simpan pinjam (simpanan wajib, simpanan sukarela, simpanan pokok, angsuran pinjaman, dan pencairan pinjaman) yang dicatat melalui Buku Kas Umum (baik via Chat AI maupun form manual) otomatis memperbarui saldo `LoanMember` dan mencatat riwayat mutasi `LoanTransaction`.
+  * Menambahkan logika *atomic rollback* saat transaksi kas USP dihapus dari Buku Kas Umum: saldo pinjaman dan simpanan anggota otomatis dikembalikan persis ke posisi semula secara konsisten.
+
+* **Peningkatan Antarmuka Hasil Analisis Chat AI (`src/app/page.tsx`)**:
+  * Menambahkan dropdown pemilih akun COA interaktif pada setiap baris jurnal hasil rekomendasi AI.
+  * Menambahkan tombol *toggle* posisi DEBIT / KREDIT, input nominal yang dapat diedit langsung, tombol `+ Tambah Baris Jurnal`, tombol hapus baris, dan badge status *live balance* (Seimbang / Belum Balance).
+  * Menambahkan *label override* pada kode `1.1.02.01` agar menampilkan nama akun resmi **Piutang Pinjaman Masyarakat**.
+
+* **Kepatuhan Audit Akuntansi Kepmendes 136/2022 & Perbaikan Bug Sistem**:
+  * **Zona Waktu Jurnal Penutup (`src/app/api/closing/route.ts`)**: Mengoreksi pembuatan tanggal penutupan buku menggunakan `Date.UTC(parsedYear, 11, 31, 12, 0, 0)` sehingga di zona waktu Indonesia (WIB, WITA, WIT) transaksi tetap tercatat pada 31 Desember dan tidak bergeser ke 1 Januari tahun berikutnya.
+  * **Koreksi Akun Pendapatan Jasa Pinjaman (`src/app/api/loans/route.ts`)**: Mengarahkan pendapatan bunga pinjaman ke akun **`4.1.08.01` (Pendapatan Simpan Pinjam)**, melindungi akun pendapatan wahana wisata (`4.1.01.02`) agar tidak tertimpa.
+  * **Keamanan Kunci Rahasia Sesi (`src/lib/auth.ts`)**: Mengganti ketergantungan fallback rahasia publik dengan pembangkitan kunci acak persisten 256-bit lokal per instalasi (`storage/auth.secret`) untuk mencegah pemalsuan token sesi.
+  * **Perbaikan Parser NLP Offline (`src/lib/gemini.ts`)**: Memulihkan karakter *escape* regex (`\b`, `\s*`, `\d+`, `\s{2,}`) agar pembersihan angka nominal tuntas tanpa merusak kata yang memiliki huruf 'ss' ganda (misal "angsuran").
+  * **Tampilan Kas Riil Dashboard Eksekutif (`src/app/api/eis/route.ts`)**: Menghilangkan pembatasan `Math.max(0, ...)` sehingga saldo defisit/minus tetap terdeteksi oleh pengawas dan pemerintah desa.
+  * **Optimasi Batch Saldo Awal (`src/app/api/opening-balance/route.ts`)**: Mengganti *loop* simpan individual dengan `createMany` atomik.
+  * **Uji Mandiri Regresi (`tests/self-check.mjs`)**: Menambahkan pengujian untuk zona waktu 31 Desember, akun pinjaman `4.1.08.01`, dan pembersih uraian offline (seluruh 25 pengujian lulus 100%).
+
 ## [1.6.3] - 2026-11-01
 
 ### Enhanced & Standardized - Format Cetak Dokumen Resmi & Sampul LPJ Musdes
@@ -59,7 +86,7 @@ All notable changes to OpenBUMDes are documented in this file.
 ### Added - Buku Kas Pembantu Bank & Buku Pembantu Pajak (Sub-Ledger Kepmendes 136)
 
 * **Buku Kas Pembantu Bank (`/api/audit/subsidiary-ledger?type=BANK`, `SubsidiaryLedgerTab.tsx`)**:
-  * Otomatis menarik mutasi rekening bank BUMDes (`1.1.01.02` BNI, `1.1.01.03` Mandiri, `1.1.01.04` BRI, `1.1.01.05` BCA, `1.1.01.06` Bank Jatim, dan Deposito `1.1.02.xx`) lengkap dengan opsi gabungan maupun per rekening.
+  * Otomatis menarik mutasi rekening bank BUMDes (`1.1.01.02` BNI, `1.1.01.03` Mandiri, `1.1.01.04` BRI, `1.1.01.05` BCA, `1.1.01.06` Bank Jombang, `1.1.01.07` Bank Jatim, dan Deposito `1.1.02.xx`) lengkap dengan opsi gabungan maupun per rekening.
   * Modal **Catat Cepat Mutasi Bank (Auto-Jurnal)**: 1 klik menjurnal Pendapatan Bunga/Jasa Giro Bank (`7.1.01.01`), Biaya Admin Bank (`7.2.01.01`), Pajak Bunga Bank (`7.3.01.02`), Setor Tunai, dan Tarik Tunai.
 
 * **Buku Pembantu Pajak (`/api/audit/subsidiary-ledger?type=PAJAK`, `SubsidiaryLedgerTab.tsx`)**:
