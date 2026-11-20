@@ -107,6 +107,7 @@ export default function StislaApp() {
   // Data State
   const [entries, setEntries] = useState<any[]>([])
   const [coaList, setCoaList] = useState<any[]>([])
+  const [loanMembers, setLoanMembers] = useState<any[]>([])
 
   // Helper mendapatkan nama akun dari COA / Standar Kepmendesa 136
   const getAccountName = (code: string) => {
@@ -368,20 +369,22 @@ export default function StislaApp() {
   const loadData = async (targetYear = selectedYear) => {
     setLoading(true)
     try {
-      const [resEntries, resCoa, resRep, resSet, resAiStatus, resClosing, resEis] = await Promise.all([
+      const [resEntries, resCoa, resRep, resSet, resAiStatus, resClosing, resEis, resLoans] = await Promise.all([
         fetch(`/api/cash-book?month=${selectedMonth}&year=${targetYear}&proofType=${proofTypeFilter}`).then(r => r.json()),
         fetch("/api/keuangan/coa").then(r => r.json()).catch(() => ({ success: false, data: [] })),
         fetch(`/api/reports?year=${targetYear}`).then(r => r.json()),
         fetch("/api/settings").then(r => r.json()),
         fetch("/api/ai/status").then(r => r.json()).catch(() => null),
         fetch("/api/closing").then(r => r.json()).catch(() => ({ success: false, data: [] })),
-        fetch(`/api/eis?year=${targetYear}`).then(r => r.json()).catch(() => null)
+        fetch(`/api/eis?year=${targetYear}`).then(r => r.json()).catch(() => null),
+        fetch("/api/loans").then(r => r.json()).catch(() => ({ success: false, data: [] }))
       ])
 
       if (resEntries.success) setEntries(resEntries.data)
       if (resCoa.success) setCoaList(resCoa.data)
       if (resRep.success) setReports({ ...resRep.data, isArchived: resRep.isArchived, closingMeta: resRep.closingMeta })
       if (resEis && resEis.success) setEisData(resEis)
+      if (resLoans && resLoans.success && Array.isArray(resLoans.data)) setLoanMembers(resLoans.data)
       if (resSet.success) {
         setSettings(resSet.data)
         if (resSet.data.bumdes_logo) {
@@ -1928,6 +1931,154 @@ export default function StislaApp() {
                           />
                         </div>
                       </div>
+
+                      {/* === DETEKSI ANGGOTA SIMPAN PINJAM (USP) & SUMBER KAS CEPAT (0 TOKEN COST) === */}
+                      {(() => {
+                        const rawParty = (aiResult.payeeOrPayer || "").trim()
+                        const cleanName = rawParty.replace(/^(pak|bpk|bapak|ibu|bu|sdr|sdri)\.?\s+/i, "").trim().toLowerCase()
+                        const isUspTx =
+                          aiResult.unitName?.toLowerCase().includes("simpan pinjam") ||
+                          aiResult.lines?.some((l: any) => l.accountCode?.startsWith("1.1.02") || l.accountCode?.startsWith("2.1.01") || l.accountCode === "4.1.08.01")
+
+                        const matchedMember = loanMembers.find((m: any) =>
+                          (cleanName && m.name.toLowerCase() === cleanName) ||
+                          (rawParty && m.memberNo.toLowerCase() === rawParty.toLowerCase()) ||
+                          (cleanName.length >= 4 && m.name.toLowerCase().includes(cleanName))
+                        )
+
+                        const candidateMembers = !matchedMember && cleanName.length >= 3
+                          ? loanMembers.filter((m: any) => {
+                              const mParts = m.name.toLowerCase().split(/\s+/)
+                              const pParts = cleanName.split(/\s+/)
+                              return mParts.some((mp: string) => mp.length >= 3 && cleanName.includes(mp)) ||
+                                     pParts.some((pp: string) => pp.length >= 3 && m.name.toLowerCase().includes(pp))
+                            }).slice(0, 3)
+                          : []
+
+                        // Cari akun kas/bank pada baris jurnal
+                        const cashLineIdx = aiResult.lines?.findIndex((l: any) => l.accountCode?.startsWith("1.1.01"))
+                        const activeCashCode = cashLineIdx !== -1 && cashLineIdx !== undefined ? aiResult.lines[cashLineIdx]?.accountCode : null
+
+                        const paymentOptions = [
+                          { code: "1.1.01.01", label: "Kas Tunai" },
+                          { code: "1.1.01.07", label: "Bank Jombang" },
+                          { code: "1.1.01.06", label: "Bank Jatim" },
+                          { code: "1.1.01.04", label: "Bank BRI" }
+                        ]
+
+                        return (
+                          <div className="space-y-2 mb-3">
+                            {/* Quick Switcher Rekening Kas / Bank */}
+                            {cashLineIdx !== -1 && cashLineIdx !== undefined && (
+                              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <div className="flex items-center gap-1.5 text-slate-600 font-bold text-[11px]">
+                                  <Wallet className="w-3.5 h-3.5 text-indigo-600" />
+                                  <span>Sumber Kas / Rekening:</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {paymentOptions.map((opt) => {
+                                    const isSelected = activeCashCode === opt.code
+                                    return (
+                                      <button
+                                        key={opt.code}
+                                        type="button"
+                                        onClick={() => {
+                                          const updated = [...aiResult.lines]
+                                          updated[cashLineIdx] = { ...updated[cashLineIdx], accountCode: opt.code }
+                                          setAiResult({ ...aiResult, lines: updated })
+                                        }}
+                                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                                          isSelected
+                                            ? "bg-indigo-600 text-white shadow-xs"
+                                            : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                                        }`}
+                                      >
+                                        {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
+                                        <span>{opt.label}</span>
+                                        <span className={`text-[9px] font-mono ${isSelected ? "text-indigo-200" : "text-slate-400"}`}>
+                                          ({opt.code})
+                                        </span>
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Deteksi Anggota USP */}
+                            {(isUspTx || matchedMember || candidateMembers.length > 0) && (
+                              <div className="text-xs">
+                                {matchedMember ? (
+                                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-emerald-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div className="flex items-start sm:items-center gap-2">
+                                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
+                                      <div>
+                                        <div className="font-bold flex items-center gap-1.5 flex-wrap">
+                                          <span>Anggota USP Terverifikasi:</span>
+                                          <span className="font-mono bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-[10px]">
+                                            {matchedMember.memberNo}
+                                          </span>
+                                          <span className="text-emerald-950 font-extrabold">{matchedMember.name}</span>
+                                          {matchedMember.groupName && (
+                                            <span className="text-[10px] font-normal text-emerald-700">({matchedMember.groupName})</span>
+                                          )}
+                                        </div>
+                                        <div className="text-[10px] text-emerald-700 mt-0.5 flex items-center gap-2 flex-wrap">
+                                          <span>Sisa Pinjaman: <strong className="font-mono">{formatRupiah(matchedMember.sisaPinjaman)}</strong></span>
+                                          <span>•</span>
+                                          <span>Status: <strong className={matchedMember.statusPinjaman === "MACET" ? "text-rose-600" : "text-emerald-800"}>{matchedMember.statusPinjaman}</strong></span>
+                                          <span>•</span>
+                                          <span>Total Simpanan: <strong className="font-mono">{formatRupiah((matchedMember.simpananPokok || 0) + (matchedMember.simpananWajib || 0) + (matchedMember.simpananSukarela || 0))}</strong></span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    {aiResult.payeeOrPayer !== matchedMember.name && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setAiResult({ ...aiResult, payeeOrPayer: matchedMember.name, unitName: "Unit Simpan Pinjam (USP)" })}
+                                        className="shrink-0 text-[11px] font-bold px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition-colors cursor-pointer self-start sm:self-auto"
+                                        title="Gunakan ejaan resmi anggota di database"
+                                      >
+                                        Gunakan Nama Resmi
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : candidateMembers.length > 0 ? (
+                                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-amber-900">
+                                    <div className="flex items-center gap-1.5 font-bold text-[11px]">
+                                      <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                                      <span>Nama mirip terdeteksi di Daftar Anggota USP:</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                      {candidateMembers.map((cand: any) => (
+                                        <button
+                                          key={cand.id}
+                                          type="button"
+                                          onClick={() => setAiResult({ ...aiResult, payeeOrPayer: cand.name, unitName: "Unit Simpan Pinjam (USP)" })}
+                                          className="px-2 py-0.5 rounded-lg text-[11px] bg-white border border-amber-300 text-amber-800 hover:bg-amber-100 font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                                        >
+                                          <span>+</span>
+                                          <span className="font-mono text-[9px] text-amber-600">{cand.memberNo}</span>
+                                          <span>{cand.name}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  isUspTx && rawParty && (
+                                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-2 text-blue-800 text-[11px] flex items-center gap-2">
+                                      <AlertCircle className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                      <span>
+                                        Pihak <strong>&quot;{rawParty}&quot;</strong> belum terdaftar sebagai anggota USP. Transaksi tetap dapat disimpan ke Kas Umum, atau daftarkan nama ini di menu Buku Simpan Pinjam.
+                                      </span>
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
 
                       {(() => {
                         const aiDebitTotal = aiResult.lines?.filter((l: any) => l.type === "DEBIT").reduce((sum: number, l: any) => sum + (Number(l.amount) || 0), 0) || 0
