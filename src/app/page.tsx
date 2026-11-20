@@ -1899,23 +1899,57 @@ export default function StislaApp() {
                           />
                         </div>
 
-                        {/* Unit Usaha Penanggung Jawab */}
+                        {/* Unit Usaha Penanggung Jawab (Dinamis Seluruh BUMDes Indonesia) */}
                         <div className="sm:col-span-4">
                           <label className="text-[11px] font-bold text-slate-600 block mb-1">
                             Unit Usaha Penanggung Jawab:
                           </label>
-                          <select
-                            value={aiResult.unitName?.includes("Simpan Pinjam") ? "Unit Simpan Pinjam (USP)" : (aiResult.unitName || "Umum")}
-                            onChange={(e) => setAiResult({ ...aiResult, unitName: e.target.value })}
-                            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#6777ef] focus:bg-white shadow-xs transition-colors cursor-pointer"
-                          >
-                            <option value="Umum">Kantor Umum / Sekretariat</option>
-                            <option value="Unit Simpan Pinjam (USP)">Unit Simpan Pinjam (USP)</option>
-                            <option value="Unit Simpan Pinjam">Unit Simpan Pinjam</option>
-                            <option value="Unit Persewaan">Unit Persewaan / Gedung GSG</option>
-                            <option value="Unit Pengelolaan Sampah">Unit Pengelolaan Sampah</option>
-                            <option value="Kemitraan Gapoktan">Kemitraan Pertanian (GAPOKTAN)</option>
-                          </select>
+                          {(() => {
+                            const configuredUnits = settings.business_units
+                              ? settings.business_units.split(",").map((s: string) => s.trim()).filter(Boolean)
+                              : [
+                                  "Unit Simpan Pinjam (USP)",
+                                  "Unit Persewaan & Properti",
+                                  "Unit Perdagangan & Toko Desa",
+                                  "Unit Jasa & Pariwisata Desa",
+                                  "Unit Pengelolaan Air Bersih (PAMDes)"
+                                ]
+                            const historicalUnits = Array.from(new Set(entries.map((e: any) => e.unitName).filter(Boolean)))
+                            const dynamicUnits = Array.from(
+                              new Set([
+                                "Kantor Umum / Sekretariat",
+                                ...configuredUnits,
+                                ...historicalUnits,
+                                ...(aiResult.unitName ? [aiResult.unitName] : [])
+                              ])
+                            )
+
+                            return (
+                              <select
+                                value={aiResult.unitName || "Kantor Umum / Sekretariat"}
+                                onChange={(e) => {
+                                  if (e.target.value === "__NEW__") {
+                                    const customUnit = prompt("Masukkan nama unit usaha baru di BUMDes Anda:")
+                                    if (customUnit && customUnit.trim()) {
+                                      setAiResult({ ...aiResult, unitName: customUnit.trim() })
+                                    }
+                                  } else {
+                                    setAiResult({ ...aiResult, unitName: e.target.value })
+                                  }
+                                }}
+                                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#6777ef] focus:bg-white shadow-xs transition-colors cursor-pointer"
+                              >
+                                {dynamicUnits.map((u) => (
+                                  <option key={u} value={u}>
+                                    {u}
+                                  </option>
+                                ))}
+                                <option value="__NEW__" className="font-bold text-indigo-600">
+                                  + Tambah Unit Usaha Baru...
+                                </option>
+                              </select>
+                            )
+                          })()}
                         </div>
 
                         {/* Tanggal Transaksi */}
@@ -4478,6 +4512,26 @@ export default function StislaApp() {
                         placeholder="Contoh: Jl. Raya Balongbesuk No. 12, Kec. Diwek, Kab. Jombang"
                         className="w-full p-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#6777ef]"
                       />
+                    </div>
+
+                    {/* DAFTAR UNIT USAHA BUMDES (GLOBAL & DINAMIS UNTUK SELURUH DESA) */}
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">
+                        Daftar Unit Usaha Aktif BUMDes (Pisahkan dengan koma)
+                      </label>
+                      <input
+                        type="text"
+                        name="business_units"
+                        defaultValue={
+                          settings.business_units ||
+                          "Unit Simpan Pinjam (USP), Unit Persewaan & Properti, Unit Perdagangan & Toko Desa, Unit Jasa & Pariwisata Desa, Unit Pengelolaan Air Bersih (PAMDes)"
+                        }
+                        placeholder="Contoh: Unit Simpan Pinjam (USP), Unit Wisata Bahari, Unit Pengolahan Kopi, Unit PAMDes"
+                        className="w-full p-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#6777ef] text-slate-900 font-medium"
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Daftar unit usaha yang dijalankan BUMDes di desa Anda. AI Gemini & sistem transaksi akan otomatis memetakan transaksi ke unit-unit ini.
+                      </p>
                     </div>
                   </div>
 

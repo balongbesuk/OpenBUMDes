@@ -96,7 +96,7 @@ export function parseTransactionOffline(userText: string, accounts: any[] = []) 
 
   let targetAccount = proofType === "BKM" ? "4.1.04.01" : "6.1.02.99"
   let cashFlowGroup = "Aktivitas Operasi"
-  let unitName = "Operasional Kantor"
+  let unitName = "Kantor Umum / Sekretariat"
 
   if (isUSP) {
     unitName = "Unit Simpan Pinjam (USP)"
@@ -200,38 +200,50 @@ export function parseTransactionOffline(userText: string, accounts: any[] = []) 
     targetAccount = padesAcc ? padesAcc.code : "3.3.01.01"
     cashFlowGroup = "Aktivitas Pendanaan"
     unitName = "Pemerintah Desa"
-  } else if (lower.includes("rest area") || lower.includes("lapak") || lower.includes("kios") || lower.includes("sewa")) {
+  } else if (lower.includes("wisata") || lower.includes("pantai") || lower.includes("curug") || lower.includes("homestay") || lower.includes("tiket")) {
+    targetAccount = "4.1.03.01"
+    unitName = "Unit Wisata & Rekreasi"
+  } else if (lower.includes("air") || lower.includes("pamdes") || lower.includes("hippam") || lower.includes("meteran air")) {
+    targetAccount = "4.1.03.01"
+    unitName = "Unit Air Bersih (PAMDes)"
+  } else if (lower.includes("sampah") || lower.includes("kebersihan") || lower.includes("tps")) {
+    targetAccount = "4.1.03.01"
+    unitName = "Unit Pengelolaan Sampah"
+  } else if (lower.includes("sewa") || lower.includes("gedung") || lower.includes("kios") || lower.includes("lapak") || lower.includes("tenda") || lower.includes("sound")) {
     targetAccount = lower.includes("gedung") ? "4.1.04.01" : "4.1.04.02"
-    unitName = lower.includes("rest area") ? "Rest Area" : "Sewa & Properti"
+    unitName = "Unit Persewaan & Properti"
+  } else if (lower.includes("jual") || lower.includes("dagang") || lower.includes("toko") || lower.includes("sembako") || lower.includes("minimarket") || lower.includes("mart")) {
+    targetAccount = proofType === "BKM" ? "4.1.01.01" : "5.1.01.01"
+    unitName = "Unit Perdagangan & Toko Desa"
+  } else if (lower.includes("gabah") || lower.includes("pupuk") || lower.includes("bibit") || lower.includes("poktan") || lower.includes("gapoktan") || lower.includes("pertanian")) {
+    targetAccount = proofType === "BKM" ? "4.1.01.01" : "5.1.01.01"
+    unitName = "Unit Pertanian & Kemitraan"
+  } else if (lower.includes("ikan") || lower.includes("nelayan") || lower.includes("tambak") || lower.includes("pakan ikan")) {
+    targetAccount = proofType === "BKM" ? "4.1.01.01" : "5.1.01.01"
+    unitName = "Unit Perikanan & Kelautan"
   } else if (lower.includes("modal") || lower.includes("apbdes")) {
     targetAccount = "3.1.01.01" // Penyertaan Modal Desa
     cashFlowGroup = "Aktivitas Pendanaan"
     unitName = "Pemerintah Desa"
-  } else if (lower.includes("jual") || lower.includes("dagang") || lower.includes("toko") || lower.includes("sembako")) {
-    targetAccount = proofType === "BKM" ? "4.1.01.01" : "5.1.01.01"
-    unitName = "Unit Perdagangan"
-  } else if (lower.includes("jasa") || lower.includes("wisata") || lower.includes("sampah") || lower.includes("parkir")) {
-    targetAccount = "4.1.03.01"
-    unitName = "Jasa & Layanan"
   } else if (lower.includes("konsumsi") || lower.includes("makan") || lower.includes("snack") || lower.includes("rapat") || lower.includes("bakso") || lower.includes("nasi") || lower.includes("kue")) {
     targetAccount = "6.1.02.03" // Beban Konsumsi Rapat (Standar Kepmendes 136)
-    unitName = "Operasional Kantor"
+    unitName = "Kantor Umum / Sekretariat"
   } else if (lower.includes("atk") || lower.includes("kertas") || lower.includes("alat tulis") || lower.includes("cetak") || lower.includes("fotocopy")) {
     targetAccount = "6.1.02.01" // Beban Alat Tulis Kantor
-    unitName = "Operasional Kantor"
-  } else if (lower.includes("listrik") || lower.includes("wifi") || lower.includes("internet") || lower.includes("air") || lower.includes("pln")) {
+    unitName = "Kantor Umum / Sekretariat"
+  } else if (lower.includes("listrik") || lower.includes("wifi") || lower.includes("internet") || lower.includes("pln")) {
     targetAccount = "6.1.04.01"
-    unitName = "Operasional Kantor"
+    unitName = "Kantor Umum / Sekretariat"
   } else if (lower.includes("gaji") || lower.includes("honor") || lower.includes("upah") || lower.includes("insentif")) {
     targetAccount = "6.1.01.01"
-    unitName = "SDM Pengelola"
+    unitName = "Kantor Umum / Sekretariat"
   } else if (lower.includes("servis") || lower.includes("perbaikan") || lower.includes("pemeliharaan")) {
     targetAccount = "6.1.03.01"
-    unitName = "Operasional Kantor"
+    unitName = "Kantor Umum / Sekretariat"
   } else if (lower.includes("laptop") || lower.includes("komputer") || lower.includes("mesin") || lower.includes("kendaraan") || lower.includes("peralatan")) {
     targetAccount = "1.3.01.03"
     cashFlowGroup = "Aktivitas Investasi"
-    unitName = "Inventaris & Aset"
+    unitName = "Kantor Umum / Sekretariat"
   }
 
   // Verifikasi apakah targetAccount ada di database
@@ -390,6 +402,34 @@ export async function parseTransactionWithGemini(userText: string, imageBase64?:
 Contoh Pembayaran Angsuran Majemuk: "Terima pembayaran dari Pak Ilham Hendrik total Rp 1.140.000 tunai dengan rincian: angsuran pokok pinjaman 1.000.000, simpanan 30.000, jasa bunga 90.000, admin 20.000" -> Jenis: BKM, Pihak: Pak Ilham Hendrik, Unit: Unit Simpan Pinjam (USP), Total: 1140000, Jurnal: [DEBIT 1.1.01.01 (1140000), KREDIT 1.1.02.01 (1000000), KREDIT 2.1.01.02 (30000), KREDIT 4.1.08.01 (90000), KREDIT 4.1.05.99 (20000)]
 Contoh Pencairan Pinjaman: "Pencairan pinjaman 1 juta tunai kepada Pak Ilham Hendrik" -> Jenis: BKK, Pihak: Pak Ilham Hendrik, Unit: Unit Simpan Pinjam (USP), Total: 1000000, Jurnal: [DEBIT 1.1.02.01 (1000000), KREDIT 1.1.01.01 (1000000)]`;
 
+  // 2b. Ambil unit usaha aktif di BUMDes ini secara dinamis (dari Pengaturan atau riwayat transaksi)
+  let activeBusinessUnits: string[] = []
+  try {
+    const unitSetting = await db.setting.findUnique({ where: { key: "business_units" } })
+    const settingUnits = unitSetting?.value ? unitSetting.value.split(",").map(s => s.trim()).filter(Boolean) : []
+    const txUnits = await db.journalEntry.findMany({
+      select: { unitName: true },
+      distinct: ["unitName"]
+    })
+    const existingTxUnits = txUnits.map((t: { unitName: string | null }) => t.unitName).filter((u): u is string => Boolean(u))
+    activeBusinessUnits = Array.from(new Set([
+      "Kantor Umum / Sekretariat",
+      "Unit Simpan Pinjam (USP)",
+      ...settingUnits,
+      ...existingTxUnits
+    ]))
+  } catch (err) {
+    activeBusinessUnits = [
+      "Kantor Umum / Sekretariat",
+      "Unit Simpan Pinjam (USP)",
+      "Unit Persewaan & Properti",
+      "Unit Perdagangan & Toko Desa",
+      "Unit Jasa & Pariwisata Desa",
+      "Unit Pengelolaan Air Bersih (PAMDes)"
+    ]
+  }
+  const unitListStr = activeBusinessUnits.map(u => `- ${u}`).join("\n")
+
   if (!exampleContext) {
     exampleContext = `\n\nCONTOH STANDAR TRANSAKSI KEPMENDES 136:
 Contoh 1: "Beli kertas HVS dan spidol kantor 65rb bayar tunai" -> Jenis: BKK, Pihak: Toko ATK, DEBIT 6.1.02.01 (Beban ATK), KREDIT 1.1.01.01 (Kas Tunai)
@@ -448,7 +488,12 @@ ATURAN WAJIB:
      * Transaksi Majemuk Pembayaran Angsuran USP:
        Total penerimaan kas (DEBIT 1.1.01.01 Kas Tunai) harus sama persis dengan penjumlahan baris KREDIT (Pokok + Simpanan + Bunga + Administrasi).
      * Transaksi Pencairan Pinjaman ke Warga (BKK):
-       DEBIT [1.1.02.01] Piutang Pinjaman Masyarakat, KREDIT [1.1.01.01] Kas Tunai (atau [1.1.01.xx] Kas Bank).`
+       DEBIT [1.1.02.01] Piutang Pinjaman Masyarakat, KREDIT [1.1.01.01] Kas Tunai (atau [1.1.01.xx] Kas Bank).10. ATURAN PENETAPAN UNIT USAHA (DINAMIS & FLEKSIBEL SESUAI BIDANG USAHA DESA):
+    Daftar Unit Usaha yang tercatat aktif di BUM Desa ini:
+${unitListStr}
+    * Selaraskan nilai 'unitName' ke salah satu nama unit usaha aktif di atas yang paling tepat dengan narasi transaksi.
+    * Jika transaksi merujuk pada bidang usaha desa yang jelas berbeda (misal: "Unit Wisata", "Unit PAMDes", "Unit Tambak", "Unit Peternakan"), tentukan nama unit baru yang relevan.
+    * Transaksi beban umum induk (ATK, listrik PLN, WiFi, konsumsi rapat, honor pengelola induk) WAJIB gunakan: "Kantor Umum / Sekretariat".`
 
   const modelSetting = await db.setting.findUnique({ where: { key: "gemini_model" } })
   const chosenModel = modelSetting?.value?.trim() || "gemini-3.5-flash"
