@@ -2,6 +2,7 @@
 
 import React, { useRef } from "react"
 import {
+  Sliders,
   Sparkles,
   Building2,
   Upload,
@@ -132,7 +133,7 @@ export default function SettingsTab({
     <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-slate-200 p-4 sm:p-8 shadow-xs space-y-8">
       <div>
         <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-[#6777ef]" />
+          <Sliders className="w-5 h-5 text-[#6777ef]" />
           {isAiConfigured ? "Pengaturan BUMDes & Gemini AI" : "Pengaturan Profil & Sistem BUMDes"}
         </h3>
         <p className="text-xs text-slate-500 mt-1">
@@ -142,10 +143,10 @@ export default function SettingsTab({
 
       {/* KARTU STATUS KUNCI & KUOTA KREDIT GEMINI AI (Hanya jika API key diisi) */}
       {isAiConfigured && aiStatus && (
-        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-50/80 via-purple-50/40 to-white text-slate-800 shadow-sm border border-indigo-100">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-indigo-100/80">
+        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-slate-50 text-slate-800 shadow-xs border border-slate-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-200">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-100/80 text-[#6777ef] flex items-center justify-center shrink-0 shadow-2xs border border-indigo-200/50">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-[#6777ef] flex items-center justify-center shrink-0 border border-indigo-100">
                 <Sparkles className="w-5 h-5 text-indigo-600 shrink-0" />
               </div>
               <div>
@@ -153,7 +154,7 @@ export default function SettingsTab({
                   <span>Status & Kuota Kredit Gemini AI</span>
                   {aiStatus.keyValid ? (
                     <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                       Kunci Aktif
                     </span>
                   ) : (

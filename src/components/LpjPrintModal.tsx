@@ -552,9 +552,7 @@ export default function LpjPrintModal({
     printContainer.appendChild(element.cloneNode(true))
 
     const body = printDoc.body
-    body.innerHTML = ""
-    body.appendChild(toolbar)
-    body.appendChild(printContainer)
+    body.replaceChildren(toolbar, printContainer)
 
     let printed = false
     const triggerPrint = () => {

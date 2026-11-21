@@ -69,6 +69,7 @@ export default function InlinePartyEditor({ entry, onSave }: InlinePartyEditorPr
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault()
+              if (e.nativeEvent.isComposing || e.keyCode === 229) return
               handleCommit()
             } else if (e.key === "Escape") {
               e.preventDefault()

@@ -410,30 +410,37 @@ export default function MobileScanPage() {
 
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label htmlFor="scan-username" className="block text-xs font-semibold text-slate-300 mb-1">
                 Username Operator
               </label>
               <input
+                id="scan-username"
                 type="text"
+                name="username"
+                autoComplete="username"
+                spellCheck={false}
                 required
                 value={loginForm.username}
                 onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
                 placeholder="Contoh: admin atau operator"
-                className="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label htmlFor="scan-password" className="block text-xs font-semibold text-slate-300 mb-1">
                 Kata Sandi
               </label>
               <input
+                id="scan-password"
                 type="password"
+                name="password"
+                autoComplete="current-password"
                 required
                 value={loginForm.password}
                 onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                 placeholder="••••••••"
-                className="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
             </div>
 
@@ -491,9 +498,11 @@ export default function MobileScanPage() {
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <button
+            type="button"
             onClick={handleLogout}
             className="p-2 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-500/10 text-xs"
             title="Keluar"
+            aria-label="Keluar"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -503,7 +512,7 @@ export default function MobileScanPage() {
       <main className="p-4 space-y-4 flex-1">
         {/* Banner Pesan Sukses */}
         {successMessage && (
-          <div className="p-3.5 bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 rounded-2xl text-xs flex items-center gap-2.5 animate-in fade-in">
+          <div role="status" aria-live="polite" className="p-3.5 bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 rounded-2xl text-xs flex items-center gap-2.5 animate-in fade-in">
             <CheckCircle className="w-5 h-5 shrink-0 text-emerald-400" />
             <div className="flex-1 font-medium">{successMessage}</div>
           </div>
@@ -511,7 +520,7 @@ export default function MobileScanPage() {
 
         {/* Banner Pesan Error */}
         {errorMessage && (
-          <div className="p-3.5 bg-rose-500/15 border border-rose-500/40 text-rose-300 rounded-2xl text-xs flex items-center gap-2.5 animate-in fade-in">
+          <div role="alert" className="p-3.5 bg-rose-500/15 border border-rose-500/40 text-rose-300 rounded-2xl text-xs flex items-center gap-2.5 animate-in fade-in">
             <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
             <div className="flex-1 font-medium">{errorMessage}</div>
           </div>
@@ -520,6 +529,7 @@ export default function MobileScanPage() {
         {/* Tab Switcher: Kamera vs Teks */}
         <div className="grid grid-cols-2 p-1 bg-slate-800 rounded-2xl border border-slate-700">
           <button
+            type="button"
             onClick={() => {
               setInputMode("camera")
               setErrorMessage("")
@@ -533,6 +543,7 @@ export default function MobileScanPage() {
             Foto Nota / Struk
           </button>
           <button
+            type="button"
             onClick={() => {
               setInputMode("text")
               setErrorMessage("")
@@ -619,12 +630,16 @@ export default function MobileScanPage() {
                 </div>
 
                 <div>
+                  <label htmlFor="scan-extra-prompt" className="sr-only">
+                    Tambahan informasi transaksi
+                  </label>
                   <input
+                    id="scan-extra-prompt"
                     type="text"
                     value={extraPrompt}
                     onChange={(e) => setExtraPrompt(e.target.value)}
                     placeholder="Tambahan info (misal: Unit Persewaan GSG)..."
-                    className="w-full text-xs bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    className="w-full text-base sm:text-xs bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -661,12 +676,16 @@ export default function MobileScanPage() {
               </h3>
             </div>
 
+            <label htmlFor="scan-text-prompt" className="sr-only">
+              Catat transaksi tanpa bukti fisik
+            </label>
             <textarea
+              id="scan-text-prompt"
               rows={3}
               value={textPrompt}
               onChange={(e) => setTextPrompt(e.target.value)}
               placeholder="Ketik kegiatan di sini, misal:&#10;Beli bensin motor dinas 35.000 di pom bensin"
-              className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none leading-relaxed"
+              className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3 text-base sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none leading-relaxed"
             />
 
             <div>
@@ -713,7 +732,7 @@ export default function MobileScanPage() {
           <div className="bg-slate-800 border-2 border-emerald-500/60 rounded-3xl p-4 space-y-3.5 shadow-2xl animate-in fade-in slide-in-from-bottom-2">
             <div className="flex items-center justify-between pb-2 border-b border-slate-700">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
                   Hasil Bacaan AI (Verifikasi)
                 </h3>
@@ -751,39 +770,43 @@ export default function MobileScanPage() {
               {/* Tanggal & Nominal */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] text-slate-400 font-semibold block mb-1">
+                  <label htmlFor="scan-tx-date" className="text-[10px] text-slate-400 font-semibold block mb-1">
                     Tanggal Transaksi
                   </label>
                   <input
+                    id="scan-tx-date"
                     type="date"
                     value={parsedData.date}
                     onChange={(e) => setParsedData({ ...parsedData, date: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-base sm:text-xs text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 font-semibold block mb-1">
+                  <label htmlFor="scan-tx-amount" className="text-[10px] text-slate-400 font-semibold block mb-1">
                     Nominal (Rp)
                   </label>
                   <input
-                    type="number"
+                    id="scan-tx-amount"
+                    type="text"
+                    inputMode="numeric"
                     value={parsedData.amount}
                     onChange={(e) => setParsedData({ ...parsedData, amount: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-base sm:text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
 
               {/* Pihak Terkait (Penyetor / Toko) */}
               <div>
-                <label className="text-[10px] text-slate-400 font-semibold block mb-1">
+                <label htmlFor="scan-tx-party" className="text-[10px] text-slate-400 font-semibold block mb-1">
                   Pihak / Toko / Pembayar
                 </label>
                 <input
+                  id="scan-tx-party"
                   type="text"
                   value={parsedData.payeeOrPayer}
                   onChange={(e) => setParsedData({ ...parsedData, payeeOrPayer: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-base sm:text-xs text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -870,26 +893,28 @@ export default function MobileScanPage() {
 
               {/* Keterangan */}
               <div>
-                <label className="text-[10px] text-slate-400 font-semibold block mb-1">
+                <label htmlFor="scan-tx-desc" className="text-[10px] text-slate-400 font-semibold block mb-1">
                   Keterangan Transaksi
                 </label>
                 <input
+                  id="scan-tx-desc"
                   type="text"
                   value={parsedData.description}
                   onChange={(e) => setParsedData({ ...parsedData, description: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-base sm:text-xs text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               {/* Akun Rekening (CoA) */}
               <div>
-                <label className="text-[10px] text-slate-400 font-semibold block mb-1">
+                <label htmlFor="scan-tx-account" className="text-[10px] text-slate-400 font-semibold block mb-1">
                   Akun Pembukuan (CoA Kepmendes 136)
                 </label>
                 <select
+                  id="scan-tx-account"
                   value={parsedData.contraAccount}
                   onChange={(e) => setParsedData({ ...parsedData, contraAccount: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-base sm:text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
                 >
                   {accounts.map((acc) => (
                     <option key={acc.code} value={acc.code}>
@@ -956,10 +981,11 @@ export default function MobileScanPage() {
 
                 return (
                   <div>
-                    <label className="text-[10px] text-slate-400 font-semibold block mb-1">
+                    <label htmlFor="scan-tx-unit" className="text-[10px] text-slate-400 font-semibold block mb-1">
                       Unit Usaha Penanggung Jawab
                     </label>
                     <select
+                      id="scan-tx-unit"
                       value={parsedData.unitName || "Kantor Umum / Sekretariat"}
                       onChange={(e) => {
                         if (e.target.value === "__NEW__") {
@@ -971,7 +997,7 @@ export default function MobileScanPage() {
                           setParsedData({ ...parsedData, unitName: e.target.value })
                         }
                       }}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-base sm:text-xs text-white focus:outline-none focus:border-emerald-500"
                     >
                       {dynamicUnits.map((u) => (
                         <option key={u} value={u}>

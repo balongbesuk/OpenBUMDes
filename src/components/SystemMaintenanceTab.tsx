@@ -269,7 +269,7 @@ export default function SystemMaintenanceTab({ currentUser, onRefresh }: SystemM
       )}
 
       {/* Header Banner */}
-      <div className="bg-gradient-to-br from-indigo-50/80 via-purple-50/40 to-white rounded-2xl p-6 border border-indigo-100 shadow-sm relative overflow-hidden">
+      <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 shadow-xs relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100/80 text-indigo-800 text-xs font-bold border border-indigo-200/60 mb-3 shadow-2xs">

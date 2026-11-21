@@ -123,7 +123,7 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
             <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 sm:py-1.5 rounded-full bg-indigo-900/60 border border-indigo-500/30 text-indigo-200 text-[11px] sm:text-xs font-semibold backdrop-blur-md shadow-xs">
               <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-400" />
               <span>Standar Kepmendesa PDTT No. 136/2022</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ml-0.5" />
             </div>
 
             {/* Logo & BUMDes Identity */}
@@ -166,7 +166,7 @@ export default function LoginModal({ onSuccess, settings: initialSettings }: Log
             <div className="space-y-2">
               <h2 className="text-2xl xl:text-3xl font-extrabold text-white leading-tight">
                 Tata Kelola Keuangan Desa yang{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-sky-300 to-emerald-400">
+                <span className="text-emerald-400">
                   Transparan & Akuntabel
                 </span>
               </h2>

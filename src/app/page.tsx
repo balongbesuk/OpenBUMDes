@@ -701,7 +701,7 @@ export default function StislaApp() {
           </span>
         ) : (
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             <span>Data Berjalan (Live)</span>
           </span>
         )}
@@ -1096,7 +1096,7 @@ export default function StislaApp() {
                   } flex items-center gap-1`}
                 >
                   {hasFinancialData ? (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                   ) : (
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
                   )}
@@ -1213,7 +1213,7 @@ export default function StislaApp() {
                             @{currentUser?.username || "admin"}
                           </p>
                           <div className="flex items-center gap-1.5 mt-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             <span className="text-[9.5px] font-bold text-emerald-700 uppercase tracking-wider">
                               Sesi Aktif &bull; {currentUser?.role === "ADMIN" ? "Akses Penuh" : "Akses Kasir"}
                             </span>

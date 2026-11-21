@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from "react"
-import { X, Loader2, Search, Sparkles, HelpCircle } from "lucide-react"
+import { X, Loader2, Search, ListOrdered, HelpCircle } from "lucide-react"
 import { showAppAlert } from "@/components/ui/AppDialog"
 import { getLocalDateString } from "@/lib/utils"
 
@@ -342,7 +342,7 @@ export function ManualTransactionModal({
               {/* Quick Pick Buttons */}
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
                 <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-indigo-500" /> Pilihan Populer:
+                  <ListOrdered className="w-3 h-3 text-slate-500" /> Pilihan Populer:
                 </span>
                 {(form.proofType === "BKK" ? quickBkkAccounts : quickBkmAccounts).map((item) => (
                   <button

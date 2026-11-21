@@ -14,7 +14,6 @@ import {
   Building2,
   HelpCircle,
   Award,
-  Sparkles,
   ChevronRight
 } from "lucide-react"
 import { formatRupiah, safePrintElement } from "@/lib/utils"
@@ -191,7 +190,7 @@ export default function EisHealthTab({ settings = {} }: EisHealthTabProps) {
             {/* Explanation / Diagnosis */}
             <div className="md:col-span-8 space-y-3">
               <h4 className="font-bold text-sm text-slate-200 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
+                <Activity className="w-4 h-4 text-emerald-400" />
                 <span>Analisis Eksekutif untuk Penasihat (Kades) & Direktur</span>
               </h4>
               <p className="text-xs text-slate-300 leading-relaxed">

@@ -332,7 +332,7 @@ export async function POST(request: Request) {
       if (result?.entry?.id) {
         await db.journalEntry.delete({ where: { id: result.entry.id } }).catch(() => {})
       }
-      throw new Error(`Gagal mencatat transaksi buku pembantu: ${syncErr.message}`)
+      throw new Error(`Gagal mencatat transaksi buku pembantu: ${syncErr.message}`, { cause: syncErr })
     }
 
     return NextResponse.json({ success: true, data: result })

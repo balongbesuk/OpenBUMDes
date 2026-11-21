@@ -152,8 +152,7 @@ export function safePrintElement(
 
   // Safely clone element node without parsing strings into innerHTML or document.write
   const body = printDoc.body
-  body.innerHTML = ""
-  body.appendChild(element.cloneNode(true))
+  body.replaceChildren(element.cloneNode(true))
 
   // Trigger print cleanly after images are loaded
   let printed = false

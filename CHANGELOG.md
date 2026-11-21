@@ -2,6 +2,24 @@
 
 All notable changes to OpenBUMDes are documented in this file.
 
+## [1.6.6] - 2026-11-21
+
+### Enhanced - Modern Web Standards, Aksesibilitas Mobile (`/scan`), & UI Antislop
+
+* **Modernisasi Web & Keamanan DOM (`src/lib/utils.ts`, `src/components/LpjPrintModal.tsx`, `src/components/InlinePartyEditor.tsx`, `src/app/api/cash-book/route.ts`)**:
+  * Mengganti `body.innerHTML = ""` + `appendChild(...)` dengan `body.replaceChildren(...)` pada modul cetak agar bebas *HTML parsing* dan kompatibel dengan *Trusted Types CSP*.
+  * Menambahkan penjagaan komposisi IME (`!e.nativeEvent.isComposing && e.keyCode !== 229`) pada `Enter` di `InlinePartyEditor` untuk mencegah submit prematur di keyboard prediktif/IME.
+  * Menambahkan `{ cause: syncErr }` pada error buku pembantu di `cash-book/route.ts` untuk menjaga *stack trace* internal saat debugging.
+
+* **Peningkatan UX Mobile & Aksesibilitas `/scan` (`src/app/scan/page.tsx`)**:
+  * Menambahkan `autoComplete="username"` (`spellCheck={false}`) dan `autoComplete="current-password"` pada form login mobile.
+  * Mengubah ukuran font input/select/textarea di HP menjadi `16px` (`text-base sm:text-xs`) untuk mencegah auto-zoom Safari iOS, serta mengganti input nominal ke `type="text" inputMode="numeric"`.
+  * Menghubungkan seluruh `<label>` via `htmlFor`/`id`, menambahkan `role="status"` (`aria-live="polite"`) dan `role="alert"` pada banner pesan, serta menambahkan `type="button"` pada tombol non-submit.
+
+* **Pembersihan UI Antislop (`src/app/page.tsx`, `src/components/*`, `.agents/skills/antislop/SKILL.md`)**:
+  * Menghapus `animate-pulse` dekoratif pada indikator status statis, mengganti ikon `Sparkles` di fitur non-AI (`SettingsTab`, `ManualTransactionModal`, `EisHealthTab`) dengan ikon fungsional, serta menenangkan gradien ungu/pelangi menjadi permukaan `bg-slate-50` / `text-emerald-400` yang solid.
+  * Menambahkan skill proyek `.agents/skills/antislop/SKILL.md` sebagai standar kualitas kode, UI, dan dokumentasi.
+
 ## [1.6.5] - 2026-11-21
 
 ### Added & Enhanced - Kesiapan Universal Nasional, Optimasi AI Zero-Token & Audit Keamanan Transaksi
